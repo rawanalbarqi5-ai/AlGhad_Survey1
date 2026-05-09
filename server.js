@@ -261,8 +261,8 @@ async function buildWord(res, cfg) {
     if (showGender) {
       distRows.push(new TableRow({ children:[
         mH(['Global Q'],DC[0]), mH(['Sec. Q'],DC[1]), mH(['Group'],DC[2]),
-        mH(['%1 موافق بشدة'],DC[3]), mH(['%2 موافق'],DC[4]), mH(['%3 محايد'],DC[5]),
-        mH(['%4 لا أوافق'],DC[6]), mH(['%5 لا أوافق بشدة'],DC[7]), mH(['Mean'],DC[8]),
+        mH(['%1','موافق بشدة','SA'],DC[3]), mH(['%2','موافق','A'],DC[4]), mH(['%3','محايد','N'],DC[5]),
+        mH(['%4','لا أوافق','D'],DC[6]), mH(['%5','لا أوافق بشدة','SD'],DC[7]), mH(['Mean'],DC[8]),
       ]}));
       sec.qs.forEach((q,qi) => {
         distRows.push(new TableRow({ children:[new TableCell({ columnSpan:9, width:{size:CW,type:WidthType.DXA},
