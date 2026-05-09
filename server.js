@@ -11,7 +11,18 @@ const app    = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 app.use(express.json({ limit: '20mb' }));
+// Serve from public/ folder or root (handles both structures)
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
+
+// Fallback: serve index.html from public/ or root
+app.get('/', (req, res) => {
+  const publicIndex = path.join(__dirname, 'public', 'index.html');
+  const rootIndex   = path.join(__dirname, 'index.html');
+  if (require('fs').existsSync(publicIndex)) return res.sendFile(publicIndex);
+  if (require('fs').existsSync(rootIndex))   return res.sendFile(rootIndex);
+  res.send('AlGhad Survey Analyzer is running! Upload index.html to public/ folder.');
+});
 
 // ── Word generation helpers ────────────────────────────────────────────────
 const DARK='1F4E79', MID='2E75B6', PALE='EBF3FB', WHITE='FFFFFF';
