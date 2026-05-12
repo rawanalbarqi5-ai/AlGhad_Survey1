@@ -218,6 +218,35 @@ td{border:1px solid #BDD7EE;padding:7px 9px;text-align:center}
       </div>
     </div>
 
+    <!-- ── Data Range Picker ── -->
+    <div style="background:#FFF8E7;border-radius:12px;padding:16px;margin-bottom:16px;border-right:4px solid #F59E0B;direction:rtl">
+      <div style="font-weight:700;color:#92400E;margin-bottom:12px">📍 تحديد نطاق البيانات — مهم للدقة</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="fld">
+          <label>أول صف للبيانات</label>
+          <input id="dataStartRow" type="number" value="2" min="1" max="100" style="direction:ltr">
+          <div class="hint">عادةً الصف 2 (الصف 1 = عناوين)</div>
+        </div>
+        <div class="fld">
+          <label>أول عمود للأسئلة (رقم)</label>
+          <input id="firstQColNum" type="number" value="" placeholder="فارغ = تلقائي" min="1" style="direction:ltr">
+          <div class="hint">A=1, B=2, C=3... مثال: أسئلة تبدأ من العمود 5 ← اكتبي 5</div>
+        </div>
+        <div class="fld">
+          <label>آخر عمود للأسئلة (رقم)</label>
+          <input id="lastQColNum" type="number" value="" placeholder="فارغ = آخر عمود" min="1" style="direction:ltr">
+          <div class="hint">اتركي فارغاً لأخذ كل الأعمدة حتى الأخير</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button onclick="previewData()" style="background:#F59E0B;color:white;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px">
+          👁️ معاينة البيانات
+        </button>
+        <span style="font-size:12px;color:#92400E">اضغطي للتأكد أن الأعمدة المحددة هي أسئلة فعلية (أرقام 1-5)</span>
+      </div>
+      <div id="previewBox" style="display:none;margin-top:12px;overflow-x:auto;border-radius:8px;border:1px solid #FCD34D"></div>
+    </div>
+
     <div id="e2" class="msg-err" style="display:none;margin-bottom:12px"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn" onclick="toStep3()">التالي: تقسيم المحاور ←</button>
@@ -340,6 +369,62 @@ function initCfg(name){
   go(2);
 }
 
+function previewData(){
+  if(!RAW){alert('ارفعي الملف أولاً');return;}
+  const startRow=Math.max(0,(parseInt(document.getElementById('dataStartRow')?.value)||2)-2);
+  const firstQ=parseInt(document.getElementById('firstQColNum')?.value||'0');
+  const lastQ=parseInt(document.getElementById('lastQColNum')?.value||'0');
+
+  // Build preview table
+  const gcolName=document.getElementById('gcol')?.value||'Gender';
+  const gIdx=RAW.headers.findIndex(h=>h.toLowerCase()===gcolName.toLowerCase());
+
+  // Determine column range
+  let startCol=firstQ>0?firstQ-1:0;
+  let endCol=lastQ>0?lastQ-1:RAW.headers.length-1;
+  // Auto-skip gender column
+  const colsToShow=[...Array(endCol-startCol+1).keys()].map(i=>startCol+i).filter(i=>i!==gIdx);
+
+  const previewRows=RAW.rows.slice(startRow,startRow+5);
+  const headers=colsToShow.map(i=>RAW.headers[i]||'Col '+(i+1));
+
+  // Check which columns have numeric data
+  const numericCheck=colsToShow.map(ci=>{
+    const vals=previewRows.map(r=>+r[ci]).filter(v=>!isNaN(v)&&v>0);
+    const allNum=vals.length>0&&previewRows.every(r=>!isNaN(+r[ci])||String(r[ci]||'').trim()==='');
+    return allNum;
+  });
+
+  let tbl=`<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr><th style="background:#1F4E79;color:white;padding:5px 8px">الصف</th>
+    ${headers.map((h,i)=>`<th style="background:${numericCheck[i]?'#1F4E79':'#9C0006'};color:white;padding:5px 8px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h}">${h.slice(0,15)}${h.length>15?'...':''}<br><span style="font-size:9px">${numericCheck[i]?'✅ رقمي':'❌ نصي'}</span></th>`).join('')}
+    </tr></thead><tbody>
+    ${previewRows.map((row,ri)=>`<tr style="background:${ri%2===0?'#EBF3FB':'white'}">
+      <td style="border:1px solid #BDD7EE;padding:4px 6px;font-weight:700">${startRow+ri+2}</td>
+      ${colsToShow.map((ci,i)=>`<td style="border:1px solid #BDD7EE;padding:4px 6px;text-align:center;color:${numericCheck[i]?'#1F4E79':'#9C0006'}">${row[ci]??''}</td>`).join('')}
+    </tr>`).join('')}
+    </tbody></table>`;
+
+  const nonNumeric=headers.filter((_,i)=>!numericCheck[i]);
+  const numCount=numericCheck.filter(Boolean).length;
+
+  const box=document.getElementById('previewBox');
+  box.style.display='block';
+  box.innerHTML=`
+    <div style="padding:10px;background:#FFF8E7;direction:rtl">
+      <div style="font-weight:700;color:#92400E;margin-bottom:6px">معاينة أول ${previewRows.length} صفوف من الصف ${startRow+2}:</div>
+      <div style="font-size:12px;color:#555;margin-bottom:8px">
+        ✅ أعمدة رقمية (ستُحلَّل): <b style="color:#375623">${numCount}</b> عمود |
+        ❌ أعمدة نصية (ستُتجاهَل): <b style="color:#9C0006">${nonNumeric.length}</b> عمود
+        ${nonNumeric.length>0?'<br>الأعمدة النصية: '+nonNumeric.slice(0,5).join(', '):''}
+      </div>
+      ${tbl}
+      <div style="margin-top:8px;font-size:12px;color:#92400E">
+        💡 إذا ظهرت أعمدة نصية لا تريدينها: غيّري رقم "أول عمود للأسئلة" وأعيدي المعاينة
+      </div>
+    </div>`;
+}
+
 function toStep3(){
   document.getElementById('e2').style.display='none';
   const gcol=document.getElementById('gcol').value.trim();
@@ -365,13 +450,33 @@ function toStep3(){
     });
   }
 
-  // First question column filter
-  const firstQColVal=(document.getElementById('firstQCol')?.value||'').trim();
-  let qH=RAW.headers.filter((_,i)=>i!==gIdx);
-  if(firstQColVal){
-    const fi=qH.findIndex(h=>h===firstQColVal||h.toLowerCase().includes(firstQColVal.toLowerCase()));
-    if(fi>=0) qH=qH.slice(fi);
+  // Column range filter
+  const firstQN=parseInt(document.getElementById('firstQColNum')?.value||'0');
+  const lastQN =parseInt(document.getElementById('lastQColNum')?.value||'0');
+  let allHeaders=RAW.headers.map((h,i)=>({h,i}));
+  let qRange=allHeaders.filter(({i})=>i!==gIdx);
+  if(firstQN>0) qRange=qRange.filter(({i})=>i>=firstQN-1);
+  if(lastQN>0)  qRange=qRange.filter(({i})=>i<=lastQN-1);
+
+  // Auto-filter: only keep columns with numeric data
+  const sampleRows=dataRows.slice(0,Math.min(10,dataRows.length));
+  qRange=qRange.filter(({i})=>{
+    const vals=sampleRows.map(r=>r[i]).filter(v=>v!==''&&v!==null&&v!==undefined);
+    if(!vals.length) return false;
+    const numVals=vals.filter(v=>!isNaN(+v)&&+v>=1&&+v<=5);
+    return numVals.length/vals.length>=0.5; // at least 50% numeric 1-5
+  });
+
+  if(!qRange.length){
+    showE('e2','لم يتم العثور على أعمدة أسئلة رقمية (1-5). تأكدي من تحديد النطاق الصحيح أو استخدمي زر المعاينة.');
+    return;
   }
+  let qH=qRange.map(({h})=>h);
+  // Remap fRows/mRows to use correct column indices
+  const qColIdx=qRange.map(({i})=>i);
+  const remapRows=rows=>rows.map(row=>qColIdx.map(ci=>row[ci]));
+  fRows=remapRows(fRows);
+  mRows=remapRows(mRows);
 
 
   // Store config
@@ -430,9 +535,9 @@ function doAnalyze(){
   const{gIdx,qH,fRows,mRows}=CFG;
   const nF=fRows.length,nM=mRows.length,n=nF+nM;
   if(!n){alert('\u0644\u0627 \u062A\u0648\u062C\u062F \u0628\u064A\u0627\u0646\u0627\u062A');return;}
-  const qCI=RAW.headers.map((_,i)=>i).filter(i=>i!==gIdx);
+  // Rows are already remapped to question columns only
   const calcQ=qi=>{
-    const ci=qCI[qi];
+    const ci=qi; // direct index after remapping
     const D=g=>[1,2,3,4,5].map(r=>{const c=g.filter(row=>+row[ci]===r).length;return g.length?+((c/g.length*100).toFixed(1)):0;});
     const fD=D(fRows),mD=D(mRows);
     const cD=nF===0?mD:nM===0?fD:fD.map((v,j)=>+((v+mD[j])/2).toFixed(1));
