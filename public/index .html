@@ -186,16 +186,17 @@ td{border:1px solid #BDD7EE;padding:7px 9px;text-align:center}
       </div>
       <div class="fld">
         <label>قيمة الإناث في الملف</label>
-        <select id="fval_sel">
-          <option value="female">Female / female / FEMALE</option>
+        <select id="fval_sel" onchange="document.getElementById('fval_custom').style.display=this.value==='custom'?'block':'none'">
+          <option value="female">Female / female</option>
           <option value="أنثى">أنثى / انثى</option>
+          <option value="طالبات">طالبات</option>
           <option value="f">F / f</option>
           <option value="1">1 (رقم واحد)</option>
           <option value="2">2 (رقم اثنين)</option>
-          <option value="custom">أخرى (اكتبي يدوياً)</option>
+          <option value="custom">✏️ اكتبي يدوياً</option>
         </select>
-        <input id="fval_custom" placeholder="اكتبي قيمة الإناث" style="display:none;margin-top:6px">
-        <div class="hint">اختاري الصيغة الموجودة في ملفك</div>
+        <input id="fval_custom" placeholder="اكتبي قيمة الإناث كما هي في الملف" style="display:none;margin-top:6px">
+        <div class="hint">اختاري الصيغة الموجودة في ملفك — مثال: طالبات أو Female أو أنثى</div>
       </div>
     </div>
 
@@ -445,7 +446,14 @@ function toStep3(){
     if(gIdx<0){showE('e2','عمود "'+gcol+'" غير موجود. الأعمدة: '+RAW.headers.join(', '));return;}
     dataRows.forEach(row=>{
       const g=String(row[gIdx]||'').toLowerCase().trim();
-      const isF=(g==='female'||g==='f'||g==='أنثى'||g==='انثى'||g==='1');
+      // Get female value from select or custom input
+    const fvalSel=document.getElementById('fval_sel')?.value||'female';
+    const fvalCustom=(document.getElementById('fval_custom')?.value||'').trim().toLowerCase();
+    const fvalFinal=fvalSel==='custom'?fvalCustom:fvalSel.toLowerCase();
+    const isF=g===fvalFinal||
+      (fvalFinal==='female'&&(g==='female'||g==='f'))||
+      (fvalFinal==='أنثى'&&(g==='أنثى'||g==='انثى'))||
+      (fvalFinal==='طالبات'&&(g==='طالبات'||g==='طالبه'||g==='طالبة'));
       (isF?fRows:mRows).push(row);
     });
   }
