@@ -136,6 +136,18 @@ td{border:1px solid #BDD7EE;padding:5px 7px;text-align:center}
 
     <!-- Multi mode -->
     <div id="md_multi" style="display:none">
+      <!-- Report type selector -->
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:5px">نوع الاستبيان</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="rt_course" onclick="setReportType('course')"
+            style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:none;background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff">
+            📚 تقييم مقرر</button>
+          <button id="rt_instructor" onclick="setReportType('instructor')"
+            style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:2px solid #BDD7EE;background:#fff;color:#1F4E79">
+            👩‍🏫 تقييم محاضر (ملف XLS من النظام)</button>
+        </div>
+      </div>
       <div class="msg-info">ارفعي ملف كل شعبة — سيتم حساب المتوسط الموزون تلقائياً</div>
       <div id="secFilesList"></div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
@@ -8022,6 +8034,7 @@ function loadSF(i,inp){
 // COMBINE MULTI → compute weighted means
 // ════════════════════════════════════════════════════════════════
 function combineAndGo(){
+  if(REPORT_TYPE==='instructor'){ combineInstructorAndGo(); return; }
   var qCounts=SEC_FILES.map(function(s){return s.raw.headers.length;});
   if(new Set(qCounts).size>1){showE('e1','الملفات فيها عدد أعمدة مختلف: '+qCounts.join(', '));return;}
 
@@ -8382,7 +8395,7 @@ async function genWord(){
   var setP=function(p,t){bar.style.width=p+'%';if(t)msg.innerHTML='<div class="msg-info">⏳ '+t+'</div>';};
   try{
     setP(30,'إرسال البيانات للخادم...');
-    var resp=await fetch('/api/generate-word',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({result:RES,cfg:CFG})});
+    var resp=await fetch('/api/word',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({result:RES,cfg:CFG})});
     if(!resp.ok){var e=await resp.json().catch(function(){return {};});throw new Error(e.error||'Server error '+resp.status);}
     setP(85,'استلام الملف...');
     var blob=await resp.blob();
@@ -8407,6 +8420,253 @@ document.addEventListener('DOMContentLoaded', function(){
     DZ.addEventListener('drop',function(e){e.preventDefault();DZ.classList.remove('drag');loadFile({files:e.dataTransfer.files});});
   }
 });
+
+// ════════════════════════════════════════════════════════════════
+// REPORT TYPE (course / instructor)
+// ════════════════════════════════════════════════════════════════
+var REPORT_TYPE = 'course';
+
+function setReportType(t){
+  REPORT_TYPE = t;
+  var bc = document.getElementById('rt_course');
+  var bi = document.getElementById('rt_instructor');
+  if(bc){ bc.style.background = t==='course'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff'; bc.style.color=t==='course'?'#fff':'#1F4E79'; bc.style.border=t==='course'?'none':'2px solid #BDD7EE'; }
+  if(bi){ bi.style.background = t==='instructor'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff'; bi.style.color=t==='instructor'?'#fff':'#1F4E79'; bi.style.border=t==='instructor'?'none':'2px solid #BDD7EE'; }
+}
+
+// ════════════════════════════════════════════════════════════════
+// PARSE INSTRUCTOR XLS (النظام format: col2=mean, col22=text, col38=Q#)
+// ════════════════════════════════════════════════════════════════
+function parseInstructorXLS(raw){
+  var sections = [];
+  var current = null;
+  var rows = raw.rows;
+  var headers = raw.headers;
+
+  for(var i=0; i<rows.length; i++){
+    var row = rows[i];
+    var rowStr = row.join(' ');
+
+    // Section header: contains المحاضر
+    if(rowStr.indexOf('المحاضر') >= 0 && rowStr.indexOf(':') >= 0){
+      if(current && current.questions.length > 0) sections.push(current);
+      current = {
+        lecturer: String(row[2]||'').trim(),
+        sec_num:  String(row[15]||'').trim(),
+        course:   String(row[27]||'').trim(),
+        semester: String(row[32]||'').trim(),
+        dept:     String(row[29]||'').trim(),
+        loc:      String(row[34]||'').trim(),
+        enrolled: 0, n: 0, questions: []
+      };
+      for(var j=0; j<row.length-1; j++){
+        var v = String(row[j]||'').trim();
+        if(v==='المسجلين :') current.enrolled = parseInt(row[j+2]||row[j+1]||0)||0;
+        if(v==='الشعبة :')  current.sec_num  = String(row[j+2]||row[j+1]||'').trim();
+        if(v==='المقرر :')  current.course   = String(row[j+2]||row[j+1]||'').trim();
+        if(v==='القسم :')   current.dept     = String(row[j+2]||row[j+1]||'').trim();
+      }
+    }
+
+    // Evaluators row
+    if(current && rowStr.indexOf('المقيميين') >= 0){
+      for(var j=0; j<row.length-1; j++){
+        var v = String(row[j]||'').trim();
+        if(v.indexOf('المقيميين') >= 0) current.n = parseInt(row[j-1]||row[j+2]||0)||0;
+        if(v==='المقرر :')  current.course   = String(row[j+2]||row[j+1]||current.course||'').trim();
+        if(v==='الفصل :')   current.semester = String(row[j+2]||row[j+1]||current.semester||'').trim();
+      }
+      if(!current.n) current.n = parseInt(row[23]||0)||0;
+      if(!current.course) current.course = String(row[27]||'').trim();
+    }
+
+    // Question row: col38 = Q#, col2 = mean
+    if(current){
+      var qn = parseFloat(row[38]);
+      var mean = parseFloat(row[2]);
+      var text = String(row[22]||'').trim();
+      if(!isNaN(qn) && !isNaN(mean) && qn>=1 && qn<=50 && mean>0){
+        current.questions.push({
+          qn: Math.round(qn), text: text, mean: +mean.toFixed(3),
+          pct_sa: +(parseFloat(row[5])||0).toFixed(1),
+          pct_a:  +(parseFloat(row[8])||0).toFixed(1),
+          pct_n:  +(parseFloat(row[13])||0).toFixed(1),
+          pct_d:  +(parseFloat(row[17])||0).toFixed(1),
+          pct_sd: +(parseFloat(row[20])||0).toFixed(1),
+        });
+      }
+    }
+  }
+  if(current && current.questions.length > 0) sections.push(current);
+
+  // Calculate section means
+  sections.forEach(function(s){
+    var qm = s.questions.map(function(q){return q.mean;});
+    s.sec_mean = qm.length ? +(qm.reduce(function(a,b){return a+b;},0)/qm.length).toFixed(3) : 0;
+    s.not_responded = Math.max(0, s.enrolled - s.n);
+    s.participation_pct = s.enrolled > 0 ? Math.round(s.n/s.enrolled*100) : 0;
+  });
+
+  return sections;
+}
+
+// ════════════════════════════════════════════════════════════════
+// COMBINE INSTRUCTOR FILES
+// ════════════════════════════════════════════════════════════════
+function combineInstructorAndGo(){
+  var allSecs = [];
+  SEC_FILES.forEach(function(sf){
+    var parsed = parseInstructorXLS(sf.raw);
+    allSecs = allSecs.concat(parsed);
+  });
+
+  if(!allSecs.length){ showE('e1','لم يتم العثور على شعب في الملفات'); return; }
+
+  var nQ = allSecs[0].questions.length;
+  var qTexts = allSecs[0].questions.map(function(q){return q.text;});
+  var totalN = allSecs.reduce(function(a,s){return a+s.n;},0);
+
+  // Group by lecturer
+  var lecMap = {};
+  allSecs.forEach(function(s){
+    if(!lecMap[s.lecturer]) lecMap[s.lecturer] = [];
+    lecMap[s.lecturer].push(s);
+  });
+
+  // Weighted means per lecturer
+  var lecturers = Object.keys(lecMap).map(function(name){
+    var secs = lecMap[name];
+    var tn = secs.reduce(function(a,s){return a+s.n;},0);
+    var qMeans = Array.from({length:nQ},function(_,qi){
+      return tn ? +(secs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0)*s.n;},0)/tn).toFixed(3) : 0;
+    });
+    var mean = qMeans.length ? +(qMeans.reduce(function(a,b){return a+b;},0)/qMeans.length).toFixed(3) : 0;
+    return { name:name, secs:secs, n:tn, mean:mean, qMeans:qMeans,
+      courses:[...new Set(secs.map(function(s){return s.course;}))] };
+  }).sort(function(a,b){return b.mean-a.mean;});
+
+  // Store result
+  CFG.instructorMode = true;
+  CFG.allSecs = allSecs;
+  CFG.lecturers = lecturers;
+  CFG.qTexts = qTexts;
+  CFG.nQ = nQ;
+  CFG.sname = document.getElementById('sname').value || 'تقرير استبانة تقييم المحاضرين';
+  CFG.cname = document.getElementById('cname').value;
+  CFG.semester = document.getElementById('semester').value;
+
+  // Build instructor results
+  buildInstructorUI(allSecs, lecturers, qTexts, totalN);
+  go(4);
+}
+
+// ════════════════════════════════════════════════════════════════
+// INSTRUCTOR UI
+// ════════════════════════════════════════════════════════════════
+function buildInstructorUI(allSecs, lecturers, qTexts, totalN){
+  var totalEnrolled = allSecs.reduce(function(a,s){return a+s.enrolled;},0);
+  var totalNot = allSecs.reduce(function(a,s){return a+s.not_responded;},0);
+  var pct = totalEnrolled>0?Math.round(totalN/totalEnrolled*100):0;
+  var grandMean = totalN>0?+(allSecs.reduce(function(a,s){return a+s.sec_mean*s.n;},0)/totalN).toFixed(3):0;
+  var cl = clf(grandMean);
+
+  // Stats
+  document.getElementById('st4').innerHTML=[
+    {v:totalEnrolled,l:'المسجلون'},{v:totalN,l:'المقيّمون'},
+    {v:totalNot,l:'لم يستبينوا'},{v:pct+'%',l:'نسبة المشاركة'},
+    {v:allSecs.length,l:'الشعب'},{v:lecturers.length,l:'المحاضرون'},
+    {v:grandMean,l:'المتوسط العام'}
+  ].map(function(x){return '<div class="stat"><div class="v">'+x.v+'</div><div class="l">'+x.l+'</div></div>';}).join('');
+
+  // Tab 1: All sections participation
+  var t1 = '<div class="tbl-w"><table><thead><tr>'
+    +'<th>#</th><th>الشعبة</th><th>المقرر</th><th>المحاضر</th>'
+    +'<th>المسجلون</th><th>المقيّمون</th><th>لم يستبينوا</th><th>المشاركة%</th><th>المتوسط</th>'
+    +'</tr></thead><tbody>';
+  allSecs.forEach(function(s,i){
+    var scl=clf(s.sec_mean); var pp=s.participation_pct||0;
+    t1+='<tr class="'+(i%2?'':'even')+'">'
+      +'<td>'+(i+1)+'</td>'
+      +'<td style="font-size:11px">'+esc(s.sec_num)+'</td>'
+      +'<td style="font-weight:700;color:#1F4E79">'+esc(s.course)+'</td>'
+      +'<td style="text-align:right;font-size:11px">'+esc(s.lecturer)+'</td>'
+      +'<td>'+s.enrolled+'</td>'
+      +'<td style="color:#375623;font-weight:700">'+s.n+'</td>'
+      +'<td style="color:'+(s.not_responded>0?'#9C0006':'#375623')+';font-weight:700">'+s.not_responded+'</td>'
+      +'<td><span class="tag" style="background:'+(pp>=80?'#E2EFDA':pp>=60?'#FFEB9C':'#FFC7CE')+';color:'+(pp>=80?'#375623':pp>=60?'#7F6000':'#9C0006')+'">'+pp+'%</span></td>'
+      +'<td style="font-weight:700;color:'+scl.c+';background:'+scl.bg+'">'+s.sec_mean.toFixed(2)+'</td>'
+      +'</tr>';
+  });
+  // Total row
+  t1+='<tr style="background:#1F4E79">'
+    +'<td colspan="4" style="color:#fff;font-weight:700;text-align:center">الإجمالي</td>'
+    +'<td style="color:#fff;font-weight:700">'+totalEnrolled+'</td>'
+    +'<td style="color:#90EE90;font-weight:700">'+totalN+'</td>'
+    +'<td style="color:'+(totalNot>0?'#FFB3B3':'#90EE90')+';font-weight:700">'+totalNot+'</td>'
+    +'<td><span class="tag" style="background:'+(pct>=80?'#E2EFDA':pct>=60?'#FFEB9C':'#FFC7CE')+';color:'+(pct>=80?'#375623':pct>=60?'#7F6000':'#9C0006')+'">'+pct+'%</span></td>'
+    +'<td style="color:'+cl.c+';background:'+cl.bg+';font-weight:700">'+grandMean+'</td>'
+    +'</tr>';
+  t1+='</tbody></table></div>';
+  document.getElementById('pov').innerHTML=t1;
+
+  // Tab 2: Lecturer summary
+  var nQ = qTexts.length;
+  var t2 = '<div class="tbl-w"><table><thead><tr>'
+    +'<th>#</th><th>المحاضر</th><th>المقررات</th><th>الشعب</th><th>المقيّمون</th>'
+    +Array.from({length:nQ},function(_,i){return '<th>Q'+(i+1)+'</th>';}).join('')
+    +'<th>المتوسط الموزون</th><th>التصنيف</th>'
+    +'</tr></thead><tbody>';
+  lecturers.forEach(function(lec,i){
+    var lcl=clf(lec.mean);
+    t2+='<tr class="'+(i%2?'':'even')+'">'
+      +'<td>'+(i+1)+'</td>'
+      +'<td style="text-align:right;font-size:11px">'+esc(lec.name)+'</td>'
+      +'<td style="font-size:10px">'+lec.courses.join(' | ')+'</td>'
+      +'<td>'+lec.secs.length+'</td>'
+      +'<td style="font-weight:700">'+lec.n+'</td>'
+      +lec.qMeans.map(function(qm){var qcl=clf(qm);return '<td style="font-size:11px;color:'+qcl.c+';background:'+qcl.bg+'">'+qm.toFixed(2)+'</td>';}).join('')
+      +'<td style="font-weight:700;font-size:14px;color:'+lcl.c+';background:'+lcl.bg+'">'+lec.mean.toFixed(3)+'</td>'
+      +'<td style="background:'+lcl.bg+'"><span class="tag" style="color:'+lcl.c+'">'+lcl.l+'</span></td>'
+      +'</tr>';
+  });
+  t2+='</tbody></table></div>';
+  document.getElementById('pdt').innerHTML=t2;
+
+  // Tab 3: Q × Course cross table
+  var courses = [...new Set(allSecs.map(function(s){return s.course;}))];
+  var t3 = '<div class="tbl-w"><table><thead><tr><th>السؤال</th>';
+  courses.forEach(function(c){ t3+='<th>'+esc(c)+'</th>'; });
+  t3+='<th>الإجمالي</th></tr></thead><tbody>';
+
+  var courseQMeans = {};
+  courses.forEach(function(code){
+    var cs = allSecs.filter(function(s){return s.course===code;});
+    var tn = cs.reduce(function(a,s){return a+s.n;},0);
+    courseQMeans[code] = Array.from({length:nQ},function(_,qi){
+      return tn?+(cs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0)*s.n;},0)/tn).toFixed(2):0;
+    });
+  });
+
+  Array.from({length:nQ},function(_,qi){
+    var oMean = +(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0)*s.n;},0)/totalN).toFixed(2);
+    var oCl = clf(oMean);
+    t3+='<tr class="'+(qi%2?'':'even')+'">';
+    t3+='<td style="text-align:right;font-size:11px;max-width:200px;direction:rtl">Q'+(qi+1)+' — '+esc((qTexts[qi]||'').slice(0,40))+'</td>';
+    courses.forEach(function(code){
+      var qm=courseQMeans[code][qi]; var qcl=clf(qm);
+      t3+='<td style="color:'+qcl.c+';background:'+qcl.bg+';font-weight:700">'+qm.toFixed(2)+'</td>';
+    });
+    t3+='<td style="font-weight:700;color:'+oCl.c+';background:'+oCl.bg+'">'+oMean+'</td>';
+    t3+='</tr>';
+  });
+  t3+='</tbody></table></div>';
+  document.getElementById('poa').innerHTML=t3;
+
+  // Store for Word download
+  RES = { instructorMode:true, allSecs:allSecs, lecturers:lecturers,
+    qTexts:qTexts, totalN:totalN, totalEnrolled:totalEnrolled,
+    totalNot:totalNot, grandMean:grandMean };
+}
 </script>
 </body>
 </html>
