@@ -8396,7 +8396,11 @@ async function genWord(){
   var setP=function(p,t){bar.style.width=p+'%';if(t)msg.innerHTML='<div class="msg-info">⏳ '+t+'</div>';};
   try{
     setP(30,'إرسال البيانات للخادم...');
-    var resp=await fetch('/api/generate-word',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({result:RES,cfg:CFG})});
+    var resp=await fetch('/api/generate-word',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({result:RES,cfg:{
+      cname:CFG.cname,sname:CFG.sname,obj:CFG.obj,
+      semester:CFG.semester,gmode:CFG.gmode,
+      dept:CFG.dept||'',loc:CFG.loc||''
+    }})});
     if(!resp.ok){var e=await resp.json().catch(function(){return {};});throw new Error(e.error||'Server error '+resp.status);}
     setP(85,'استلام الملف...');
     var blob=await resp.blob();
