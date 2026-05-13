@@ -14,7 +14,15 @@ const upload = multer({ storage: multer.memoryStorage(), limits:{ fileSize:30*10
 app.use(express.json({ limit:'20mb' }));
 
 // ── Static ────────────────────────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname,'public')));
+app.use(express.static(path.join(__dirname,'public'), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+}));
 app.use(express.static(__dirname));
 app.get('/', (req,res) => {
   const p1 = path.join(__dirname,'public','index.html');
