@@ -23996,11 +23996,23 @@ let SEC_FILES = []; // [{name, raw, status}]
 
 function setMode(mode) {
   AMODE = mode;
-  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('on',b.dataset.mode===mode));
-  document.getElementById('single_mode').style.display = mode==='single'?'block':'none';
-  document.getElementById('multi_mode').style.display  = mode==='multi'?'block':'none';
-  if(mode==='multi' && SEC_FILES.length===0){
-    SEC_FILES=[{name:'الشعبة الأولى',raw:null,status:'wait',gmode:'col'},{name:'الشعبة الثانية',raw:null,status:'wait',gmode:'col'}];
+  // Update button styles
+  document.querySelectorAll('.mode-btn').forEach(function(b){
+    b.classList.toggle('on', b.dataset.mode===mode);
+  });
+  // Show/hide divs
+  var sm = document.getElementById('single_mode');
+  var mm = document.getElementById('multi_mode');
+  if(sm) sm.style.display = mode==='single' ? 'block' : 'none';
+  if(mm) mm.style.display = mode==='multi'  ? 'block' : 'none';
+  // Init sec files for multi mode
+  if(mode==='multi'){
+    if(!SEC_FILES || SEC_FILES.length===0){
+      SEC_FILES=[
+        {name:'الشعبة الأولى', raw:null, status:'wait', gmode:'col', gcol:'Gender'},
+        {name:'الشعبة الثانية', raw:null, status:'wait', gmode:'col', gcol:'Gender'},
+      ];
+    }
     renderSecFiles();
   }
 }
