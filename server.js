@@ -2,385 +2,635 @@ const express = require('express');
 const multer  = require('multer');
 const XLSX    = require('xlsx');
 const path    = require('path');
+const fs      = require('fs');
+
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign, PageOrientation
 } = require('docx');
 
 const app    = express();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits:{ fileSize:30*1024*1024 } });
+app.use(express.json({ limit:'20mb' }));
 
-app.use(express.json({ limit: '20mb' }));
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
+// ── Static ────────────────────────────────────────────────────────────────────
+app.use(express.static(path.join(__dirname,'public')));
 app.use(express.static(__dirname));
-
-// Smart fallback - find any HTML file in public/
-app.get('/', (req, res) => {
-  const fs = require('fs');
-  const publicDir = path.join(__dirname, 'public');
-  
-  // Try exact name first
-  const exact = path.join(publicDir, 'index.html');
-  if (fs.existsSync(exact)) return res.sendFile(exact);
-  
-  // Try any html file in public/
+app.get('/', (req,res) => {
+  const p1 = path.join(__dirname,'public','index.html');
+  if(fs.existsSync(p1)) return res.sendFile(p1);
   try {
-    const files = fs.readdirSync(publicDir);
-    const html = files.find(f => f.endsWith('.html'));
-    if (html) return res.sendFile(path.join(publicDir, html));
-  } catch(e) {}
-  
-  // Try root
-  const rootHtml = path.join(__dirname, 'index.html');
-  if (fs.existsSync(rootHtml)) return res.sendFile(rootHtml);
-  
-  res.send('Server running - please upload index.html to public/ folder');
+    const files = fs.readdirSync(path.join(__dirname,'public')).filter(f=>f.endsWith('.html'));
+    if(files.length) return res.sendFile(path.join(__dirname,'public',files[0]));
+  } catch(e){}
+  const p2 = path.join(__dirname,'index.html');
+  if(fs.existsSync(p2)) return res.sendFile(p2);
+  res.send('Server running');
 });
 
-// ── Word generation helpers ────────────────────────────────────────────────
-const DARK='1F4E79', MID='2E75B6', PALE='EBF3FB', WHITE='FFFFFF';
-const GREEN='375623', GREEN2='E2EFDA', AMBER='7F6000', AMBER2='FFEB9C';
-const RED='9C0006', RED2='FFC7CE', FSHADE='FCE4D6', MSHADE='DDEBF7', CSHADE='E2EFDA';
-const CW = 14400;
+// ── Colors & helpers ──────────────────────────────────────────────────────────
+const DARK='1F4E79',MID='2E75B6',PALE='EBF3FB',WHITE='FFFFFF';
+const GREEN='375623',GREEN2='E2EFDA',AMBER='7F6000',AMBER2='FFEB9C';
+const RED='9C0006',RED2='FFC7CE',PINK='FCE4D6',BLUE2='DDEBF7',ORANGE='ED7D31',ORANGE2='FCE4D6';
 
-const brd = () => ({ style: BorderStyle.SINGLE, size: 4, color: 'AAAAAA' });
-const allB = () => { const b = brd(); return { top:b, bottom:b, left:b, right:b }; };
-const mg   = () => ({ top:80, bottom:80, left:120, right:120 });
+const brd=(c='AAAAAA')=>({style:BorderStyle.SINGLE,size:4,color:c});
+const allB=(c='AAAAAA')=>{const b=brd(c);return{top:b,bottom:b,left:b,right:b};};
+const mg=()=>({top:70,bottom:70,left:100,right:100});
 
-const clf = m => {
-  if (m <= 1.5) return { l:'Excellent', ar:'ممتاز',  hx:GREEN2, hc:GREEN };
-  if (m <= 2.0) return { l:'Good',      ar:'جيد',    hx:GREEN2, hc:GREEN };
-  if (m <= 2.5) return { l:'Acceptable',ar:'مقبول',  hx:AMBER2, hc:AMBER };
-  if (m <= 3.0) return { l:'Weakness',  ar:'ضعف',    hx:RED2,   hc:RED   };
-  return               { l:'Critical',  ar:'حرج',    hx:RED2,   hc:RED   };
+const clf=m=>{
+  if(m>=4.5)return{l:'ممتاز',en:'Excellent',bg:GREEN2,c:GREEN};
+  if(m>=3.5)return{l:'جيد جداً',en:'Very Good',bg:GREEN2,c:GREEN};
+  if(m>=2.5)return{l:'جيد',en:'Good',bg:AMBER2,c:AMBER};
+  if(m>=1.5)return{l:'مقبول',en:'Acceptable',bg:RED2,c:RED};
+  return{l:'ضعيف',en:'Weak',bg:RED2,c:RED};
 };
 
-const mC = (text, w, shade, opts={}) => new TableCell({
-  width: { size:w, type:WidthType.DXA }, borders: allB(),
-  shading: shade ? { fill:shade, type:ShadingType.CLEAR } : undefined,
-  margins: mg(), verticalAlign: VerticalAlign.CENTER, rowSpan: opts.rowSpan,
-  children: [new Paragraph({
-    alignment: opts.align || AlignmentType.CENTER,
-    children: [new TextRun({ text: String(text ?? ''), bold: opts.bold||false,
-      color: opts.color||'000000', size: opts.size||18, font:'Arial' })]
-  })]
+const mC=(text,w,shade,opts={})=>new TableCell({
+  width:{size:w,type:WidthType.DXA},borders:allB(),
+  shading:shade?{fill:shade,type:ShadingType.CLEAR}:undefined,
+  margins:mg(),verticalAlign:VerticalAlign.CENTER,
+  rowSpan:opts.rowSpan,columnSpan:opts.colSpan,
+  children:[new Paragraph({alignment:opts.align||AlignmentType.CENTER,
+    children:[new TextRun({text:String(text??''),bold:opts.bold||false,
+      color:opts.color||'000000',size:opts.size||17,font:'Arial'})]})]
 });
 
-const mH = (lines, w, shade=DARK) => new TableCell({
-  width: { size:w, type:WidthType.DXA }, borders: allB(),
-  shading: { fill:shade, type:ShadingType.CLEAR }, margins: mg(), verticalAlign: VerticalAlign.CENTER,
-  children: lines.map(l => new Paragraph({
-    alignment: AlignmentType.CENTER, spacing: { before:0, after:0 },
-    children: [new TextRun({ text:l, bold:true, color:WHITE, size:17, font:'Arial' })]
-  }))
+const mH=(lines,w,shade=DARK,size=16)=>new TableCell({
+  width:{size:w,type:WidthType.DXA},borders:allB(shade),
+  shading:{fill:shade,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+  children:lines.map(l=>new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},
+    children:[new TextRun({text:l,bold:true,color:WHITE,size,font:'Arial'})]}))
 });
 
-const mP  = (text, opts={}) => new Paragraph({
-  alignment: opts.align || AlignmentType.LEFT,
-  spacing: { before: opts.before||60, after: opts.after||80 },
-  children: [new TextRun({ text, bold:opts.bold||false, color:opts.color||'000000', size:opts.size||18, font:'Arial' })]
+const mP=(text,opts={})=>new Paragraph({
+  alignment:opts.align||AlignmentType.RIGHT,
+  spacing:{before:opts.before||80,after:opts.after||80},
+  children:[new TextRun({text,bold:opts.bold||false,color:opts.color||'000000',
+    size:opts.size||20,font:'Arial',italics:opts.italic||false})]
 });
-const mPR = (text, opts={}) => mP(text, { ...opts, align: AlignmentType.RIGHT });
-const sp  = () => new Paragraph({ spacing:{ before:120, after:120 }, children:[] });
+const sp=(b=100,a=100)=>new Paragraph({spacing:{before:b,after:a},children:[]});
 
-// ── Build Word document from RES + CFG ─────────────────────────────────────
-async function buildWord(res, cfg) {
-  const { nF, nM, n, secs, overall, isMulti, secFileNames, nPerSection } = res;
-  const { cname, sname, obj, semester, gmode } = cfg;
-  const showGender = gmode === 'col';
-  const children = [];
+const wMean=secs=>{const tn=secs.reduce((a,s)=>a+s.n,0);if(!tn)return null;return +(secs.reduce((a,s)=>a+s.sec_mean*s.n,0)/tn).toFixed(3);};
+const wQMean=(secs,qi)=>{const tn=secs.reduce((a,s)=>a+s.n,0);if(!tn)return null;return +(secs.reduce((a,s)=>a+(s.questions[qi]?.mean||0)*s.n,0)/tn).toFixed(2);};
+
+// ── Parse XLS ─────────────────────────────────────────────────────────────────
+function parseXLS(buffer) {
+  const wb = XLSX.read(buffer,{type:'buffer'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+
+  const sections=[];
+  let current=null;
+
+  for(let i=0;i<rows.length;i++){
+    const row=rows[i];
+    const rowStr=row.join(' ');
+
+    if(rowStr.includes('المحاضر:')){
+      if(current) sections.push(current);
+      current={lecturer:String(row[2]||'').trim(),sec_num:String(row[15]||'').trim(),
+        enrolled:'',dept:'',loc:'',evaluators:'',course:'',semester:'',questions:[]};
+      for(let j=0;j<row.length-1;j++){
+        const v=String(row[j]||'').trim();
+        if(v==='الشعبة :')   current.sec_num   = String(row[j+2]||row[j+1]||'').trim();
+        if(v==='المسجلين :') current.enrolled  = String(row[j+2]||row[j+1]||'').trim();
+        if(v==='القسم :')    current.dept      = String(row[j+2]||row[j+1]||'').trim();
+        if(v==='المقر :')    current.loc       = String(row[j+2]||row[j+1]||'').trim();
+      }
+    }
+
+    if(current && rowStr.includes('المقيميين')){
+      if(!current.evaluators) current.evaluators=String(row[23]||'').trim();
+      if(!current.course)     current.course    =String(row[27]||'').trim();
+      if(!current.semester)   current.semester  =String(row[32]||'').trim();
+      for(let j=0;j<row.length-1;j++){
+        const v=String(row[j]||'').trim();
+        if(v.includes('المقيميين')) current.evaluators=String(row[j-1]||row[j+2]||current.evaluators||'').trim();
+        if(v==='المقرر :')  current.course   =String(row[j+2]||row[j+1]||current.course||'').trim();
+        if(v==='الفصل :')   current.semester =String(row[j+2]||row[j+1]||current.semester||'').trim();
+      }
+    }
+
+    if(current){
+      const qn=parseFloat(row[38]),mean=parseFloat(row[2]),text=String(row[22]||'').trim();
+      if(!isNaN(qn)&&!isNaN(mean)&&qn>=1&&qn<=50&&mean>0){
+        current.questions.push({
+          qn:Math.round(qn),text,mean:+mean.toFixed(3),
+          pct_sa:+(parseFloat(row[5])||0).toFixed(1),
+          pct_a: +(parseFloat(row[8])||0).toFixed(1),
+          pct_n: +(parseFloat(row[13])||0).toFixed(1),
+          pct_d: +(parseFloat(row[17])||0).toFixed(1),
+          pct_sd:+(parseFloat(row[20])||0).toFixed(1),
+          cnt_sa:parseInt(row[4])||0,cnt_a:parseInt(row[7])||0,
+          cnt_n:parseInt(row[12])||0,cnt_d:parseInt(row[16])||0,cnt_sd:parseInt(row[19])||0,
+        });
+      }
+    }
+  }
+  if(current) sections.push(current);
+
+  sections.forEach(s=>{
+    s.n=parseInt(s.evaluators)||0;
+    s.enrolled_num=parseInt(s.enrolled)||0;
+    s.not_responded=Math.max(0,s.enrolled_num-s.n);
+    s.participation_pct=s.enrolled_num>0?Math.round(s.n/s.enrolled_num*100):0;
+    const qm=s.questions.map(q=>q.mean);
+    s.sec_mean=qm.length?+(qm.reduce((a,b)=>a+b,0)/qm.length).toFixed(3):0;
+  });
+
+  return sections.filter(s=>s.questions.length>0);
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+app.post('/api/upload',upload.single('file'),(req,res)=>{
+  try{
+    const sections=parseXLS(req.file.buffer);
+    res.json({ok:true,sections,filename:req.file.originalname});
+  }catch(e){res.status(400).json({ok:false,error:e.message});}
+});
+
+// ── Generate Word ─────────────────────────────────────────────────────────────
+app.post('/api/word',async(req,res)=>{
+  try{
+    const {groups,meta,reportType}=req.body;
+    const buf = reportType==='instructor'
+      ? await buildInstructorWord(groups,meta)
+      : await buildCourseWord(groups,meta);
+    res.set({'Content-Type':'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Disposition':`attachment; filename="${reportType}_report.docx"`});
+    res.send(buf);
+  }catch(e){console.error(e);res.status(500).json({error:e.message});}
+});
+
+// ── Participation table builder ───────────────────────────────────────────────
+function buildParticipationTable(allSecs, CW, meta) {
+  const totalEnrolled = allSecs.reduce((a,s)=>a+s.enrolled_num,0);
+  const totalN        = allSecs.reduce((a,s)=>a+s.n,0);
+  const totalNot      = allSecs.reduce((a,s)=>a+s.not_responded,0);
+  const overallPct    = totalEnrolled>0?Math.round(totalN/totalEnrolled*100):0;
+
+  const catLabel = meta.category==='staff'?'الكادر الإداري':
+                   meta.category==='employee'?'الموظفون':
+                   meta.category==='female'?'الطالبات':
+                   meta.category==='male'?'الطلاب':'المشاركون';
+
+  const rows=[];
+  const pC=[600,3200,2400,1200,1200,1200,1400,CW-600-3200-2400-1200-1200-1200-1400];
+
+  rows.push(new TableRow({children:[
+    mH(['#'],pC[0]),mH([catLabel,'/ المقرر'],pC[1]),mH(['المحاضر / القسم'],pC[2]),
+    mH(['إجمالي','المسجلين'],pC[3]),mH(['عدد','المقيّمين'],pC[4]),
+    mH(['لم','يستبينوا'],pC[5]),mH(['نسبة','المشاركة'],pC[6]),
+    mH(['المتوسط','العام'],pC[7]),
+  ]}));
+
+  allSecs.forEach((s,i)=>{
+    const cl=clf(s.sec_mean);
+    const bg=i%2===0?PALE:'FFFFFF';
+    const notPct=s.enrolled_num>0?Math.round(s.not_responded/s.enrolled_num*100):0;
+    rows.push(new TableRow({children:[
+      mC(i+1,pC[0],bg,{bold:true,color:DARK,size:14}),
+      mC(s.course||s.sec_num,pC[1],bg,{bold:true,color:DARK,align:AlignmentType.RIGHT,size:15}),
+      mC(s.lecturer||s.dept,pC[2],bg,{align:AlignmentType.RIGHT,size:14}),
+      mC(s.enrolled_num||'—',pC[3],bg,{bold:true}),
+      mC(s.n,pC[4],bg,{bold:true,color:GREEN}),
+      mC(s.not_responded,pC[5],s.not_responded>0?'FFF0F0':'FFFFFF',{bold:s.not_responded>0,color:s.not_responded>0?RED:'444444'}),
+      mC(s.participation_pct+'%',pC[6],
+        s.participation_pct>=80?GREEN2:s.participation_pct>=60?AMBER2:RED2,
+        {bold:true,color:s.participation_pct>=80?GREEN:s.participation_pct>=60?AMBER:RED}),
+      mC(s.sec_mean.toFixed(2),pC[7],cl.bg,{bold:true,color:cl.c,size:17}),
+    ]}));
+  });
+
+  // Totals row
+  rows.push(new TableRow({children:[
+    mC('الإجمالي',pC[0]+pC[1]+pC[2],DARK,{bold:true,color:WHITE,colSpan:3}),
+    mC(totalEnrolled,pC[3],PALE,{bold:true,color:DARK,size:18}),
+    mC(totalN,pC[4],GREEN2,{bold:true,color:GREEN,size:18}),
+    mC(totalNot,pC[5],totalNot>0?RED2:GREEN2,{bold:true,color:totalNot>0?RED:GREEN,size:18}),
+    mC(overallPct+'%',pC[6],overallPct>=80?GREEN2:overallPct>=60?AMBER2:RED2,
+      {bold:true,color:overallPct>=80?GREEN:overallPct>=60?AMBER:RED,size:18}),
+    mC('—',pC[7],PALE),
+  ]}));
+
+  return {table: new Table({width:{size:CW,type:WidthType.DXA},columnWidths:pC,rows}),
+    totalEnrolled, totalN, totalNot, overallPct};
+}
+
+// ── Build Course Word ─────────────────────────────────────────────────────────
+async function buildCourseWord(groups, meta) {
+  const CW=15398;
+  const allSecs=groups.flatMap(g=>g.sections.map(s=>({...s,gender:g.gender})));
+  const hasGender=groups.some(g=>g.gender);
+  const nQ=allSecs[0]?.questions.length||0;
+  const qTexts=allSecs[0]?.questions.map(q=>q.text)||[];
+  const totalN=allSecs.reduce((a,s)=>a+s.n,0);
+
+  // Group by course
+  const courseMap={};
+  allSecs.forEach(s=>{
+    if(!courseMap[s.course]) courseMap[s.course]={F:[],M:[],all:[]};
+    if(s.gender==='F') courseMap[s.course].F.push(s);
+    else if(s.gender==='M') courseMap[s.course].M.push(s);
+    courseMap[s.course].all.push(s);
+  });
+
+  const courses=Object.entries(courseMap).map(([code,g])=>({
+    code,n:g.all.reduce((a,s)=>a+s.n,0),
+    enrolled:g.all.reduce((a,s)=>a+s.enrolled_num,0),
+    notResponded:g.all.reduce((a,s)=>a+s.not_responded,0),
+    nF:g.F.reduce((a,s)=>a+s.n,0),nM:g.M.reduce((a,s)=>a+s.n,0),
+    mean:wMean(g.all),meanF:wMean(g.F),meanM:wMean(g.M),
+    qMeans:Array.from({length:nQ},(_,qi)=>wQMean(g.all,qi)),
+    qMeansF:Array.from({length:nQ},(_,qi)=>wQMean(g.F,qi)),
+    qMeansM:Array.from({length:nQ},(_,qi)=>wQMean(g.M,qi)),
+    secs:g.all,
+  }));
+
+  const totalEnrolled=allSecs.reduce((a,s)=>a+s.enrolled_num,0);
+  const totalNot=allSecs.reduce((a,s)=>a+s.not_responded,0);
+  const overallPct=totalEnrolled>0?Math.round(totalN/totalEnrolled*100):0;
+  const grandMean=+(courses.reduce((a,c)=>a+(c.mean||0)*c.n,0)/totalN).toFixed(3);
+  const gCl=clf(grandMean);
+
+  const children=[];
 
   // Title
   children.push(
-    mP(sname || 'Survey Analysis', { align:AlignmentType.CENTER, bold:true, size:52, color:DARK, before:0, after:80 }),
-    mPR('تحليل نتائج الاستبيان', { bold:true, size:36, color:MID, before:0, after:60 }),
-    mP(cname || 'AlGhad College', { align:AlignmentType.CENTER, size:20, color:'555555', before:0, after:60 }),
-    mP(semester || '', { align:AlignmentType.CENTER, size:18, color:'777777', before:0, after:200 }),
+    sp(0,60),
+    mP(meta.sname||'تقرير استبانة تقييم المقررات الدراسية',{align:AlignmentType.CENTER,bold:true,size:44,color:DARK,before:0,after:60}),
+    mP(meta.cname||'كليات الغد للعلوم الطبية التطبيقية – جدة',{align:AlignmentType.CENTER,size:22,color:'444444',before:0,after:40}),
+    mP([meta.dept,meta.semester,meta.loc].filter(Boolean).join('  |  '),{align:AlignmentType.CENTER,size:18,color:'777777',before:0,after:160}),
   );
 
-  // Multi-section note
-  if (isMulti && secFileNames) {
-    children.push(
-      new Paragraph({ spacing:{before:0,after:60}, children:[
-        new TextRun({ text:'🔗 نتائج مدمجة من '+secFileNames.length+' شعب: '+
-          secFileNames.map((n,i)=>`${n} (${nPerSection[i]} مستجيب)`).join(' · '),
-          bold:true, color:MID, size:18, font:'Arial' })
-      ]})
-    );
-  }
-
-  // Objective
-  if (obj) {
-    children.push(
-      mPR('هدف الاستبيان', { bold:true, size:26, color:DARK, before:200, after:100 }),
-      mPR(obj, { size:18, before:0, after:200, color:'222222' }),
-    );
-  }
-
-  // Likert scale
+  // Main stats banner
+  const bannerC=[Math.round(CW/6),Math.round(CW/6),Math.round(CW/6),Math.round(CW/6),Math.round(CW/6),CW-Math.round(CW/6)*5];
   children.push(
-    sp(),
-    mP('المقياس المستخدم | Scale Used', { bold:true, size:24, color:DARK, before:0, after:100 }),
+    mP('إحصائيات المشاركة والتقييم',{bold:true,size:22,color:DARK,before:0,after:80}),
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:bannerC,rows:[
+      new TableRow({children:[
+        mH(['إجمالي المسجلين'],bannerC[0]),
+        mH(['المقيّمون'],bannerC[1]),
+        mH(['لم يستبينوا'],bannerC[2]),
+        mH(['نسبة المشاركة'],bannerC[3]),
+        mH(['المقررات'],bannerC[4]),
+        mH(['المتوسط العام'],bannerC[5]),
+      ]}),
+      new TableRow({children:[
+        mC(totalEnrolled,bannerC[0],PALE,{bold:true,color:DARK,size:26}),
+        mC(totalN,bannerC[1],GREEN2,{bold:true,color:GREEN,size:26}),
+        mC(totalNot,bannerC[2],totalNot>0?RED2:GREEN2,{bold:true,color:totalNot>0?RED:GREEN,size:26}),
+        mC(overallPct+'%',bannerC[3],overallPct>=80?GREEN2:overallPct>=60?AMBER2:RED2,
+          {bold:true,color:overallPct>=80?GREEN:overallPct>=60?AMBER:RED,size:26}),
+        mC(courses.length,bannerC[4],PALE,{bold:true,color:DARK,size:26}),
+        mC(grandMean,bannerC[5],gCl.bg,{bold:true,color:gCl.c,size:32}),
+      ]}),
+    ]}),
+    sp(200,80),
   );
-  const SLC = Math.floor(CW / 5);
-  const SLW = [SLC, SLC, SLC, SLC, CW - SLC*4];
-  children.push(new Table({ width:{ size:CW, type:WidthType.DXA }, columnWidths:SLW,
-    rows:[new TableRow({ children:[
-      ['1 = Strongly Agree | موافق بشدة', GREEN2, GREEN],
-      ['2 = Agree | موافق',               GREEN2, GREEN],
-      ['3 = Neutral | محايد',             'F2F2F2','444444'],
-      ['4 = Disagree | غير موافق',        AMBER2, AMBER],
-      ['5 = Strongly Disagree | غير موافق بشدة', RED2, RED],
-    ].map(([t,bg,c],i) => new TableCell({
-      width:{size:SLW[i],type:WidthType.DXA}, borders:allB(),
-      shading:{fill:bg,type:ShadingType.CLEAR}, margins:mg(),
-      children:[new Paragraph({ alignment:AlignmentType.CENTER,
-        children:[new TextRun({ text:t, bold:true, color:c, size:16, font:'Arial' })] })]
-    })) })]
-  }));
 
-  // Classification table
-  children.push(sp(), mP('Classification Scale | مقياس التصنيف', { bold:true, size:22, color:DARK, before:150, after:100 }));
-  const CC = [1600, 3000, 3000, 1200, 5600];
-  children.push(new Table({ width:{size:CW,type:WidthType.DXA}, columnWidths:CC,
-    rows:[
-      new TableRow({ children:[mH(['Range'],CC[0]),mH(['Classification'],CC[1]),mH(['التصنيف'],CC[2]),mH([''],CC[3]),mH(['Interpretation'],CC[4])] }),
-      ...[ ['≤ 1.50','Excellent','ممتاز', GREEN2,GREEN,'Strong positive outcome'],
-           ['1.51–2.00','Good','جيد',     GREEN2,GREEN,'Positive; meets expectations'],
-           ['2.01–2.50','Acceptable','مقبول',AMBER2,AMBER,'Moderate; requires monitoring'],
-           ['2.51–3.00','Weakness','ضعف',  RED2,  RED,  'Below expectations; improvement needed'],
-           ['> 3.00','Critical','حرج',     RED2,  RED,  'Significant weakness; immediate action required'],
-      ].map(([r,en,ar,bg,c,interp],i) => new TableRow({ children:[
-        mC(r,CC[0],bg,{bold:true,color:c}), mC(en,CC[1],bg,{bold:true,color:c}), mC(ar,CC[2],bg,{bold:true,color:c}),
-        new TableCell({width:{size:CC[3],type:WidthType.DXA},borders:allB(),shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({children:[]})]}),
-        mC(interp,CC[4],i%2===0?'FAFAFA':WHITE,{align:AlignmentType.LEFT,size:16}),
-      ]}))
-    ]
-  }));
-
-  // Sample profile
-  children.push(sp(), mP('Sample Profile | بيانات العينة', { bold:true, size:24, color:DARK, before:200, after:100 }));
-  const SP = [Math.round(CW*.36), Math.round(CW*.14), Math.round(CW*.36), CW-Math.round(CW*.36)*2-Math.round(CW*.14)];
-  const spRows = [['Total Respondents', n, 'إجمالي المشاركين', n]];
-  if (showGender) { spRows.push(['Female', nF, 'إناث', nF], ['Male', nM, 'ذكور', nM]); }
-  else if (gmode === 'all_f') { spRows.push(['Gender','All Female','الجنس','إناث']); }
-  else { spRows.push(['Gender','All Male','الجنس','ذكور']); }
-  spRows.push(
-    ['Sections', secs.length, 'عدد المحاور', secs.length],
-    ['Total Questions', secs.reduce((a,s)=>a+s.qs.length,0), 'عدد الأسئلة', secs.reduce((a,s)=>a+s.qs.length,0)],
-    ['Overall Mean', overall, 'المتوسط العام', overall],
-    ['Survey Period', semester||'—', 'الفصل الدراسي', semester||'—'],
+  // Participation table
+  const {table:partTable}=buildParticipationTable(allSecs,CW,meta);
+  children.push(
+    mP('أولاً: جدول المشاركة التفصيلية',{bold:true,size:24,color:DARK,before:0,after:80}),
+    mP(`جدول يوضح إجمالي المسجلين والمقيّمين واللي لم يستبينوا لكل شعبة — ${meta.category==='female'?'الطالبات':meta.category==='male'?'الطلاب':meta.category==='staff'?'الكادر الإداري':'المشاركون'}`,
+      {size:16,color:'555555',italic:true,before:0,after:80}),
+    partTable,
+    sp(200,80),
   );
-  children.push(new Table({ width:{size:CW,type:WidthType.DXA}, columnWidths:SP,
-    rows:[
-      new TableRow({ children:[mH(['Detail'],SP[0]),mH(['Value'],SP[1]),mH(['التفاصيل'],SP[2]),mH(['القيمة'],SP[3])] }),
-      ...spRows.map(([en,ev,ar,av],i) => new TableRow({ children:[
-        mC(en,SP[0],i%2===0?PALE:WHITE,{align:AlignmentType.LEFT}),
-        mC(ev,SP[1],i%2===0?PALE:WHITE,{bold:true,color:DARK}),
-        mC(ar,SP[2],i%2===0?PALE:WHITE,{align:AlignmentType.RIGHT}),
-        mC(av,SP[3],i%2===0?PALE:WHITE,{bold:true,color:DARK}),
-      ]}))
-    ]
-  }));
 
-  // Section summary
-  const SSC = showGender
-    ? [3200,2900,1050,1200,1200,850,CW-3200-2900-1050-1200-1200-850]
-    : [3800,3500,1200,CW-3800-3500-1200];
-  children.push(sp(), mP('Section Summary | ملخص المحاور', { bold:true, size:24, color:DARK, before:200, after:100 }));
-  children.push(new Table({ width:{size:CW,type:WidthType.DXA}, columnWidths:SSC,
-    rows:[
-      new TableRow({ children: showGender
-        ? [mH(['Section'],SSC[0]),mH(['المحور'],SSC[1]),mH(['Mean'],SSC[2]),mH(['F.Mean'],SSC[3]),mH(['M.Mean'],SSC[4]),mH(['Gap'],SSC[5]),mH(['Classification'],SSC[6])]
-        : [mH(['Section'],SSC[0]),mH(['المحور'],SSC[1]),mH(['Mean'],SSC[2]),mH(['Classification'],SSC[3])]
+  // Cross table Q × Course
+  const nC=courses.length;
+  const qTW=Math.round(CW*0.17);
+  const cW=hasGender?Math.floor((CW-700-qTW)/(nC*2)):Math.floor((CW-700-qTW)/nC);
+  const ovW=CW-700-qTW-(hasGender?cW*2*nC:cW*nC);
+  const colWidths=[700,qTW,...(hasGender?courses.flatMap(()=>[cW,cW]):courses.map(()=>cW)),ovW];
+
+  const h1=new TableRow({children:[
+    mH(['Q#'],700),mH(['السؤال / Criteria'],qTW),
+    ...courses.map(c=>{
+      const cl=clf(c.mean||0);
+      if(hasGender) return new TableCell({width:{size:cW*2},columnSpan:2,borders:allB(MID),
+        shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+        children:[
+          new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:c.code,bold:true,color:WHITE,size:16,font:'Arial'})]}),
+          new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:'('+( c.mean||0).toFixed(2)+')',color:'BDD7EE',size:13,font:'Arial'})]}),
+        ]});
+      const bg=cl.bg;
+      return new TableCell({width:{size:cW},borders:allB(MID),shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+        children:[
+          new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:c.code,bold:true,color:WHITE,size:15,font:'Arial'})]}),
+          new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:'('+(c.mean||0).toFixed(2)+')',color:'BDD7EE',size:13,font:'Arab'})]}),
+        ]});
+    }),
+    mH(['الإجمالي'],ovW),
+  ]});
+
+  const h2=hasGender?[new TableRow({children:[
+    new TableCell({width:{size:700},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'#',bold:true,color:WHITE,size:15,font:'Arab'})]}),]}),
+    new TableCell({width:{size:qTW},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'السؤال',bold:true,color:WHITE,size:15,font:'Arab'})]}),]}),
+    ...courses.flatMap(()=>[
+      new TableCell({width:{size:cW},borders:allB('843C0C'),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'F',bold:true,color:'843C0C',size:17,font:'Arial'})]}),]}),
+      new TableCell({width:{size:cW},borders:allB('1F4E79'),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'M',bold:true,color:DARK,size:17,font:'Arial'})]}),]}),
+    ]),
+    new TableCell({width:{size:ovW},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'الإجمالي',bold:true,color:WHITE,size:15,font:'Arab'})]}),]}),
+  ]})]:[]; 
+
+  const overallQM=Array.from({length:nQ},(_,qi)=>+(courses.reduce((a,c)=>a+(c.qMeans[qi]||0)*c.n,0)/totalN).toFixed(2));
+
+  const dataRows=Array.from({length:nQ},(_,qi)=>{
+    const oM=overallQM[qi];const oCl=clf(oM);const bg=qi%2===0?PALE:'FFFFFF';
+    return new TableRow({children:[
+      mC(`Q${qi+1}`,700,bg,{bold:true,color:DARK,size:14}),
+      mC((qTexts[qi]||'').slice(0,55),qTW,bg,{align:AlignmentType.RIGHT,size:13}),
+      ...courses.flatMap(c=>{
+        if(hasGender){
+          const fM=c.qMeansF[qi],mM=c.qMeansM[qi];
+          return [
+            new TableCell({width:{size:cW},borders:allB(),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:fM!=null?fM.toFixed(2):'—',bold:!!fM,color:fM?'843C0C':'AAAAAA',size:14,font:'Arial'})]}),]}),
+            new TableCell({width:{size:cW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:mM!=null?mM.toFixed(2):'—',bold:!!mM,color:mM?DARK:'AAAAAA',size:14,font:'Arial'})]}),]}),
+          ];
+        }
+        const qM=c.qMeans[qi];const qCl=qM!=null?clf(qM):{bg,c:'000000'};
+        return [mC(qM!=null?qM.toFixed(2):'—',cW,qCl.bg,{color:qCl.c,size:14})];
       }),
-      ...secs.map((s,i) => {
-        const bg = i%2===0 ? PALE : WHITE;
-        return new TableRow({ children: showGender
-          ? [mC(s.name,SSC[0],bg,{align:AlignmentType.LEFT,size:16}), mC(s.ar,SSC[1],bg,{align:AlignmentType.RIGHT,size:15}),
-             mC(s.mean.toFixed(2),SSC[2],bg,{bold:true}), mC(s.fMean.toFixed(2),SSC[3],bg), mC(s.mMean.toFixed(2),SSC[4],bg),
-             mC(Math.abs(s.fMean-s.mMean).toFixed(2),SSC[5],bg), mC(s.cl.l+' | '+s.cl.ar,SSC[6],s.cl.hx,{bold:true,color:s.cl.hc,size:15})]
-          : [mC(s.name,SSC[0],bg,{align:AlignmentType.LEFT,size:16}), mC(s.ar,SSC[1],bg,{align:AlignmentType.RIGHT,size:15}),
-             mC(s.mean.toFixed(2),SSC[2],bg,{bold:true}), mC(s.cl.l+' | '+s.cl.ar,SSC[3],s.cl.hx,{bold:true,color:s.cl.hc,size:15})]
-        });
-      })
-    ]
-  }));
-
-  // Executive summary
-  children.push(sp(), mPR('اللمحة العامة', { bold:true, size:24, color:DARK, before:200, after:100 }));
-  const bestSec  = secs.reduce((a,b) => a.mean < b.mean ? a : b);
-  const worstSec = secs.reduce((a,b) => a.mean > b.mean ? a : b);
-  [
-    `تُظهر النتائج مستوى رضا ${overall<=1.5?'ممتازاً':overall<=2?'جيداً':'مقبولاً'} بمتوسط عام (${overall}) — تصنيف "${clf(overall).ar}".`,
-    `أقوى المحاور: "${bestSec.ar}" بمتوسط (${bestSec.mean}) — ${bestSec.cl.ar}.`,
-    `المحور الأولى بالتطوير: "${worstSec.ar}" بمتوسط (${worstSec.mean}) — ${worstSec.cl.ar}.`,
-    showGender ? `الفجوة بين الجنسين: ${secs.every(s=>Math.abs(s.fMean-s.mMean)<0.3)?'طفيفة تدل على تجانس التجربة':'ملحوظة وتستوجب الدراسة'}.`
-               : `عدد المستجيبين: ${n} ${gmode==='all_f'?'(إناث)':'(ذكور)'}.`,
-    'نسب الموافقة الإيجابية المرتفعة تعكس جودة تدريبية تستحق التوثيق.',
-  ].forEach(ar => children.push(mPR('• '+ar, { size:17, before:80, after:50, color:'1a1a2e' })));
-
-  // Overall analysis
-  const OWg = [800,700,1700,1100,1100,1050,1050,1150,1150,1150,3450];
-  const OWs = [900,800,2000,1300,1200,1200,CW-900-800-2000-1300-1200-1200];
-  children.push(sp(), mP('Overall Analysis | التحليل الإجمالي', { bold:true, size:24, color:DARK, before:200, after:100 }));
-
-  const oaR = [new TableRow({ children: showGender
-    ? [mH(['Q#'],OWg[0]),mH(['Sec.Q'],OWg[1]),mH(['Section'],OWg[2]),mH(['F.Mean'],OWg[3]),mH(['M.Mean'],OWg[4]),mH(['Max'],OWg[5]),mH(['Min'],OWg[6]),mH(['Mean'],OWg[7]),mH(['Pos%'],OWg[8]),mH(['Neg%'],OWg[9]),mH(['Classification'],OWg[10])]
-    : [mH(['Q#'],OWs[0]),mH(['Sec.Q'],OWs[1]),mH(['Section'],OWs[2]),mH(['Mean'],OWs[3]),mH(['Pos%'],OWs[4]),mH(['Neg%'],OWs[5]),mH(['Classification'],OWs[6])]
-  })];
-
-  secs.forEach(s => {
-    const span = showGender ? 11 : 7;
-    oaR.push(new TableRow({ children:[new TableCell({ columnSpan:span, width:{size:CW,type:WidthType.DXA},
-      borders:allB(), shading:{fill:MID,type:ShadingType.CLEAR}, margins:mg(),
-      children:[new Paragraph({ alignment:AlignmentType.CENTER,
-        children:[new TextRun({ text:s.name+' | '+s.ar, bold:true, color:WHITE, size:18, font:'Arial' })] })]
-    })]}));
-    s.qs.forEach((q,si) => {
-      const cl = q.cl; const bg = si%2===0 ? PALE : WHITE;
-      oaR.push(new TableRow({ children: showGender
-        ? [mC('Q'+q.qn,OWg[0],bg,{bold:true}),mC(si+1,OWg[1],bg),mC(s.name,OWg[2],bg,{size:14}),
-           mC(q.fM.toFixed(2),OWg[3],bg),mC(q.mM.toFixed(2),OWg[4],bg),
-           mC(q.maxM.toFixed(2),OWg[5],bg),mC(q.minM.toFixed(2),OWg[6],bg),
-           mC(q.cM.toFixed(2),OWg[7],cl.hx,{bold:true,color:cl.hc}),
-           mC(q.pos+'%',OWg[8],q.pos>=70?GREEN2:AMBER2,{bold:true,color:q.pos>=70?GREEN:AMBER}),
-           mC(q.neg+'%',OWg[9],q.neg>=15?RED2:GREEN2,{bold:true,color:q.neg>=15?RED:GREEN}),
-           mC(cl.l+' | '+cl.ar,OWg[10],cl.hx,{bold:true,color:cl.hc,size:14})]
-        : [mC('Q'+q.qn,OWs[0],bg,{bold:true}),mC(si+1,OWs[1],bg),mC(s.name,OWs[2],bg,{size:14}),
-           mC(q.cM.toFixed(2),OWs[3],cl.hx,{bold:true,color:cl.hc}),
-           mC(q.pos+'%',OWs[4],q.pos>=70?GREEN2:AMBER2,{bold:true,color:q.pos>=70?GREEN:AMBER}),
-           mC(q.neg+'%',OWs[5],q.neg>=15?RED2:GREEN2,{bold:true,color:q.neg>=15?RED:GREEN}),
-           mC(cl.l+' | '+cl.ar,OWs[6],cl.hx,{bold:true,color:cl.hc,size:14})]
-      }));
-    });
+      mC(oM.toFixed(2),ovW,oCl.bg,{bold:true,color:oCl.c,size:16}),
+    ]});
   });
-  children.push(new Table({ width:{size:CW,type:WidthType.DXA}, columnWidths:showGender?OWg:OWs, rows:oaR }));
 
-  // Per-section distribution
-  const DC  = [900,900,2800,1700,1700,1700,1700,1700,1300];
-  const DCs = [1200,1200,1700,1700,1700,1700,1700,CW-1200-1200-1700*5];
+  const meanRow=new TableRow({children:[
+    mC('المتوسط',700+qTW,DARK,{bold:true,color:WHITE,colSpan:2}),
+    ...courses.flatMap(c=>{
+      const cl=clf(c.mean||0);
+      if(hasGender){
+        return [
+          new TableCell({width:{size:cW},borders:allB(),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:c.meanF!=null?c.meanF.toFixed(2):'—',bold:true,color:'843C0C',size:17,font:'Arial'})]}),]}),
+          new TableCell({width:{size:cW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:c.meanM!=null?c.meanM.toFixed(2):'—',bold:true,color:DARK,size:17,font:'Arab'})]}),]}),
+        ];
+      }
+      return [mC((c.mean||0).toFixed(2),cW,cl.bg,{bold:true,color:cl.c,size:18})];
+    }),
+    mC(grandMean.toFixed(2),ovW,gCl.bg,{bold:true,color:gCl.c,size:20}),
+  ]});
 
-  secs.forEach(sec => {
+  const nRow=new TableRow({children:[
+    mC('المقيّمون',700+qTW,MID,{bold:true,color:WHITE,colSpan:2}),
+    ...courses.flatMap(c=>{
+      if(hasGender) return [
+        new TableCell({width:{size:cW},borders:allB(),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:String(c.nF||'—'),bold:true,color:'843C0C',size:15,font:'Arial'})]}),]}),
+        new TableCell({width:{size:cW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:String(c.nM||'—'),bold:true,color:DARK,size:15,font:'Arab'})]}),]}),
+      ];
+      return [mC(c.n,cW,PALE,{bold:true,color:DARK})];
+    }),
+    mC(totalN,ovW,PALE,{bold:true,color:DARK,size:18}),
+  ]});
+
+  children.push(
+    mP('ثانياً: جدول المتوسطات الحسابية لكل سؤال عبر المقررات',{bold:true,size:24,color:DARK,before:0,after:60}),
+    hasGender?mP('الأعمدة الوردية = طالبات (F) | الأعمدة الزرقاء = طلاب (M)',{size:15,color:'777777',italic:true,before:0,after:80}):sp(40,60),
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:colWidths,rows:[h1,...h2,...dataRows,meanRow,nRow]}),
+    sp(200,80),
+  );
+
+  // Per-section detail
+  children.push(
+    new Paragraph({pageBreakBefore:true,children:[]}),
+    mP('ثالثاً: التحليل التفصيلي لكل شعبة',{bold:true,size:28,color:DARK,before:0,after:120}),
+  );
+
+  allSecs.forEach((sec,si)=>{
+    const cl=clf(sec.sec_mean);
+    const gTag=sec.gender==='F'?'👩 إناث':sec.gender==='M'?'👨 ذكور':'';
     children.push(
-      sp(),
-      new Paragraph({ spacing:{before:0,after:0}, children:[new TextRun({ text:'─'.repeat(80), color:'BDD7EE', font:'Arial', size:16 })] }),
-      mP(sec.name+' | '+sec.ar, { bold:true, size:28, color:MID, before:100, after:60 }),
-      mP('Mean: '+sec.mean+(showGender?'  |  F.Mean: '+sec.fMean+'  |  M.Mean: '+sec.mMean:'')+'  |  '+sec.cl.l+' ('+sec.cl.ar+')',
-        { size:17, color:'444444', before:0, after:100 }),
+      mP(`${sec.course} — الشعبة ${sec.sec_num} ${gTag}`,{bold:true,size:22,color:MID,before:si===0?0:200,after:40}),
+      mP([`المحاضر: ${sec.lecturer}`,`المقيّمون: ${sec.n}`,`المسجلون: ${sec.enrolled_num||'—'}`,
+        sec.not_responded>0?`لم يستبينوا: ${sec.not_responded} (${100-sec.participation_pct}%)`:'',
+        `نسبة المشاركة: ${sec.participation_pct}%`,`المتوسط: ${sec.sec_mean.toFixed(2)}`,cl.l
+      ].filter(Boolean).join('  |  '),{size:15,color:'444444',before:0,after:80}),
     );
-
-    const distRows = [];
-    if (showGender) {
-      distRows.push(new TableRow({ children:[
-        mH(['Global Q'],DC[0]), mH(['Sec. Q'],DC[1]), mH(['Group'],DC[2]),
-        mH(['%1','موافق بشدة','SA'],DC[3]), mH(['%2','موافق','A'],DC[4]), mH(['%3','محايد','N'],DC[5]),
-        mH(['%4','لا أوافق','D'],DC[6]), mH(['%5','لا أوافق بشدة','SD'],DC[7]), mH(['Mean'],DC[8]),
-      ]}));
-      sec.qs.forEach((q,qi) => {
-        distRows.push(new TableRow({ children:[new TableCell({ columnSpan:9, width:{size:CW,type:WidthType.DXA},
-          borders:allB(), shading:{fill:PALE,type:ShadingType.CLEAR}, margins:mg(),
-          children:[new Paragraph({ alignment:AlignmentType.RIGHT, spacing:{before:0,after:0},
-            children:[new TextRun({ text:'Q'+q.qn+'. '+q.lbl, bold:true, size:17, color:DARK, font:'Arial' })] })]
-        })]}));
-        const bg = qi%2===0 ? PALE : 'FFFFFF';
-        const mkRS = (t,w,sh) => new TableCell({ width:{size:w,type:WidthType.DXA}, borders:allB(),
-          shading:{fill:sh,type:ShadingType.CLEAR}, margins:mg(), verticalAlign:VerticalAlign.CENTER, rowSpan:3,
-          children:[new Paragraph({ alignment:AlignmentType.CENTER,
-            children:[new TextRun({ text:String(t), bold:true, size:19, color:DARK, font:'Arial' })] })] });
-        [['Female',q.fD,q.fM,'FCE4D6','843C0C',true],
-         ['Male',  q.mD,q.mM,'DDEBF7','1F4E79',false],
-         ['Combined',q.cD,q.cM,'E2EFDA','375623',false],
-        ].forEach(([g,d,m,sh,tc,first]) => {
-          distRows.push(new TableRow({ children:[
-            ...(first ? [mkRS('Q'+q.qn,DC[0],bg), mkRS(qi+1,DC[1],bg)] : []),
-            mC(g,DC[2],sh,{bold:true,color:tc}),
-            ...d.map((v,j) => mC(v,DC[3+j],sh)),
-            mC((+m).toFixed(2),DC[8],sh,{bold:true,color:tc}),
-          ]}));
-        });
-      });
-    } else {
-      distRows.push(new TableRow({ children:[
-        mH(['Global Q'],DCs[0]), mH(['Sec. Q'],DCs[1]),
-        mH(['%5 SD'],DCs[2]), mH(['%4 D'],DCs[3]), mH(['%3 N'],DCs[4]),
-        mH(['%2 A'],DCs[5]),  mH(['%1 SA'],DCs[6]), mH(['Mean'],DCs[7]),
-      ]}));
-      sec.qs.forEach((q,qi) => {
-        const bg = qi%2===0 ? PALE : 'FFFFFF';
-        distRows.push(new TableRow({ children:[
-          mC('Q'+q.qn, DCs[0], bg, {bold:true}),
-          mC(qi+1,     DCs[1], bg),
-          ...q.cD.map((v,j) => mC(v, DCs[2+j], bg)),
-          mC((+q.cM).toFixed(2), DCs[7], q.cl.hx, {bold:true,color:q.cl.hc}),
-        ]}));
-      });
-    }
-    children.push(new Table({ width:{size:CW,type:WidthType.DXA}, columnWidths:showGender?DC:DCs, rows:distRows }));
+    const dC=[500,3600,1300,1300,1300,1300,1300,1400,CW-500-3600-1300*5-1400];
+    children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:[
+      new TableRow({children:[mH(['Q#'],dC[0]),mH(['السؤال'],dC[1]),
+        mH(['موافق','بشدة%'],dC[2]),mH(['موافق%'],dC[3]),mH(['حد ما%'],dC[4]),
+        mH(['لا أوافق%'],dC[5]),mH(['لا أوافق','بشدة%'],dC[6]),
+        mH(['المتوسط'],dC[7]),mH(['التصنيف'],dC[8])]}),
+      ...sec.questions.map((q,qi)=>{
+        const qcl=clf(q.mean);const bg=qi%2===0?PALE:'FFFFFF';
+        return new TableRow({children:[
+          mC(`Q${q.qn}`,dC[0],bg,{bold:true,color:DARK,size:13}),
+          mC(q.text.slice(0,60),dC[1],bg,{align:AlignmentType.RIGHT,size:12}),
+          mC(q.pct_sa+'%',dC[2],q.pct_sa>=80?GREEN2:bg,{color:q.pct_sa>=80?GREEN:'000000',size:13}),
+          mC(q.pct_a+'%',dC[3],bg,{size:13}),mC(q.pct_n+'%',dC[4],bg,{size:13}),
+          mC(q.pct_d+'%',dC[5],q.pct_d>15?RED2:bg,{color:q.pct_d>15?RED:'000000',size:13}),
+          mC(q.pct_sd+'%',dC[6],q.pct_sd>10?RED2:bg,{color:q.pct_sd>10?RED:'000000',size:13}),
+          mC(q.mean.toFixed(2),dC[7],qcl.bg,{bold:true,color:qcl.c,size:15}),
+          mC(qcl.l,dC[8],qcl.bg,{bold:true,color:qcl.c,size:13}),
+        ]});
+      }),
+      new TableRow({children:[
+        mC('المتوسط',dC[0]+dC[1],MID,{bold:true,color:WHITE,colSpan:2}),
+        mC('—',dC[2],PALE),mC('—',dC[3],PALE),mC('—',dC[4],PALE),mC('—',dC[5],PALE),mC('—',dC[6],PALE),
+        mC(sec.sec_mean.toFixed(2),dC[7],cl.bg,{bold:true,color:cl.c,size:17}),
+        mC(cl.l,dC[8],cl.bg,{bold:true,color:cl.c,size:13}),
+      ]}),
+    ]}),sp(60,40));
   });
 
-  const doc = new Document({
-    styles: { default: { document: { run: { font:'Arial', size:18 } } } },
-    sections: [{ properties: { page: {
-      size: { width:12240, height:15840, orientation:PageOrientation.LANDSCAPE },
-      margin: { top:720, right:720, bottom:720, left:720 }
-    }}, children }]
+  return buildDoc(children);
+}
+
+// ── Build Instructor Word ─────────────────────────────────────────────────────
+async function buildInstructorWord(groups,meta){
+  const CW=15398;
+  const allSecs=groups.flatMap(g=>g.sections.map(s=>({...s,gender:g.gender})));
+  const hasGender=groups.some(g=>g.gender);
+  const nQ=allSecs[0]?.questions.length||0;
+  const qTexts=allSecs[0]?.questions.map(q=>q.text)||[];
+  const totalN=allSecs.reduce((a,s)=>a+s.n,0);
+  const totalEnrolled=allSecs.reduce((a,s)=>a+s.enrolled_num,0);
+  const totalNot=allSecs.reduce((a,s)=>a+s.not_responded,0);
+  const overallPct=totalEnrolled>0?Math.round(totalN/totalEnrolled*100):0;
+  const grandMean=+(allSecs.reduce((a,s)=>a+s.sec_mean*s.n,0)/totalN).toFixed(3);
+  const gCl=clf(grandMean);
+
+  const lecMap={};
+  allSecs.forEach(s=>{
+    if(!lecMap[s.lecturer]) lecMap[s.lecturer]={F:[],M:[],all:[]};
+    if(s.gender==='F') lecMap[s.lecturer].F.push(s);
+    else if(s.gender==='M') lecMap[s.lecturer].M.push(s);
+    lecMap[s.lecturer].all.push(s);
   });
 
+  const lecturers=Object.entries(lecMap).map(([name,g])=>({
+    name,n:g.all.reduce((a,s)=>a+s.n,0),
+    enrolled:g.all.reduce((a,s)=>a+s.enrolled_num,0),
+    notResponded:g.all.reduce((a,s)=>a+s.not_responded,0),
+    nF:g.F.reduce((a,s)=>a+s.n,0),nM:g.M.reduce((a,s)=>a+s.n,0),
+    mean:wMean(g.all),meanF:wMean(g.F),meanM:wMean(g.M),
+    qMeans:Array.from({length:nQ},(_,qi)=>wQMean(g.all,qi)),
+    secs:g.all,courses:[...new Set(g.all.map(s=>s.course))],
+  })).sort((a,b)=>b.mean-a.mean);
+
+  const children=[];
+
+  // Title
+  children.push(
+    sp(0,60),
+    mP(meta.sname||'تقرير استبانة تقييم المحاضرين',{align:AlignmentType.CENTER,bold:true,size:44,color:DARK,before:0,after:60}),
+    mP(meta.cname||'كليات الغد للعلوم الطبية التطبيقية – جدة',{align:AlignmentType.CENTER,size:22,color:'444444',before:0,after:40}),
+    mP([meta.dept,meta.semester].filter(Boolean).join('  |  '),{align:AlignmentType.CENTER,size:18,color:'777777',before:0,after:160}),
+  );
+
+  // Banner
+  const bannerC=[Math.round(CW/6),Math.round(CW/6),Math.round(CW/6),Math.round(CW/6),Math.round(CW/6),CW-Math.round(CW/6)*5];
+  children.push(
+    mP('إحصائيات المشاركة والتقييم',{bold:true,size:22,color:DARK,before:0,after:80}),
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:bannerC,rows:[
+      new TableRow({children:[mH(['إجمالي المسجلين'],bannerC[0]),mH(['المقيّمون'],bannerC[1]),
+        mH(['لم يستبينوا'],bannerC[2]),mH(['نسبة المشاركة'],bannerC[3]),
+        mH(['المحاضرون'],bannerC[4]),mH(['المتوسط العام'],bannerC[5])]}),
+      new TableRow({children:[
+        mC(totalEnrolled,bannerC[0],PALE,{bold:true,color:DARK,size:26}),
+        mC(totalN,bannerC[1],GREEN2,{bold:true,color:GREEN,size:26}),
+        mC(totalNot,bannerC[2],totalNot>0?RED2:GREEN2,{bold:true,color:totalNot>0?RED:GREEN,size:26}),
+        mC(overallPct+'%',bannerC[3],overallPct>=80?GREEN2:overallPct>=60?AMBER2:RED2,{bold:true,color:overallPct>=80?GREEN:overallPct>=60?AMBER:RED,size:26}),
+        mC(lecturers.length,bannerC[4],PALE,{bold:true,color:DARK,size:26}),
+        mC(grandMean,bannerC[5],gCl.bg,{bold:true,color:gCl.c,size:32}),
+      ]}),
+    ]}),sp(180,80),
+  );
+
+  // Participation table
+  const {table:partTable}=buildParticipationTable(allSecs,CW,meta);
+  children.push(
+    mP('أولاً: جدول المشاركة التفصيلية',{bold:true,size:24,color:DARK,before:0,after:80}),
+    partTable,sp(180,80),
+  );
+
+  // Lecturer summary
+  const lqW=Math.floor((CW-500-2800-700-700-1400)/Math.max(nQ,1));
+  const t2C=[500,2800,700,700,...Array(nQ).fill(lqW),1400,CW-500-2800-700-700-lqW*nQ-1400];
+  children.push(
+    mP('ثانياً: ملخص المحاضرين (متوسط موزون)',{bold:true,size:24,color:DARK,before:0,after:80}),
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:t2C,rows:[
+      new TableRow({children:[
+        mH(['#'],t2C[0]),mH(['المحاضر'],t2C[1]),mH(['الشعب'],t2C[2]),mH(['المقيّمون'],t2C[3]),
+        ...Array.from({length:nQ},(_,i)=>mH([`Q${i+1}`],t2C[4+i],MID,13)),
+        mH(['المتوسط','الموزون'],t2C[4+nQ]),mH(['التصنيف'],t2C[5+nQ]),
+      ]}),
+      ...lecturers.map((lec,i)=>{
+        const cl=clf(lec.mean||0);const bg=i%2===0?PALE:'FFFFFF';
+        return new TableRow({children:[
+          mC(i+1,t2C[0],bg,{bold:true,color:DARK,size:13}),
+          mC(lec.name,t2C[1],bg,{align:AlignmentType.RIGHT,size:13}),
+          mC(lec.secs.length,t2C[2],bg),mC(lec.n,t2C[3],bg,{bold:true}),
+          ...lec.qMeans.map((qm,qi)=>{const qcl=qm!=null?clf(qm):{bg,c:'000000'};
+            return mC(qm!=null?qm.toFixed(2):'—',t2C[4+qi],qcl.bg,{color:qcl.c,size:12});}),
+          mC((lec.mean||0).toFixed(2),t2C[4+nQ],cl.bg,{bold:true,color:cl.c,size:16}),
+          mC(cl.l,t2C[5+nQ],cl.bg,{bold:true,color:cl.c,size:12}),
+        ]});
+      }),
+    ]}),sp(200,80),
+  );
+
+  // Q × Course cross table
+  const uniqueCourses=[...new Set(allSecs.map(s=>s.course))];
+  const nCC=uniqueCourses.length;
+  const ccW=Math.floor((CW-1800-1400)/(hasGender?nCC*2:nCC));
+  const t3C=[1800,...(hasGender?uniqueCourses.flatMap(()=>[ccW,ccW]):uniqueCourses.map(()=>ccW)),1400];
+
+  const cQM={},cQMF={},cQMM={},cMeans={};
+  uniqueCourses.forEach(code=>{
+    const cs=allSecs.filter(s=>s.course===code);
+    const csF=cs.filter(s=>s.gender==='F'),csM=cs.filter(s=>s.gender==='M');
+    const tn=cs.reduce((a,s)=>a+s.n,0),tnF=csF.reduce((a,s)=>a+s.n,0),tnM=csM.reduce((a,s)=>a+s.n,0);
+    cQM[code]=Array.from({length:nQ},(_,qi)=>tn?+(cs.reduce((a,s)=>a+(s.questions[qi]?.mean||0)*s.n,0)/tn).toFixed(2):null);
+    cQMF[code]=Array.from({length:nQ},(_,qi)=>tnF?+(csF.reduce((a,s)=>a+(s.questions[qi]?.mean||0)*s.n,0)/tnF).toFixed(2):null);
+    cQMM[code]=Array.from({length:nQ},(_,qi)=>tnM?+(csM.reduce((a,s)=>a+(s.questions[qi]?.mean||0)*s.n,0)/tnM).toFixed(2):null);
+    cMeans[code]=tn?+(cs.reduce((a,s)=>a+s.sec_mean*s.n,0)/tn).toFixed(2):0;
+  });
+
+  const ch_h1=new TableRow({children:[
+    mH(['السؤال'],t3C[0]),
+    ...uniqueCourses.map((code,ci)=>{
+      const sz=hasGender?ccW*2:ccW;
+      const opt=hasGender?{columnSpan:2}:{};
+      return new TableCell({width:{size:sz},columnSpan:hasGender?2:1,borders:allB(MID),
+        shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+        children:[
+          new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:code,bold:true,color:WHITE,size:15,font:'Arial'})]}),
+          new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:'('+cMeans[code].toFixed(2)+')',color:'BDD7EE',size:12,font:'Arab'})]}),
+        ]});
+    }),
+    mH(['الإجمالي'],t3C[t3C.length-1]),
+  ]});
+
+  const ch_h2=hasGender?[new TableRow({children:[
+    new TableCell({width:{size:1800},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'السؤال',bold:true,color:WHITE,size:14,font:'Arab'})]}),]}),
+    ...uniqueCourses.flatMap(()=>[
+      new TableCell({width:{size:ccW},borders:allB('843C0C'),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'F',bold:true,color:'843C0C',size:16,font:'Arial'})]}),]}),
+      new TableCell({width:{size:ccW},borders:allB('1F4E79'),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'M',bold:true,color:DARK,size:16,font:'Arab'})]}),]}),
+    ]),
+    new TableCell({width:{size:t3C[t3C.length-1]},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'الإجمالي',bold:true,color:WHITE,size:14,font:'Arab'})]}),]}),
+  ]})]:[]; 
+
+  const ovQM=Array.from({length:nQ},(_,qi)=>+(allSecs.reduce((a,s)=>a+(s.questions[qi]?.mean||0)*s.n,0)/totalN).toFixed(2));
+
+  const ch_data=Array.from({length:nQ},(_,qi)=>{
+    const oM=ovQM[qi];const oCl=clf(oM);const bg=qi%2===0?PALE:'FFFFFF';
+    return new TableRow({children:[
+      mC((`Q${qi+1} — `+(qTexts[qi]||'').slice(0,32)),t3C[0],bg,{align:AlignmentType.RIGHT,size:12}),
+      ...uniqueCourses.flatMap(code=>{
+        if(hasGender) return [
+          new TableCell({width:{size:ccW},borders:allB(),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cQMF[code][qi]!=null?cQMF[code][qi].toFixed(2):'—',bold:!!cQMF[code][qi],color:cQMF[code][qi]?'843C0C':'AAAAAA',size:13,font:'Arial'})]}),]}),
+          new TableCell({width:{size:ccW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cQMM[code][qi]!=null?cQMM[code][qi].toFixed(2):'—',bold:!!cQMM[code][qi],color:cQMM[code][qi]?DARK:'AAAAAA',size:13,font:'Arab'})]}),]}),
+        ];
+        const qM=cQM[code][qi];const qCl=qM!=null?clf(qM):{bg,c:'000000'};
+        return [mC(qM!=null?qM.toFixed(2):'—',ccW,qCl.bg,{color:qCl.c,size:13})];
+      }),
+      mC(oM.toFixed(2),t3C[t3C.length-1],oCl.bg,{bold:true,color:oCl.c,size:15}),
+    ]});
+  });
+
+  const ch_mean=new TableRow({children:[
+    mC('المتوسط',t3C[0],DARK,{bold:true,color:WHITE}),
+    ...uniqueCourses.flatMap(code=>{
+      const cl=clf(cMeans[code]);
+      if(hasGender){
+        const csF=allSecs.filter(s=>s.course===code&&s.gender==='F');
+        const csM=allSecs.filter(s=>s.course===code&&s.gender==='M');
+        const tnF=csF.reduce((a,s)=>a+s.n,0),tnM=csM.reduce((a,s)=>a+s.n,0);
+        const mF=tnF?+(csF.reduce((a,s)=>a+s.sec_mean*s.n,0)/tnF).toFixed(2):null;
+        const mM=tnM?+(csM.reduce((a,s)=>a+s.sec_mean*s.n,0)/tnM).toFixed(2):null;
+        return [
+          new TableCell({width:{size:ccW},borders:allB(),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:mF!=null?mF.toFixed(2):'—',bold:true,color:'843C0C',size:15,font:'Arial'})]}),]}),
+          new TableCell({width:{size:ccW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:mM!=null?mM.toFixed(2):'—',bold:true,color:DARK,size:15,font:'Arab'})]}),]}),
+        ];
+      }
+      return [mC(cMeans[code].toFixed(2),ccW,cl.bg,{bold:true,color:cl.c,size:16})];
+    }),
+    mC(grandMean.toFixed(2),t3C[t3C.length-1],gCl.bg,{bold:true,color:gCl.c,size:18}),
+  ]});
+
+  children.push(
+    mP('ثالثاً: جدول مقارنة الأسئلة عبر المقررات',{bold:true,size:24,color:DARK,before:0,after:60}),
+    hasGender?mP('الوردي = طالبات (F) | الأزرق = طلاب (M)',{size:15,color:'777777',italic:true,before:0,after:80}):sp(40,60),
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:t3C,rows:[ch_h1,...ch_h2,...ch_data,ch_mean]}),
+  );
+
+  return buildDoc(children);
+}
+
+function buildDoc(children){
+  const doc=new Document({
+    styles:{default:{document:{run:{font:'Arial',size:18}}}},
+    sections:[{properties:{page:{
+      size:{width:12240,height:15840,orientation:PageOrientation.LANDSCAPE},
+      margin:{top:720,right:720,bottom:720,left:720}
+    }},children}]
+  });
   return Packer.toBuffer(doc);
 }
 
-// ── Routes ─────────────────────────────────────────────────────────────────
-
-// Upload & parse Excel/CSV
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  try {
-    const { originalname, buffer } = req.file;
-    const ext = originalname.split('.').pop().toLowerCase();
-    let headers, rows;
-    if (ext === 'csv') {
-      const text = buffer.toString('utf-8');
-      const lines = text.trim().split(/\r?\n/);
-      headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
-      rows = lines.slice(1).map(l => l.split(',').map(v => v.trim().replace(/^"|"$/g,'')))
-                           .filter(r => r.some(v => v !== ''));
-    } else {
-      const wb = XLSX.read(buffer, { type:'buffer' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
-      headers = json[0].map(h => String(h||'').trim());
-      rows = json.slice(1).filter(r => r.some(v => v !== ''));
-    }
-    res.json({ ok:true, headers, rows, n:rows.length });
-  } catch(e) {
-    res.status(400).json({ ok:false, error: e.message });
-  }
-});
-
-// Generate Word
-app.post('/api/generate-word', async (req, res) => {
-  try {
-    const { result, cfg } = req.body;
-    // Re-attach clf to each question
-    const secs = result.secs.map(s => ({
-      ...s,
-      cl: clf(s.mean),
-      qs: s.qs.map(q => ({ ...q, cl: clf(q.cM) }))
-    }));
-    const enriched = { ...result, secs };
-    const buf = await buildWord(enriched, cfg);
-    res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'Content-Disposition': `attachment; filename="Survey_Analysis.docx"`,
-      'Content-Length': buf.length,
-    });
-    res.send(buf);
-  } catch(e) {
-    console.error(e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT=process.env.PORT||3000;
+app.listen(PORT,()=>console.log('Server on port',PORT));
