@@ -3,150 +3,170 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AlGhad Survey Analyzer | محلل الاستبيانات</title>
+<title>AlGhad Analyzer | محلل كليات الغد</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Tajawal',system-ui,sans-serif;background:#0d1b2e;min-height:100vh;color:#1a202c}
-.hdr{background:linear-gradient(135deg,#1a3a5c,#1F4E79,#2563a8);padding:18px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 24px rgba(0,0,0,.4)}
-.hdr-logo{display:flex;align-items:center;gap:14px}
-.hdr-icon{width:46px;height:46px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
-.hdr h1{color:#fff;font-size:18px;font-weight:800}
-.hdr p{color:rgba(255,255,255,.65);font-size:12px;margin-top:2px}
-.wrap{max-width:1140px;margin:0 auto;padding:24px 16px}
-.card{background:#fff;border-radius:16px;padding:26px;box-shadow:0 6px 24px rgba(0,0,0,.18);margin-bottom:16px;border:1px solid rgba(31,78,121,.08)}
-.btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff;padding:12px 26px;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
-.btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(46,117,182,.4)}
+body{font-family:system-ui,'Segoe UI',Tahoma,sans-serif;background:#0d1b2e;min-height:100vh;color:#1a202c;direction:rtl}
+.hdr{background:linear-gradient(135deg,#1a3a5c,#1F4E79,#2563a8);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 24px rgba(0,0,0,.4)}
+.hdr-left{display:flex;align-items:center;gap:12px}
+.hdr-icon{width:44px;height:44px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.hdr h1{color:#fff;font-size:17px;font-weight:800}
+.hdr p{color:rgba(255,255,255,.6);font-size:12px;margin-top:2px}
+.wrap{max-width:1160px;margin:0 auto;padding:22px 16px}
+.card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 6px 24px rgba(0,0,0,.18);margin-bottom:14px}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mode-card{border:3px solid #e2e8f0;border-radius:14px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .25s;background:#fafbff}
+.mode-card:hover{border-color:#2E75B6;background:#EBF3FB;transform:translateY(-2px)}
+.mode-card.on{border-color:#1F4E79;background:linear-gradient(135deg,#EBF3FB,#ddeeff);box-shadow:0 4px 16px rgba(31,78,121,.2)}
+.mode-card .icon{font-size:44px;margin-bottom:12px}
+.mode-card h3{font-size:17px;font-weight:800;color:#1F4E79;margin-bottom:6px}
+.mode-card p{font-size:12px;color:#64748b;line-height:1.7}
+.step{display:none}.step.on{display:block}
+.btn{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff;padding:11px 22px;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(31,78,121,.4)}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .btn-g{background:linear-gradient(135deg,#1a4a1a,#2d7a2d)}
-.btn-o{background:#fff;color:#1F4E79;border:2px solid #BDD7EE;padding:10px 22px;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+.btn-r{background:linear-gradient(135deg,#843C0C,#C55A11)}
+.btn-o{background:#fff;color:#1F4E79;border:2px solid #BDD7EE;padding:10px 18px;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
 .btn-o:hover{background:#EBF3FB}
-.btn-sm{padding:8px 16px;font-size:13px}
-.step{display:none}.step.on{display:block}
-.upzone{border:2px dashed #BDD7EE;border-radius:14px;padding:44px;text-align:center;cursor:pointer;transition:all .25s;background:linear-gradient(135deg,#f8faff,#EBF3FB)}
-.upzone:hover,.upzone.drag{border-color:#2E75B6;background:#deeaf7}
-.upzone-icon{font-size:52px;margin-bottom:12px}
-.upzone h2{font-size:20px;font-weight:700;color:#1F4E79;margin-bottom:6px}
-.upzone p{color:#64748b;font-size:13px;margin-bottom:20px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.fld label{display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:5px;direction:rtl}
-.fld input,.fld select,.fld textarea{width:100%;padding:10px 14px;border:2px solid #BDD7EE;border-radius:10px;font-size:14px;font-family:inherit;color:#1F4E79;outline:none;direction:rtl;background:#fafbff}
-.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:#2E75B6;background:#fff}
-.hint{font-size:11px;color:#aaa;margin-top:3px;direction:rtl}
-/* Gender mode selector */
-.gmode{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
-.gmode-btn{border:2px solid #BDD7EE;border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all .2s;background:#fafbff}
-.gmode-btn:hover{border-color:#2E75B6;background:#EBF3FB}
-.gmode-btn.on{border-color:#1F4E79;background:#EBF3FB;box-shadow:0 0 0 3px rgba(31,78,121,.15)}
-.gmode-btn .icon{font-size:26px;margin-bottom:6px}
-.gmode-btn .lbl{font-size:13px;font-weight:700;color:#1F4E79}
-.gmode-btn .sub{font-size:11px;color:#64748b;margin-top:2px}
-/* Section builder */
-.sec-box{border:2px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:10px;background:#fafbff}
-.sec-box h4{font-size:14px;font-weight:700;color:#1F4E79;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.sec-box h4 input{flex:1;min-width:130px;padding:5px 10px;font-size:13px;border:2px solid #BDD7EE;border-radius:8px;color:#1F4E79;font-family:inherit;direction:rtl;max-width:200px}
-.q-chips{display:flex;flex-wrap:wrap;gap:5px}
-.chip{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#EBF3FB;color:#1F4E79;cursor:pointer;border:2px solid #BDD7EE;user-select:none;transition:all .15s}
-.chip.on{background:#1F4E79;color:#fff;border-color:#1F4E79}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px}
-.stat{background:linear-gradient(135deg,#EBF3FB,#ddeeff);border-radius:12px;padding:14px;text-align:center;border-top:3px solid #2E75B6}
-.stat .v{font-size:26px;font-weight:800;color:#1F4E79}
+.btn-sm{padding:7px 14px;font-size:13px}
+.file-group{border:2px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:10px;background:#fafbff}
+.file-group h4{font-size:14px;font-weight:700;color:#1F4E79;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.file-stat{font-size:12px;margin-top:6px;display:inline-block;padding:4px 10px;border-radius:8px}
+.fs-ok{background:#E2EFDA;color:#375623}.fs-wait{background:#EBF3FB;color:#1F4E79}.fs-err{background:#FFC7CE;color:#9C0006}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.fld label{display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px}
+.fld input,.fld select{width:100%;padding:9px 12px;border:2px solid #BDD7EE;border-radius:10px;font-size:14px;font-family:inherit;color:#1F4E79;outline:none;background:#fafbff}
+.fld input:focus,.fld select:focus{border-color:#2E75B6;background:#fff}
+.hint{font-size:11px;color:#aaa;margin-top:3px}
+.stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:linear-gradient(135deg,#EBF3FB,#ddeeff);border-radius:12px;padding:13px;text-align:center;border-top:3px solid #2E75B6}
+.stat.green{background:linear-gradient(135deg,#E2EFDA,#d4f0c4);border-top-color:#375623}
+.stat.red{background:linear-gradient(135deg,#FFC7CE,#ffd6da);border-top-color:#9C0006}
+.stat .v{font-size:22px;font-weight:800;color:#1F4E79}
+.stat.green .v{color:#375623}.stat.red .v{color:#9C0006}
 .stat .l{font-size:11px;color:#64748b;margin-top:2px}
-.tbl-wrap{overflow-x:auto;margin-bottom:14px}
+.tbl-wrap{overflow-x:auto;margin-bottom:12px}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{background:#1F4E79;color:#fff;padding:8px 10px;white-space:nowrap;text-align:center}
-td{border:1px solid #BDD7EE;padding:7px 9px;text-align:center}
+th{background:#1F4E79;color:#fff;padding:7px 9px;white-space:nowrap;text-align:center}
+td{border:1px solid #BDD7EE;padding:6px 8px;text-align:center}
 .even td{background:#EBF3FB}
-.sec-hdr td{background:#2E75B6!important;color:#fff!important;font-weight:700;text-align:center;border-color:#2E75B6!important}
-.tag{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
-.tabs{display:flex;gap:3px;border-bottom:2px solid #BDD7EE;margin-bottom:16px}
-.tab{padding:9px 18px;cursor:pointer;font-size:13px;font-weight:700;color:#64748b;border-radius:8px 8px 0 0;border:2px solid transparent;border-bottom:none;margin-bottom:-2px;transition:all .15s}
+.tag{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.tabs{display:flex;gap:3px;border-bottom:2px solid #BDD7EE;margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:8px 16px;cursor:pointer;font-size:13px;font-weight:700;color:#64748b;border-radius:8px 8px 0 0;border:2px solid transparent;border-bottom:none;margin-bottom:-2px;transition:all .15s}
 .tab.on{color:#1F4E79;border-color:#BDD7EE;background:#fff;border-bottom-color:#fff}
 .pane{display:none}.pane.on{display:block}
-.prog-wrap{background:#e2e8f0;border-radius:50px;height:10px;overflow:hidden;margin:12px 0}
-.prog-bar{height:100%;background:linear-gradient(90deg,#1F4E79,#2E75B6);border-radius:50px;transition:width .4s ease;width:0%}
-.msg-ok{background:#E2EFDA;color:#375623;border-radius:10px;padding:12px 16px;font-size:13px;border-right:4px solid #375623;direction:rtl}
-.msg-err{background:#FFC7CE;color:#9C0006;border-radius:10px;padding:12px 16px;font-size:13px;border-right:4px solid #9C0006;direction:rtl}
-.msg-info{background:#EBF3FB;color:#1F4E79;border-radius:10px;padding:12px 16px;font-size:13px;border-right:4px solid #2E75B6;direction:rtl}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
-.sample-tbl{width:auto;margin-top:8px}
-.sample-tbl th{font-size:12px;padding:5px 10px}
-.sample-tbl td{font-size:12px;padding:4px 10px}
-.gender-col-row{display:none}
-@media(max-width:600px){.grid2{grid-template-columns:1fr}.gmode{grid-template-columns:1fr}.hdr{flex-direction:column;gap:8px;text-align:center}}
-
-.mode-switch{display:flex;gap:0;border:2px solid #BDD7EE;border-radius:12px;overflow:hidden;margin-bottom:20px}
-.mode-btn{flex:1;padding:12px;text-align:center;cursor:pointer;font-size:14px;font-weight:700;color:#64748b;background:#fafbff;transition:all .2s;border:none;font-family:inherit}
-.mode-btn.on{background:#1F4E79;color:#fff}
-.section-file-card{border:2px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:10px;background:#fafbff}
-.section-file-card h4{font-size:13px;font-weight:700;color:#1F4E79;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.file-status{font-size:12px;margin-top:6px;padding:5px 10px;border-radius:8px;display:inline-block}
-.file-ok{background:#E2EFDA;color:#375623}
-.file-wait{background:#EBF3FB;color:#1F4E79}
-.file-err{background:#FFC7CE;color:#9C0006}
-.combined-badge{background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff;border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:13px;font-weight:700}
-
+.prog-wrap{background:#e2e8f0;border-radius:50px;height:8px;overflow:hidden;margin:10px 0}
+.prog-bar{height:100%;background:linear-gradient(90deg,#1F4E79,#2E75B6);border-radius:50px;transition:width .4s;width:0%}
+.msg-ok{background:#E2EFDA;color:#375623;border-radius:10px;padding:10px 14px;font-size:13px;border-right:4px solid #375623}
+.msg-err{background:#FFC7CE;color:#9C0006;border-radius:10px;padding:10px 14px;font-size:13px;border-right:4px solid #9C0006}
+.msg-info{background:#EBF3FB;color:#1F4E79;border-radius:10px;padding:10px 14px;font-size:13px;border-right:4px solid #2E75B6}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.gender-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.gender-box{border-radius:12px;padding:16px}
+.gender-box.female{border:2px solid #FCE4D6;background:#FFF5F0}
+.gender-box.male{border:2px solid #DDEBF7;background:#F0F6FF}
+.gender-box h4{font-weight:700;margin-bottom:10px;font-size:14px}
+.gender-box.female h4{color:#843C0C}
+.gender-box.male h4{color:#1F4E79}
+.section-list{max-height:280px;overflow-y:auto;border:1px solid #BDD7EE;border-radius:10px;padding:8px}
+.section-item{padding:6px 10px;border-radius:8px;font-size:12px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.section-item:nth-child(even){background:#EBF3FB}
+@media(max-width:600px){.mode-grid,.fgrid,.gender-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+
 <div class="hdr">
-  <div class="hdr-logo">
+  <div class="hdr-left">
     <div class="hdr-icon">📊</div>
-    <div><h1>AlGhad Survey Analyzer</h1><p>محلل الاستبيانات الكامل – كليات الغد | Excel → Word</p></div>
+    <div>
+      <h1>AlGhad Survey Analyzer</h1>
+      <p>محلل استبيانات كليات الغد | Excel → Word | v3.0</p>
+    </div>
   </div>
-  <div style="color:rgba(255,255,255,.5);font-size:11px;text-align:left;direction:ltr">Likert 1–5<br>كامل بدون إنترنت</div>
+  <div style="color:rgba(255,255,255,.4);font-size:11px;direction:ltr">Jeddah 🇸🇦</div>
 </div>
 
 <div class="wrap">
 
-<!-- STEP 1: UPLOAD -->
-<div id="s1" class="step on">
+<!-- STEP 0: MODE -->
+<div id="s0" class="step on">
   <div class="card">
+    <div style="font-weight:800;color:#1F4E79;font-size:18px;margin-bottom:6px">اختاري نوع التحليل</div>
+    <div style="color:#64748b;font-size:13px;margin-bottom:20px">كل نوع يطلع تقرير Word مصمم خصيصاً لبياناته</div>
+    <div class="mode-grid">
+      <div class="mode-card" onclick="selectMode('course')" id="mc_course">
+        <div class="icon">📚</div>
+        <h3>تقييم المقرر</h3>
+        <p>استبانة تقييم المقررات الدراسية<br>دمج شعب متعددة<br>جدول مقارنة بين المقررات<br>تقسيم طلاب / طالبات اختياري</p>
+      </div>
+      <div class="mode-card" onclick="selectMode('instructor')" id="mc_instructor">
+        <div class="icon">👩‍🏫</div>
+        <h3>تقييم المحاضر</h3>
+        <p>استبانة تقييم أعضاء هيئة التدريس<br>جمع الشعب لكل محاضر تلقائياً<br>جدول مقارنة بين المحاضرين<br>تقسيم طلاب / طالبات اختياري</p>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <div style="font-weight:800;color:#1F4E79;font-size:16px;margin-bottom:14px">اختاري طريقة التحليل</div>
-    <div class="mode-switch">
-      <button class="mode-btn on" onclick="setMode('single')">📄 ملف واحد</button>
-      <button class="mode-btn" onclick="setMode('multi')">📚 دمج شعب متعددة</button>
+<!-- STEP 1: UPLOAD -->
+<div id="s1" class="step">
+  <div class="card">
+    <div id="mode_badge" style="display:inline-flex;align-items:center;gap:8px;background:#EBF3FB;border-radius:8px;padding:6px 14px;margin-bottom:16px;font-weight:700;color:#1F4E79;font-size:14px"></div>
+
+    <div style="font-weight:700;color:#1F4E79;font-size:15px;margin-bottom:10px">طريقة التحميل</div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-sm" id="ubtn_single" onclick="setUploadMode('single')">📄 ملف واحد</button>
+      <button class="btn-o btn-sm" id="ubtn_gender" onclick="setUploadMode('gender')">👥 طالبات + طلاب</button>
+      <button class="btn-o btn-sm" id="ubtn_multi" onclick="setUploadMode('multi')">📚 شعب متعددة</button>
     </div>
-    <div id="multi_mode" style="display:none">
-      <div class="msg-info" style="margin-bottom:12px">ارفعي ملف كل شعبة — سيتم حساب المتوسط الموزون لكل سؤال.</div>
-      <div id="secFiles"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <button class="btn btn-sm" onclick="addSecFile()">＋ إضافة شعبة</button>
-        <button class="btn btn-sm btn-g" id="combineBtn" onclick="combineAndAnalyze()" disabled>✔ دمج وتحليل</button>
+
+    <!-- Single -->
+    <div id="upload_single">
+      <div class="file-group">
+        <h4>📂 ملف الاستبيان</h4>
+        <label class="btn btn-sm" style="cursor:pointer">
+          📎 اختيار الملف
+          <input type="file" accept=".xlsx,.xls" style="display:none" onchange="uploadGroup('all',this)">
+        </label>
+        <span id="stat_all" class="file-stat fs-wait">⏳ لم يُرفع</span>
       </div>
     </div>
-    <div id="single_mode">
-    <div class="upzone" id="dropzone" onclick="document.getElementById('fi').click()">
-      <div class="upzone-icon">📂</div>
-      <h2>ارفعي ملف الاستبيان</h2>
-      <p>Excel (.xlsx / .xls) أو CSV</p>
-      <button class="btn" onclick="event.stopPropagation();document.getElementById('fi').click()">📎 اختيار الملف</button>
-      <div id="fn" style="margin-top:10px;font-size:12px;color:#aaa"></div>
-    </div>
-    <input type="file" id="fi" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadFile(this)">
-    <div id="e1" class="msg-err" style="display:none;margin-top:12px"></div>
-    </div><!-- /single_mode -->
-    <div style="background:#f0f6ff;border-radius:12px;padding:18px;margin-top:18px;border-right:4px solid #2E75B6;direction:rtl">
-      <div style="font-weight:700;color:#1F4E79;margin-bottom:10px">📋 شكل الملف — أي من هذه الصيغ مقبول:</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px;color:#444">
-        <div style="background:#fff;border-radius:8px;padding:10px">
-          <b style="color:#1F4E79">✅ فيه عمود جنس</b><br>
-          <table class="sample-tbl" style="margin-top:6px;direction:ltr"><tr><th>Gender</th><th>Q1</th><th>Q2</th></tr>
-          <tr><td>Female</td><td>1</td><td>2</td></tr><tr><td>Male</td><td>3</td><td>1</td></tr></table>
+
+    <!-- Gender split -->
+    <div id="upload_gender" style="display:none">
+      <div class="gender-grid">
+        <div class="gender-box female">
+          <h4>👩 ملف الطالبات (إناث)</h4>
+          <label class="btn btn-sm btn-r" style="cursor:pointer">
+            📎 رفع ملف البنات
+            <input type="file" accept=".xlsx,.xls" style="display:none" onchange="uploadGroup('F',this)">
+          </label>
+          <div id="stat_F" class="file-stat fs-wait" style="margin-top:8px;display:block">⏳ لم يُرفع</div>
         </div>
-        <div style="background:#fff;border-radius:8px;padding:10px">
-          <b style="color:#375623">✅ عربي</b><br>
-          <table class="sample-tbl" style="margin-top:6px;direction:ltr"><tr><th>الجنس</th><th>Q1</th><th>Q2</th></tr>
-          <tr><td>أنثى</td><td>1</td><td>2</td></tr><tr><td>ذكر</td><td>3</td><td>1</td></tr></table>
-        </div>
-        <div style="background:#fff;border-radius:8px;padding:10px">
-          <b style="color:#7F6000">✅ بدون عمود جنس</b><br>
-          <table class="sample-tbl" style="margin-top:6px;direction:ltr"><tr><th>Q1</th><th>Q2</th><th>Q3</th></tr>
-          <tr><td>1</td><td>2</td><td>1</td></tr><tr><td>3</td><td>1</td><td>2</td></tr></table>
-          <div style="font-size:11px;color:#888;margin-top:4px">ستختارين الجنس بعد الرفع</div>
+        <div class="gender-box male">
+          <h4>👨 ملف الطلاب (ذكور)</h4>
+          <label class="btn btn-sm" style="cursor:pointer">
+            📎 رفع ملف البنين
+            <input type="file" accept=".xlsx,.xls" style="display:none" onchange="uploadGroup('M',this)">
+          </label>
+          <div id="stat_M" class="file-stat fs-wait" style="margin-top:8px;display:block">⏳ لم يُرفع</div>
         </div>
       </div>
+    </div>
+
+    <!-- Multi -->
+    <div id="upload_multi" style="display:none">
+      <div class="msg-info" style="margin-bottom:12px">ارفعي ملف كل شعبة — سيتم حساب المتوسط الموزون تلقائياً</div>
+      <div id="multi_files"></div>
+      <button class="btn btn-sm" onclick="addMultiFile()" style="margin-top:8px">＋ إضافة شعبة</button>
+    </div>
+
+    <div id="e_upload" class="msg-err" style="display:none;margin-top:10px"></div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-g" id="goConfig" onclick="goToConfig()" disabled>التالي: الإعدادات ←</button>
+      <button class="btn-o" onclick="go(0)">↩ تغيير النوع</button>
     </div>
   </div>
 </div>
@@ -154,623 +174,381 @@ td{border:1px solid #BDD7EE;padding:7px 9px;text-align:center}
 <!-- STEP 2: CONFIG -->
 <div id="s2" class="step">
   <div class="card">
-    <div id="s2title" style="font-weight:800;color:#1F4E79;font-size:18px;margin-bottom:4px"></div>
-    <div id="s2info"  style="color:#64748b;font-size:13px;margin-bottom:20px"></div>
-
-    <!-- Gender Mode Selector -->
-    <div style="font-weight:700;color:#1F4E79;font-size:15px;margin-bottom:12px">كيف يوزع الجنس في ملفك؟</div>
-    <div class="gmode" id="gmode">
-      <div class="gmode-btn on" data-mode="col" onclick="setGMode('col')">
-        <div class="icon">📊</div>
-        <div class="lbl">فيه عمود جنس</div>
-        <div class="sub">Female/Male أو أنثى/ذكر</div>
-      </div>
-      <div class="gmode-btn" data-mode="all_f" onclick="setGMode('all_f')">
-        <div class="icon">👩</div>
-        <div class="lbl">كلهم إناث</div>
-        <div class="sub">كل المستجيبين بنات</div>
-      </div>
-      <div class="gmode-btn" data-mode="all_m" onclick="setGMode('all_m')">
-        <div class="icon">👨</div>
-        <div class="lbl">كلهم ذكور</div>
-        <div class="sub">كل المستجيبين أولاد</div>
-      </div>
-    </div>
-
-    <!-- Gender column settings (shown only when mode=col) -->
-    <div id="gcol_row" class="gender-col-row" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
-      <div class="fld">
-        <label>اسم عمود الجنس في الملف</label>
-        <input id="gcol" value="Gender">
-        <div class="hint" id="gh">مثال: Gender أو الجنس أو Sex</div>
-      </div>
-      <div class="fld">
-        <label>قيمة الإناث في الملف</label>
-        <select id="fval_sel" onchange="document.getElementById('fval_custom').style.display=this.value==='custom'?'block':'none'">
-          <option value="female">Female / female</option>
-          <option value="أنثى">أنثى / انثى</option>
-          <option value="طالبات">طالبات</option>
-          <option value="f">F / f</option>
-          <option value="1">1 (رقم واحد)</option>
-          <option value="2">2 (رقم اثنين)</option>
-          <option value="custom">✏️ اكتبي يدوياً</option>
+    <div style="font-weight:800;color:#1F4E79;font-size:17px;margin-bottom:16px">إعدادات التقرير</div>
+    <div class="fgrid">
+      <div class="fld"><label>اسم الكلية</label>
+        <input id="cfg_college" value="كليات الغد للعلوم الطبية التطبيقية – جدة"></div>
+      <div class="fld"><label>اسم الاستبيان / التقرير</label>
+        <input id="cfg_name" value=""></div>
+      <div class="fld"><label>القسم / التخصص</label>
+        <input id="cfg_dept" placeholder="مثال: قسم التمريض"></div>
+      <div class="fld"><label>الفصل الدراسي</label>
+        <input id="cfg_semester" value="الفصل الثاني 1447"></div>
+      <div class="fld"><label>الموقع / المقر</label>
+        <input id="cfg_loc" placeholder="مثال: جدة - بنين"></div>
+      <div class="fld"><label>الفئة المستهدفة</label>
+        <select id="cfg_category">
+          <option value="students">طلاب وطالبات</option>
+          <option value="female">طالبات فقط</option>
+          <option value="male">طلاب فقط</option>
+          <option value="staff">الكادر الإداري</option>
+          <option value="employee">الموظفون</option>
         </select>
-        <input id="fval_custom" placeholder="اكتبي قيمة الإناث كما هي في الملف" style="display:none;margin-top:6px">
-        <div class="hint">اختاري الصيغة الموجودة في ملفك — مثال: طالبات أو Female أو أنثى</div>
       </div>
     </div>
-
-    <div class="grid2" style="margin-bottom:16px">
-      <div class="fld">
-        <label>اسم الكلية</label>
-        <input id="cname" value="كليات الغد للعلوم الطبية التطبيقية – جدة">
-      </div>
-      <div class="fld">
-        <label>اسم الاستبيان</label>
-        <input id="sname" value="استبيان استطلاع آراء الطلاب">
-      </div>
-      <div class="fld">
-        <label>هدف الاستبيان</label>
-        <input id="obj" value="قياس مستوى جودة التدريب الميداني وتقييم رضا الطلاب">
-      </div>
-      <div class="fld">
-        <label>الفصل الدراسي / السنة</label>
-        <input id="semester" value="الفصل الدراسي الثاني 2024–2025">
-      </div>
-    </div>
-
-    <!-- ── Data Range Picker ── -->
-    <div style="background:#FFF8E7;border-radius:12px;padding:16px;margin-bottom:16px;border-right:4px solid #F59E0B;direction:rtl">
-      <div style="font-weight:700;color:#92400E;margin-bottom:12px">📍 تحديد نطاق البيانات — مهم للدقة</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
-        <div class="fld">
-          <label>أول صف للبيانات</label>
-          <input id="dataStartRow" type="number" value="2" min="1" max="100" style="direction:ltr">
-          <div class="hint">عادةً الصف 2 (الصف 1 = عناوين)</div>
-        </div>
-        <div class="fld">
-          <label>أول عمود للأسئلة (رقم)</label>
-          <input id="firstQColNum" type="number" value="" placeholder="فارغ = تلقائي" min="1" style="direction:ltr">
-          <div class="hint">A=1, B=2, C=3... مثال: أسئلة تبدأ من العمود 5 ← اكتبي 5</div>
-        </div>
-        <div class="fld">
-          <label>آخر عمود للأسئلة (رقم)</label>
-          <input id="lastQColNum" type="number" value="" placeholder="فارغ = آخر عمود" min="1" style="direction:ltr">
-          <div class="hint">اتركي فارغاً لأخذ كل الأعمدة حتى الأخير</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <button onclick="previewData()" style="background:#F59E0B;color:white;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px">
-          👁️ معاينة البيانات
-        </button>
-        <span style="font-size:12px;color:#92400E">اضغطي للتأكد أن الأعمدة المحددة هي أسئلة فعلية (أرقام 1-5)</span>
-      </div>
-      <div id="previewBox" style="display:none;margin-top:12px;overflow-x:auto;border-radius:8px;border:1px solid #FCD34D"></div>
-    </div>
-
-    <div id="e2" class="msg-err" style="display:none;margin-bottom:12px"></div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn" onclick="toStep3()">التالي: تقسيم المحاور ←</button>
+    <div id="sections_preview"></div>
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-g" onclick="buildReport()">✔ إنشاء التقرير</button>
       <button class="btn-o" onclick="go(1)">↩ رجوع</button>
     </div>
   </div>
 </div>
 
-<!-- STEP 3: SECTIONS -->
+<!-- STEP 3: RESULTS -->
 <div id="s3" class="step">
   <div class="card">
-    <div style="font-weight:800;color:#1F4E79;font-size:17px;margin-bottom:6px">تقسيم الأسئلة إلى محاور</div>
-    <div class="msg-info" style="margin-bottom:14px">
-      اضغطي على الأسئلة لتعيينها للمحور. إذا تركتي بدون تقسيم → سيكون كل الأسئلة محور واحد.
-    </div>
-    <div id="secB"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-      <button class="btn btn-sm" onclick="addSec()">＋ إضافة محور</button>
-      <button class="btn btn-sm btn-g" onclick="doAnalyze()">✔ تحليل وإنشاء التقرير</button>
-      <button class="btn-o btn-sm" onclick="go(2)">↩ رجوع</button>
-    </div>
-  </div>
-</div>
-
-<!-- STEP 4: RESULTS -->
-<div id="s4" class="step">
-  <div class="card">
     <div class="actions">
-      <button class="btn" id="dlbtn" onclick="genWord()">⬇️ تحميل التقرير Word</button>
-      <button class="btn-o" onclick="go(3)">✏️ تعديل المحاور</button>
-      <button class="btn-o" onclick="go(1)">📂 ملف جديد</button>
+      <button class="btn" id="dlbtn" onclick="downloadWord()">⬇️ تحميل التقرير Word</button>
+      <button class="btn-o" onclick="go(2)">✏️ تعديل الإعدادات</button>
+      <button class="btn-o" onclick="go(0)">📂 تحليل جديد</button>
     </div>
-    <div id="dlmsg"></div>
-    <div class="prog-wrap" id="pw" style="display:none"><div class="prog-bar" id="pb"></div></div>
-    <div class="stats" id="st4"></div>
+    <div id="dl_msg"></div>
+    <div class="prog-wrap" id="dl_prog" style="display:none"><div class="prog-bar" id="dl_bar"></div></div>
+    <div class="stats-bar" id="stats_bar"></div>
   </div>
   <div class="card">
     <div class="tabs">
-      <div class="tab on" onclick="swTab('ov')">📊 ملخص</div>
-      <div class="tab"    onclick="swTab('dt')">📋 تفاصيل</div>
-      <div class="tab"    onclick="swTab('oa')">🔢 إجمالي</div>
+      <div class="tab on" onclick="swTab('participation')">📋 المشاركة والاستجابة</div>
+      <div class="tab" onclick="swTab('summary')">📊 ملخص النتائج</div>
+      <div class="tab" onclick="swTab('detail')">🔍 تفاصيل الشعب</div>
     </div>
-    <div id="pov" class="pane on"></div>
-    <div id="pdt" class="pane"></div>
-    <div id="poa" class="pane"></div>
+    <div id="tab_participation" class="pane on"></div>
+    <div id="tab_summary" class="pane"></div>
+    <div id="tab_detail" class="pane"></div>
   </div>
 </div>
 
 </div>
 
 <script>
-// ─── CORE FUNCTIONS ──────────────────────────────────────────────────
-let RAW=null, CFG={}, RES=null, SECS=[];
+let MODE='course', UPLOAD_MODE='single';
+let GROUPS={}, MULTI_FILES=[], RES=null, META={};
 
-function go(n){document.querySelectorAll('.step').forEach((s,i)=>s.classList.toggle('on',i+1===n));window.scrollTo({top:0,behavior:'smooth'});}
+function go(n){document.querySelectorAll('.step').forEach((s,i)=>s.classList.toggle('on',i===n));window.scrollTo({top:0,behavior:'smooth'});}
 function swTab(name){
-  const N=['ov','dt','oa'];
+  const N=['participation','summary','detail'];
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',N[i]===name));
   document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
-  document.getElementById('p'+name).classList.add('on');
+  document.getElementById('tab_'+name).classList.add('on');
 }
-function showE(id,m){const e=document.getElementById(id);if(e){e.style.display='block';e.textContent='⚠️ '+m;}}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-const clf=m=>{
-  if(m<=1.5)return{l:'Excellent',ar:'ممتاز',bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
-  if(m<=2.0)return{l:'Good',ar:'جيد',bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
-  if(m<=2.5)return{l:'Acceptable',ar:'مقبول',bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
-  if(m<=3.0)return{l:'Weakness',ar:'ضعف',bg:'#FFC7CE',c:'#9C0006',hx:'FFC7CE',hc:'9C0006'};
-  return{l:'Critical',ar:'حرج',bg:'#FFC7CE',c:'#9C0006',hx:'FFC7CE',hc:'9C0006'};
-};
-const mOf=d=>[1,2,3,4,5].reduce((s,r,i)=>s+r*(d[i]/100),0);
+function selectMode(mode){
+  MODE=mode;
+  document.getElementById('mc_course').classList.toggle('on',mode==='course');
+  document.getElementById('mc_instructor').classList.toggle('on',mode==='instructor');
+  document.getElementById('mode_badge').textContent=mode==='course'?'📚 تقييم المقرر':'👩‍🏫 تقييم المحاضر';
+  document.getElementById('cfg_name').value=mode==='course'?'تقرير استبانة تقييم المقررات الدراسية':'تقرير استبانة تقييم المحاضرين';
+  go(1);
+}
 
-// Drag & drop
-document.addEventListener('DOMContentLoaded',()=>{
-  const dz=document.getElementById('dropzone');
-  if(dz){
-    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
-    dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
-    dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');loadFile({files:e.dataTransfer.files});});
-  }
-  const gr=document.getElementById('gcol_row');
-  if(gr)gr.style.display='grid';
-});
+function setUploadMode(m){
+  UPLOAD_MODE=m;
+  ['single','gender','multi'].forEach(id=>{
+    const btn=document.getElementById('ubtn_'+id);
+    const div=document.getElementById('upload_'+id);
+    const on=id===m;
+    btn.style.background=on?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff';
+    btn.style.color=on?'#fff':'#1F4E79';
+    btn.style.border=on?'none':'2px solid #BDD7EE';
+    if(div) div.style.display=on?'block':'none';
+  });
+  checkReady();
+}
 
-function loadFile(inp){
+async function uploadGroup(key,inp){
   const f=inp.files[0];if(!f)return;
-  const fn=document.getElementById('fn');
-  if(fn)fn.textContent='⏳ جاري الرفع: '+f.name;
-  // Show uploading state clearly
-  const e1=document.getElementById('e1');
-  if(e1){e1.style.display='block';e1.textContent='⏳ جاري رفع الملف: '+f.name;}
+  const el=document.getElementById('stat_'+key);
+  el.className='file-stat fs-wait';el.textContent='⏳ جاري الرفع...';
   const fd=new FormData();fd.append('file',f);
-  fetch('/api/upload',{method:'POST',body:fd})
-    .then(r=>{
-      if(!r.ok) throw new Error('Server error: '+r.status+' '+r.statusText);
-      return r.json();
-    })
-    .then(data=>{
-      if(!data.ok)throw new Error(data.error||'Upload failed');
-      if(e1)e1.style.display='none';
-      RAW={headers:data.headers,rows:data.rows};
-      initCfg(f.name);
-    })
-    .catch(ex=>{
-      const msg='خطأ في الرفع: '+ex.message;
-      if(e1){e1.style.display='block';e1.textContent='⚠️ '+msg;}
-      alert(msg);
-    });
-}
-
-function initCfg(name){
-  document.getElementById('s2title').textContent='\u2705 '+name;
-  document.getElementById('s2info').textContent=RAW.rows.length+' \u0645\u0633\u062A\u062C\u064A\u0628 \u00B7 '+RAW.headers.length+' \u0639\u0645\u0648\u062F';
-  const gh=document.getElementById('gh');
-  if(gh)gh.textContent='\u0627\u0644\u0623\u0639\u0645\u062F\u0629: '+RAW.headers.join(' | ');
-  const g=RAW.headers.find(h=>/^(gender|\u062C\u0646\u0633|\u0627\u0644\u062C\u0646\u0633|sex)$/i.test(h.trim()));
-  const gcol=document.getElementById('gcol');
-  if(g&&gcol)gcol.value=g;
-  go(2);
-}
-
-function previewData(){
-  if(!RAW){alert('ارفعي الملف أولاً');return;}
-  const startRow=Math.max(0,(parseInt(document.getElementById('dataStartRow')?.value)||2)-2);
-  const firstQ=parseInt(document.getElementById('firstQColNum')?.value||'0');
-  const lastQ=parseInt(document.getElementById('lastQColNum')?.value||'0');
-
-  // Build preview table
-  const gcolName=document.getElementById('gcol')?.value||'Gender';
-  const gIdx=RAW.headers.findIndex(h=>h.toLowerCase()===gcolName.toLowerCase());
-
-  // Determine column range
-  let startCol=firstQ>0?firstQ-1:0;
-  let endCol=lastQ>0?lastQ-1:RAW.headers.length-1;
-  // Auto-skip gender column
-  const colsToShow=[...Array(endCol-startCol+1).keys()].map(i=>startCol+i).filter(i=>i!==gIdx);
-
-  const previewRows=RAW.rows.slice(startRow,startRow+5);
-  const headers=colsToShow.map(i=>RAW.headers[i]||'Col '+(i+1));
-
-  // Check which columns have numeric data
-  const numericCheck=colsToShow.map(ci=>{
-    const vals=previewRows.map(r=>+r[ci]).filter(v=>!isNaN(v)&&v>0);
-    const allNum=vals.length>0&&previewRows.every(r=>!isNaN(+r[ci])||String(r[ci]||'').trim()==='');
-    return allNum;
-  });
-
-  let tbl=`<table style="width:100%;border-collapse:collapse;font-size:11px">
-    <thead><tr><th style="background:#1F4E79;color:white;padding:5px 8px">الصف</th>
-    ${headers.map((h,i)=>`<th style="background:${numericCheck[i]?'#1F4E79':'#9C0006'};color:white;padding:5px 8px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h}">${h.slice(0,15)}${h.length>15?'...':''}<br><span style="font-size:9px">${numericCheck[i]?'✅ رقمي':'❌ نصي'}</span></th>`).join('')}
-    </tr></thead><tbody>
-    ${previewRows.map((row,ri)=>`<tr style="background:${ri%2===0?'#EBF3FB':'white'}">
-      <td style="border:1px solid #BDD7EE;padding:4px 6px;font-weight:700">${startRow+ri+2}</td>
-      ${colsToShow.map((ci,i)=>`<td style="border:1px solid #BDD7EE;padding:4px 6px;text-align:center;color:${numericCheck[i]?'#1F4E79':'#9C0006'}">${row[ci]??''}</td>`).join('')}
-    </tr>`).join('')}
-    </tbody></table>`;
-
-  const nonNumeric=headers.filter((_,i)=>!numericCheck[i]);
-  const numCount=numericCheck.filter(Boolean).length;
-
-  const box=document.getElementById('previewBox');
-  box.style.display='block';
-  box.innerHTML=`
-    <div style="padding:10px;background:#FFF8E7;direction:rtl">
-      <div style="font-weight:700;color:#92400E;margin-bottom:6px">معاينة أول ${previewRows.length} صفوف من الصف ${startRow+2}:</div>
-      <div style="font-size:12px;color:#555;margin-bottom:8px">
-        ✅ أعمدة رقمية (ستُحلَّل): <b style="color:#375623">${numCount}</b> عمود |
-        ❌ أعمدة نصية (ستُتجاهَل): <b style="color:#9C0006">${nonNumeric.length}</b> عمود
-        ${nonNumeric.length>0?'<br>الأعمدة النصية: '+nonNumeric.slice(0,5).join(', '):''}
-      </div>
-      ${tbl}
-      <div style="margin-top:8px;font-size:12px;color:#92400E">
-        💡 إذا ظهرت أعمدة نصية لا تريدينها: غيّري رقم "أول عمود للأسئلة" وأعيدي المعاينة
-      </div>
-    </div>`;
-}
-
-function toStep3(){
-  document.getElementById('e2').style.display='none';
-  const gcol=document.getElementById('gcol').value.trim();
-  let gmode='col';
-  const activeModeBtn=document.querySelector('.gmode-btn.on');
-  if(activeModeBtn)gmode=activeModeBtn.dataset.mode||'col';
-
-  // Skip extra header rows
-  const startRow=Math.max(0,(parseInt(document.getElementById('dataStartRow')?.value)||2)-2);
-  const dataRows=RAW.rows.slice(startRow).filter(r=>r.some(v=>String(v||'').trim()!==''));
-  if(!dataRows.length){showE('e2','لا توجد بيانات — تأكدي من رقم الصف الصحيح');return;}
-
-  let gIdx=-1,fRows=[],mRows=[];
-  if(gmode==='all_f'){fRows=[...dataRows];}
-  else if(gmode==='all_m'){mRows=[...dataRows];}
-  else{
-    gIdx=RAW.headers.findIndex(h=>h.toLowerCase()===gcol.toLowerCase());
-    if(gIdx<0){showE('e2','عمود "'+gcol+'" غير موجود. الأعمدة: '+RAW.headers.join(', '));return;}
-    dataRows.forEach(row=>{
-      const g=String(row[gIdx]||'').toLowerCase().trim();
-      // Get female value from select or custom input
-    const fvalSel=document.getElementById('fval_sel')?.value||'female';
-    const fvalCustom=(document.getElementById('fval_custom')?.value||'').trim().toLowerCase();
-    const fvalFinal=fvalSel==='custom'?fvalCustom:fvalSel.toLowerCase();
-    const isF=g===fvalFinal||
-      (fvalFinal==='female'&&(g==='female'||g==='f'))||
-      (fvalFinal==='أنثى'&&(g==='أنثى'||g==='انثى'))||
-      (fvalFinal==='طالبات'&&(g==='طالبات'||g==='طالبه'||g==='طالبة'));
-      (isF?fRows:mRows).push(row);
-    });
-  }
-
-  // Column range filter
-  const firstQN=parseInt(document.getElementById('firstQColNum')?.value||'0');
-  const lastQN =parseInt(document.getElementById('lastQColNum')?.value||'0');
-  let allHeaders=RAW.headers.map((h,i)=>({h,i}));
-  let qRange=allHeaders.filter(({i})=>i!==gIdx);
-  if(firstQN>0) qRange=qRange.filter(({i})=>i>=firstQN-1);
-  if(lastQN>0)  qRange=qRange.filter(({i})=>i<=lastQN-1);
-
-  // Auto-filter: only keep columns with numeric data
-  const sampleRows=dataRows.slice(0,Math.min(10,dataRows.length));
-  qRange=qRange.filter(({i})=>{
-    const vals=sampleRows.map(r=>r[i]).filter(v=>v!==''&&v!==null&&v!==undefined);
-    if(!vals.length) return false;
-    const numVals=vals.filter(v=>!isNaN(+v)&&+v>=1&&+v<=5);
-    return numVals.length/vals.length>=0.5; // at least 50% numeric 1-5
-  });
-
-  if(!qRange.length){
-    showE('e2','لم يتم العثور على أعمدة أسئلة رقمية (1-5). تأكدي من تحديد النطاق الصحيح أو استخدمي زر المعاينة.');
-    return;
-  }
-  let qH=qRange.map(({h})=>h);
-  // Remap fRows/mRows to use correct column indices
-  const qColIdx=qRange.map(({i})=>i);
-  const remapRows=rows=>rows.map(row=>qColIdx.map(ci=>row[ci]));
-  fRows=remapRows(fRows);
-  mRows=remapRows(mRows);
-
-
-  // Store config
-  CFG.gcol=gcol; CFG.gIdx=gIdx; CFG.gmode=gmode;
-  CFG.cname=document.getElementById('cname').value;
-  CFG.sname=document.getElementById('sname').value;
-  CFG.obj=document.getElementById('obj').value;
-  CFG.semester=document.getElementById('semester').value;
-  CFG.qH=qH; CFG.fRows=fRows; CFG.mRows=mRows;
-
-  const ars=['\u0627\u0644\u0645\u062D\u0648\u0631 \u0627\u0644\u0623\u0648\u0644','\u0627\u0644\u0645\u062D\u0648\u0631 \u0627\u0644\u062B\u0627\u0646\u064A','\u0627\u0644\u0645\u062D\u0648\u0631 \u0627\u0644\u062B\u0627\u0644\u062B','\u0627\u0644\u0645\u062D\u0648\u0631 \u0627\u0644\u0631\u0627\u0628\u0639','\u0627\u0644\u0645\u062D\u0648\u0631 \u0627\u0644\u062E\u0627\u0645\u0633','\u0627\u0644\u0645\u062D\u0648\u0631 \u0627\u0644\u0633\u0627\u062F\u0633'];
-  SECS=[{name:'Section 1',ar:ars[0],qs:[]}];
-  buildSecUI();go(3);
-}
-
-function addSec(){
-  const n=SECS.length;
-  SECS.push({name:'Section '+(n+1),ar:'\u0645\u062D\u0648\u0631 '+(n+1),qs:[]});
-  buildSecUI();
-}
-
-function buildSecUI(){
-  const sb=document.getElementById('secB');if(!sb)return;sb.innerHTML='';
-  SECS.forEach((sec,si)=>{
-    const used=new Set(SECS.flatMap((s,j)=>j!==si?s.qs:[]));
-    const d=document.createElement('div');d.className='sec-box';
-    d.innerHTML=`<h4>
-      <input value="${esc(sec.name)}" onchange="SECS[${si}].name=this.value" style="flex:1;max-width:180px;padding:5px 10px;font-size:13px;border:2px solid #BDD7EE;border-radius:8px;color:#1F4E79;font-family:inherit">
-      <input value="${esc(sec.ar)}" onchange="SECS[${si}].ar=this.value" style="flex:1;max-width:180px;padding:5px 10px;font-size:13px;border:2px solid #BDD7EE;border-radius:8px;color:#1F4E79;font-family:inherit;direction:rtl">
-      ${SECS.length>1?`<button onclick="SECS.splice(${si},1);buildSecUI()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:18px;padding:0">\u{1F5D1}</button>`:''}
-    </h4>
-    <div class="q-chips">${(CFG.qH||[]).map((h,qi)=>{
-      const inSec=sec.qs.includes(qi);
-      if(used.has(qi)&&!inSec)return'';
-      return`<span class="chip${inSec?' on':''}" onclick="tQ(${si},${qi})" title="${esc(h)}">Q${qi+1}</span>`;
-    }).join('')}</div>`;
-    sb.appendChild(d);
-  });
-}
-
-function tQ(si,qi){const idx=SECS[si].qs.indexOf(qi);idx>=0?SECS[si].qs.splice(idx,1):SECS[si].qs.push(qi);buildSecUI();}
-
-function doAnalyze(){
-  if(CFG.precomputedQ){
-    const{nF,nM,qH}=CFG;const n=nF+nM;
-    const assigned=new Set(SECS.flatMap(s=>s.qs));
-    const unassigned=[...Array(qH.length).keys()].filter(i=>!assigned.has(i));
-    let secs=SECS.filter(s=>s.qs.length).map(s=>({name:s.name,ar:s.ar,qs:s.qs.map(qi=>CFG.precomputedQ[qi])}));
-    if(unassigned.length)secs.push({name:'General',ar:'\u0623\u0633\u0626\u0644\u0629 \u0639\u0627\u0645\u0629',qs:unassigned.map(qi=>CFG.precomputedQ[qi])});
-    if(!secs.length)secs=[{name:'All Questions',ar:'\u062C\u0645\u064A\u0639 \u0627\u0644\u0623\u0633\u0626\u0644\u0629',qs:CFG.precomputedQ}];
-    secs=secs.map(s=>{const sm=+(s.qs.reduce((a,q)=>a+q.cM,0)/s.qs.length).toFixed(2);return{...s,mean:sm,fMean:+(s.qs.reduce((a,q)=>a+q.fM,0)/s.qs.length).toFixed(2),mMean:+(s.qs.reduce((a,q)=>a+q.mM,0)/s.qs.length).toFixed(2),cl:clf(sm)};});
-    const overall=+(secs.reduce((a,s)=>a+s.mean,0)/secs.length).toFixed(2);
-    RES={nF,nM,n,secs,overall,isMulti:true,secFileNames:CFG.secFileNames,nPerSection:CFG.nPerSection};
-    buildUI();go(4);return;
-  }
-  const{gIdx,qH,fRows,mRows}=CFG;
-  const nF=fRows.length,nM=mRows.length,n=nF+nM;
-  if(!n){alert('\u0644\u0627 \u062A\u0648\u062C\u062F \u0628\u064A\u0627\u0646\u0627\u062A');return;}
-  // Rows are already remapped to question columns only
-  const calcQ=qi=>{
-    const ci=qi; // direct index after remapping
-    const D=g=>[1,2,3,4,5].map(r=>{const c=g.filter(row=>+row[ci]===r).length;return g.length?+((c/g.length*100).toFixed(1)):0;});
-    const fD=D(fRows),mD=D(mRows);
-    const cD=nF===0?mD:nM===0?fD:fD.map((v,j)=>+((v+mD[j])/2).toFixed(1));
-    const fM=nF>0?+mOf(fD).toFixed(2):null,mM=nM>0?+mOf(mD).toFixed(2):null,cM=+mOf(cD).toFixed(2);
-    return{qn:qi+1,lbl:qH[qi],fD,mD,cD,fM:fM??cM,mM:mM??cM,cM,maxM:Math.max(fM??cM,mM??cM),minM:Math.min(fM??cM,mM??cM),pos:Math.round(cD[0]+cD[1]),neg:Math.round(cD[3]+cD[4]),cl:clf(cM)};
-  };
-  const assigned=new Set(SECS.flatMap(s=>s.qs));
-  const unassigned=[...Array(qH.length).keys()].filter(i=>!assigned.has(i));
-  let secs=SECS.filter(s=>s.qs.length).map(s=>({name:s.name,ar:s.ar,qs:s.qs.map(calcQ)}));
-  if(unassigned.length)secs.push({name:'General',ar:'\u0623\u0633\u0626\u0644\u0629 \u0639\u0627\u0645\u0629',qs:unassigned.map(calcQ)});
-  if(!secs.length)secs=[{name:'All Questions',ar:'\u062C\u0645\u064A\u0639 \u0627\u0644\u0623\u0633\u0626\u0644\u0629',qs:[...Array(qH.length).keys()].map(calcQ)}];
-  secs=secs.map(s=>{const sm=+(s.qs.reduce((a,q)=>a+q.cM,0)/s.qs.length).toFixed(2);return{...s,mean:sm,fMean:+(s.qs.reduce((a,q)=>a+q.fM,0)/s.qs.length).toFixed(2),mMean:+(s.qs.reduce((a,q)=>a+q.mM,0)/s.qs.length).toFixed(2),cl:clf(sm)};});
-  const overall=+(secs.reduce((a,s)=>a+s.mean,0)/secs.length).toFixed(2);
-  RES={nF,nM,n,secs,overall};buildUI();go(4);
-}
-
-function buildUI(){
-  const{nF,nM,n,secs,overall}=RES;
-  const showGender=CFG.gmode==='col';
-  document.getElementById('st4').innerHTML=
-    [{v:n,l:'\u0645\u0634\u0627\u0631\u0643\u064A\u0646'},{v:nF||'\u2014',l:'\u0625\u0646\u0627\u062B'},{v:nM||'\u2014',l:'\u0630\u0643\u0648\u0631'},
-     {v:secs.length,l:'\u0645\u062D\u0627\u0648\u0631'},{v:secs.reduce((a,s)=>a+s.qs.length,0),l:'\u0633\u0624\u0627\u0644'},{v:overall,l:'\u0645\u062A\u0648\u0633\u0637 \u0639\u0627\u0645'}]
-    .map(({v,l})=>`<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
-  let ov=`<div class="tbl-wrap"><table><thead><tr><th>Section</th><th>\u0627\u0644\u0645\u062D\u0648\u0631</th><th>Mean</th>${showGender?'<th>F.Mean</th><th>M.Mean</th><th>Gap</th>':''}<th>Classification</th></tr></thead><tbody>${secs.map((s,i)=>`<tr class="${i%2?'':'even'}"><td style="text-align:left">${esc(s.name)}</td><td style="text-align:right;direction:rtl">${esc(s.ar)}</td><td style="font-weight:700;color:${s.cl.c};background:${s.cl.bg}">${s.mean}</td>${showGender?`<td>${s.fMean}</td><td>${s.mMean}</td><td>${Math.abs(s.fMean-s.mMean).toFixed(2)}</td>`:''}<td style="background:${s.cl.bg}"><span class="tag" style="color:${s.cl.c}">${s.cl.l}|${s.cl.ar}</span></td></tr>`).join('')}</tbody></table></div>`;
-  document.getElementById('pov').innerHTML=ov;
-  let oa=`<div class="tbl-wrap"><table><thead><tr><th>Q#</th><th>Sec.Q</th><th>Section</th><th>\u0627\u0644\u0633\u0624\u0627\u0644</th>${showGender?'<th>F.M</th><th>M.M</th><th>Max</th><th>Min</th>':''}<th>Mean</th><th>Pos%</th><th>Neg%</th><th>Class</th></tr></thead><tbody>`;
-  secs.forEach(s=>{oa+=`<tr class="sec-hdr"><td colspan="${showGender?12:8}">${esc(s.name)}|${esc(s.ar)}</td></tr>`;s.qs.forEach((q,si)=>{oa+=`<tr class="${si%2?'':'even'}"><td><b>Q${q.qn}</b></td><td>${si+1}</td><td>${esc(s.name)}</td><td style="text-align:right;direction:rtl;max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(q.lbl)}</td>${showGender?`<td>${q.fM}</td><td>${q.mM}</td><td>${q.maxM}</td><td>${q.minM}</td>`:''}<td style="font-weight:700;color:${q.cl.c};background:${q.cl.bg}">${q.cM}</td><td style="color:#375623;font-weight:700">${q.pos}%</td><td style="color:#9C0006;font-weight:700">${q.neg}%</td><td style="background:${q.cl.bg}"><span class="tag" style="color:${q.cl.c}">${q.cl.l}</span></td></tr>`;});});
-  oa+='</tbody></table></div>';document.getElementById('poa').innerHTML=oa;
-  let dt='';
-  secs.forEach(sec=>{dt+=`<div style="font-weight:700;color:#2E75B6;font-size:14px;margin:14px 0 8px">${esc(sec.name)}|${esc(sec.ar)} — Mean:${sec.mean}</div><div class="tbl-wrap"><table><thead><tr><th>Q#</th><th>Group</th><th>%1 موافق بشدة</th><th>%2 موافق</th><th>%3 محايد</th><th>%4 لا أوافق</th><th>%5 لا أوافق بشدة</th><th>Mean</th></tr></thead><tbody>`;
-  sec.qs.forEach((q,qi)=>{const bg=qi%2===0?'#EBF3FB':'#fff';const rows=showGender?[['Female',q.fD,q.fM,'#FCE4D6','#843C0C',true],['Male',q.mD,q.mM,'#DDEBF7','#1F4E79',false],['Combined',q.cD,q.cM,'#E2EFDA','#375623',false]]:[['Overall',q.cD,q.cM,'#E2EFDA','#375623',true]];rows.forEach(([g,d,m,cb,tc,first])=>{dt+=`<tr>${first?`<td rowspan="${rows.length}" style="font-weight:700;color:#1F4E79;background:${bg}">Q${q.qn}</td>`:''}<td style="font-weight:700;color:${tc};background:${cb}">${g}</td>${d.map(v=>`<td style="background:${cb}">${v}</td>`).join('')}<td style="font-weight:700;color:${tc};background:${cb}">${(+m).toFixed(2)}</td></tr>`;});});dt+='</tbody></table></div>';});
-  document.getElementById('pdt').innerHTML=dt;
-}
-
-async function genWord(){
-  if(!RES)return;
-  const btn=document.getElementById('dlbtn');
-  const pw=document.getElementById('pw'),pb=document.getElementById('pb');
-  const dlmsg=document.getElementById('dlmsg');
-  btn.disabled=true;pw.style.display='block';
-  const setP=(p,t)=>{pb.style.width=p+'%';if(t)dlmsg.innerHTML=`<div class="msg-info">\u23F3 ${t}</div>`;};
   try{
-    setP(30,'\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0644\u0644\u062E\u0627\u062F\u0645...');
-    const resp=await fetch('/api/generate-word',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({result:RES,cfg:CFG})});
-    if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error||'Server error');}
-    setP(80,'\u0627\u0633\u062A\u0644\u0627\u0645 \u0627\u0644\u0645\u0644\u0641...');
-    const blob=await resp.blob();
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=(CFG.sname||'Survey')+'_Analysis.docx';a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2000);
-    setP(100,'');dlmsg.innerHTML='<div class="msg-ok">\u2705 \u062A\u0645 \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u062A\u0642\u0631\u064A\u0631 Word!</div>';
-  }catch(ex){dlmsg.innerHTML='<div class="msg-err">\u26A0\uFE0F '+ex.message+'</div>';pw.style.display='none';}
-  btn.disabled=false;
+    const r=await fetch('/api/upload',{method:'POST',body:fd});
+    const d=await r.json();
+    if(!d.ok)throw new Error(d.error);
+    GROUPS[key]=d.sections;
+    el.className='file-stat fs-ok';
+    el.textContent=`✅ ${f.name} | ${d.sections.length} شعبة | ${d.sections.reduce((a,s)=>a+s.n,0)} مقيّم | ${d.sections.reduce((a,s)=>a+s.enrolled_num,0)} مسجل | لم يستبينوا: ${d.sections.reduce((a,s)=>a+s.not_responded,0)}`;
+    checkReady();
+  }catch(e){el.className='file-stat fs-err';el.textContent='❌ '+e.message;}
 }
 
-let GMODE='col';
-function setGMode(mode){
-  GMODE=mode;
-  document.querySelectorAll('.gmode-btn').forEach(b=>b.classList.toggle('on',b.dataset.mode===mode));
-  const gcr=document.getElementById('gcol_row');if(gcr)gcr.style.display=mode==='col'?'grid':'none';
+function addMultiFile(){
+  const n=MULTI_FILES.length;
+  MULTI_FILES.push({name:'الشعبة '+(n+1),sections:null,status:'wait'});
+  renderMultiFiles();
 }
 
-// ─── MULTI-SECTION MODE ─────────────────────────────────────────────
-let AMODE='single';
-let SEC_FILES=[];
-
-function setMode(mode){
-  AMODE=mode;
-  document.querySelectorAll('.mode-btn').forEach((b,i)=>b.classList.toggle('on',(i===0&&mode==='single')||(i===1&&mode==='multi')));
-  document.getElementById('single_mode').style.display=mode==='single'?'block':'none';
-  document.getElementById('multi_mode').style.display=mode==='multi'?'block':'none';
-  if(mode==='multi'&&SEC_FILES.length===0){
-    SEC_FILES=[
-      {name:'الشعبة الأولى',raw:null,status:'wait',gmode:'col',gcol:'Gender'},
-      {name:'الشعبة الثانية',raw:null,status:'wait',gmode:'col',gcol:'Gender'},
-    ];
-    renderSecFiles();
-  }
-}
-
-function addSecFile(){
-  const names=['الشعبة الأولى','الشعبة الثانية','الشعبة الثالثة','الشعبة الرابعة','الشعبة الخامسة'];
-  SEC_FILES.push({name:names[SEC_FILES.length]||'شعبة '+(SEC_FILES.length+1),raw:null,status:'wait',gmode:'col',gcol:'Gender'});
-  renderSecFiles();
-}
-
-function renderSecFiles(){
-  const c=document.getElementById('secFiles');c.innerHTML='';
-  SEC_FILES.forEach((sf,si)=>{
-    const d=document.createElement('div');d.className='section-file-card';
+function renderMultiFiles(){
+  const c=document.getElementById('multi_files');c.innerHTML='';
+  MULTI_FILES.forEach((mf,i)=>{
+    const d=document.createElement('div');d.className='file-group';
     d.innerHTML=`<h4>
-      <input value="${sf.name}" onchange="SEC_FILES[${si}].name=this.value"
-        style="flex:1;max-width:180px;padding:4px 8px;font-size:13px;border:2px solid #BDD7EE;border-radius:8px;color:#1F4E79;font-family:inherit;direction:rtl">
-      <select onchange="SEC_FILES[${si}].gmode=this.value;renderSecFiles()"
-        style="padding:4px 8px;font-size:12px;border:2px solid #BDD7EE;border-radius:8px;color:#1F4E79;direction:rtl">
-        <option value="col" ${sf.gmode==='col'?'selected':''}>عمود جنس</option>
-        <option value="all_f" ${sf.gmode==='all_f'?'selected':''}>كلهم إناث</option>
-        <option value="all_m" ${sf.gmode==='all_m'?'selected':''}>كلهم ذكور</option>
-      </select>
-      ${sf.gmode==='col'?`<input value="${sf.gcol||'Gender'}" onchange="SEC_FILES[${si}].gcol=this.value" placeholder="عمود الجنس"
-        style="width:90px;padding:4px 8px;font-size:12px;border:2px solid #BDD7EE;border-radius:8px;color:#1F4E79;direction:rtl">`:''}
-      ${SEC_FILES.length>2?`<button onclick="SEC_FILES.splice(${si},1);renderSecFiles()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:16px">🗑</button>`:''}
+      <input value="${mf.name}" onchange="MULTI_FILES[${i}].name=this.value"
+        style="flex:1;max-width:200px;padding:5px 10px;font-size:13px;border:2px solid #BDD7EE;border-radius:8px;color:#1F4E79;font-family:inherit">
+      ${MULTI_FILES.length>1?`<button onclick="MULTI_FILES.splice(${i},1);renderMultiFiles()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:16px;padding:0">🗑</button>`:''}
     </h4>
-    <label class="btn btn-sm" style="cursor:pointer;display:inline-flex">
-      📎 ارفعي الملف
-      <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadSecFile(${si},this)">
+    <label class="btn btn-sm" style="cursor:pointer">📎 رفع الملف
+      <input type="file" accept=".xlsx,.xls" style="display:none" onchange="uploadMultiFile(${i},this)">
     </label>
-    <span class="file-status ${sf.status==='ok'?'file-ok':sf.status==='err'?'file-err':'file-wait'}">
-      ${sf.status==='ok'?'✅ '+sf.fileName+' ('+sf.n+' مستجيب)':sf.status==='err'?'❌ خطأ':'⏳ لم يُرفع'}
+    <span id="mstat_${i}" class="file-stat ${mf.status==='ok'?'fs-ok':mf.status==='err'?'fs-err':'fs-wait'}">
+      ${mf.status==='ok'?`✅ ${mf.fileName} | ${mf.sections?.reduce((a,s)=>a+s.n,0)||0} مقيّم | لم يستبينوا: ${mf.sections?.reduce((a,s)=>a+s.not_responded,0)||0}`:mf.status==='err'?'❌ خطأ':'⏳ لم يُرفع'}
     </span>`;
     c.appendChild(d);
   });
-  document.getElementById('combineBtn').disabled=!(SEC_FILES.length>=2&&SEC_FILES.every(f=>f.status==='ok'));
+  checkReady();
 }
 
-function uploadSecFile(si,inp){
+async function uploadMultiFile(i,inp){
   const f=inp.files[0];if(!f)return;
-  SEC_FILES[si].fileName=f.name;SEC_FILES[si].status='wait';renderSecFiles();
+  MULTI_FILES[i].fileName=f.name;MULTI_FILES[i].status='wait';renderMultiFiles();
   const fd=new FormData();fd.append('file',f);
-  fetch('/api/upload',{method:'POST',body:fd})
-    .then(r=>r.json())
-    .then(data=>{
-      if(!data.ok)throw new Error(data.error);
-      SEC_FILES[si].raw={headers:data.headers,rows:data.rows};
-      SEC_FILES[si].n=data.n;SEC_FILES[si].status='ok';
-      renderSecFiles();
-    })
-    .catch(ex=>{SEC_FILES[si].status='err';renderSecFiles();});
+  try{
+    const r=await fetch('/api/upload',{method:'POST',body:fd});
+    const d=await r.json();
+    if(!d.ok)throw new Error(d.error);
+    MULTI_FILES[i].sections=d.sections;MULTI_FILES[i].status='ok';
+  }catch(e){MULTI_FILES[i].status='err';}
+  renderMultiFiles();
 }
 
-function combineAndAnalyze(){
-  // Validate same Q count
-  const qCounts=SEC_FILES.map(sf=>{
-    const gIdx=sf.gmode==='col'?sf.raw.headers.findIndex(h=>h.toLowerCase()===(sf.gcol||'gender').toLowerCase()):-1;
-    return sf.raw.headers.filter((_,i)=>i!==gIdx).length;
-  });
-  if(new Set(qCounts).size>1){showE('e1','الملفات فيها عدد أسئلة مختلف: '+qCounts.join(', '));return;}
+function checkReady(){
+  let ok=false;
+  if(UPLOAD_MODE==='single') ok=!!GROUPS['all'];
+  else if(UPLOAD_MODE==='gender') ok=!!(GROUPS['F']||GROUPS['M']);
+  else if(UPLOAD_MODE==='multi') ok=MULTI_FILES.some(f=>f.status==='ok');
+  document.getElementById('goConfig').disabled=!ok;
+}
 
-  const clf=m=>{
-    if(m<=1.5)return{l:'Excellent',ar:'ممتاز',bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
-    if(m<=2.0)return{l:'Good',ar:'جيد',bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
-    if(m<=2.5)return{l:'Acceptable',ar:'مقبول',bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
-    if(m<=3.0)return{l:'Weakness',ar:'ضعف',bg:'#FFC7CE',c:'#9C0006',hx:'FFC7CE',hc:'9C0006'};
-    return{l:'Critical',ar:'حرج',bg:'#FFC7CE',c:'#9C0006',hx:'FFC7CE',hc:'9C0006'};
-  };
-  const mOf=d=>[1,2,3,4,5].reduce((s,r,i)=>s+r*(d[i]/100),0);
-
-  // Get qH from first file
-  const first=SEC_FILES[0];
-  const firstGIdx=first.gmode==='col'?first.raw.headers.findIndex(h=>h.toLowerCase()===(first.gcol||'gender').toLowerCase()):-1;
-  const qH=first.raw.headers.filter((_,i)=>i!==firstGIdx);
-  const nQs=qH.length;
-
-  // Per section: split rows and compute dists
-  const secData=SEC_FILES.map(sf=>{
-    const gIdx=sf.gmode==='col'?sf.raw.headers.findIndex(h=>h.toLowerCase()===(sf.gcol||'gender').toLowerCase()):-1;
-    const qCI=sf.raw.headers.map((_,i)=>i).filter(i=>i!==gIdx);
-    let fRows=[],mRows=[];
-    if(sf.gmode==='all_f'){fRows=sf.raw.rows;}
-    else if(sf.gmode==='all_m'){mRows=sf.raw.rows;}
-    else{
-      sf.raw.rows.forEach(row=>{
-        const g=String(row[gIdx]||'').toLowerCase().trim();
-        (g==='female'||g==='f'||g==='أنثى'||g==='انثى'?fRows:mRows).push(row);
-      });
-    }
-    return{fRows,mRows,qCI,nF:fRows.length,nM:mRows.length};
-  });
-
-  const nFtotal=secData.reduce((a,s)=>a+s.nF,0);
-  const nMtotal=secData.reduce((a,s)=>a+s.nM,0);
-  const nTotal=nFtotal+nMtotal;
-
-  const computeDist=(rows,ci)=>{
-    const tot=rows.length;
-    if(!tot)return[0,0,0,0,0];
-    return[1,2,3,4,5].map(r=>+((rows.filter(row=>+row[ci]===r).length/tot*100).toFixed(1)));
-  };
-
-  const mergeDists=(secs)=>{
-    const totN=secs.reduce((a,s)=>a+s.n,0);
-    if(!totN)return[0,0,0,0,0];
-    return[0,1,2,3,4].map(i=>+(secs.reduce((a,s)=>a+s.dist[i]*(s.n/totN),0).toFixed(1)));
-  };
-
-  const qResults=[];
-  for(let qi=0;qi<nQs;qi++){
-    const fSecs=[],mSecs=[],allSecs=[];
-    secData.forEach(sd=>{
-      const ci=sd.qCI[qi];
-      if(sd.nF>0){const d=computeDist(sd.fRows,ci);fSecs.push({dist:d,n:sd.nF});}
-      if(sd.nM>0){const d=computeDist(sd.mRows,ci);mSecs.push({dist:d,n:sd.nM});}
-      const allD=sd.nF>0&&sd.nM>0
-        ?computeDist(sd.fRows,ci).map((v,j)=>+((v+computeDist(sd.mRows,ci)[j])/2).toFixed(1))
-        :sd.nF>0?computeDist(sd.fRows,ci):computeDist(sd.mRows,ci);
-      allSecs.push({dist:allD,n:sd.nF+sd.nM});
-    });
-    const fD=fSecs.length?mergeDists(fSecs):[0,0,0,0,0];
-    const mD=mSecs.length?mergeDists(mSecs):[0,0,0,0,0];
-    const cD=mergeDists(allSecs);
-    const fM=fSecs.length?+mOf(fD).toFixed(2):null;
-    const mM=mSecs.length?+mOf(mD).toFixed(2):null;
-    const cM=+mOf(cD).toFixed(2);
-    qResults.push({qn:qi+1,lbl:qH[qi],fD,mD,cD,fM:fM??cM,mM:mM??cM,cM,
-      maxM:Math.max(fM??cM,mM??cM),minM:Math.min(fM??cM,mM??cM),
-      pos:Math.round(cD[0]+cD[1]),neg:Math.round(cD[3]+cD[4]),cl:clf(cM)});
+function goToConfig(){
+  let secs=[];
+  if(UPLOAD_MODE==='single') secs=GROUPS['all']||[];
+  else if(UPLOAD_MODE==='gender'){
+    (GROUPS['F']||[]).forEach(s=>secs.push({...s,_g:'F'}));
+    (GROUPS['M']||[]).forEach(s=>secs.push({...s,_g:'M'}));
   }
+  else secs=MULTI_FILES.filter(f=>f.status==='ok').flatMap(f=>f.sections||[]);
 
-  CFG.qH=qH;CFG.gIdx=-1;
-  CFG.gmode=SEC_FILES.some(sf=>sf.gmode==='col')?'col':'all_f';
-  CFG.precomputedQ=qResults;
-  CFG.isMulti=true;
-  CFG.secFileNames=SEC_FILES.map(sf=>sf.name);
-  CFG.nPerSection=secData.map(s=>s.nF+s.nM);
-  CFG.nF=nFtotal;CFG.nM=nMtotal;
-  RAW={headers:qH,rows:[]};
+  const totalN=secs.reduce((a,s)=>a+s.n,0);
+  const totalE=secs.reduce((a,s)=>a+s.enrolled_num,0);
+  const totalNot=secs.reduce((a,s)=>a+s.not_responded,0);
+  const pct=totalE>0?Math.round(totalN/totalE*100):0;
 
-  document.getElementById('s2title').textContent='✅ دمج '+SEC_FILES.length+' شعب — '+nTotal+' مستجيب';
-  document.getElementById('s2info').textContent=SEC_FILES.map((sf,i)=>sf.name+': '+CFG.nPerSection[i]).join(' · ');
-  document.getElementById('gh').textContent='أسئلة الشعبة: '+qH.join(' | ');
+  document.getElementById('sections_preview').innerHTML=`
+    <div class="msg-info" style="margin-bottom:10px">
+      ✅ <b>${secs.length} شعبة</b> | المقيّمون: <b style="color:#375623">${totalN}</b> | المسجلون: <b>${totalE}</b> | 
+      لم يستبينوا: <b style="color:${totalNot>0?'#9C0006':'#375623'}">${totalNot}</b> | نسبة المشاركة: <b>${pct}%</b>
+    </div>
+    <div class="section-list">
+      ${secs.map((s,i)=>`<div class="section-item">
+        <span><b>${s.course||'—'}</b> | ${s.sec_num} | ${s.lecturer}</span>
+        <span style="font-size:11px;white-space:nowrap">
+          مقيّم: <b style="color:#375623">${s.n}</b> | 
+          مسجل: ${s.enrolled_num||'—'} | 
+          ${s.not_responded>0?`<span style="color:#9C0006">لم يستبين: <b>${s.not_responded}</b></span>`:'✅ كلهم استبانوا'}
+        </span>
+      </div>`).join('')}
+    </div>`;
 
-  const ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس','المحور السادس','المحور السابع'];
-  SECS=[{name:'Section 1',ar:ars[0],qs:[]}];
-  buildSecUI();go(3);
+  if(!document.getElementById('cfg_dept').value && secs[0]?.dept) document.getElementById('cfg_dept').value=secs[0].dept;
+  if(secs[0]?.semester) document.getElementById('cfg_semester').value=secs[0].semester;
+  if(!document.getElementById('cfg_loc').value && secs[0]?.loc) document.getElementById('cfg_loc').value=secs[0].loc;
+  if(UPLOAD_MODE==='gender'||UPLOAD_MODE==='single' && (GROUPS['F']||GROUPS['M'])){
+    const cat=document.getElementById('cfg_category');
+    if(GROUPS['F']&&!GROUPS['M']) cat.value='female';
+    else if(GROUPS['M']&&!GROUPS['F']) cat.value='male';
+  }
+  go(2);
 }
 
+function buildReport(){
+  let groups=[];
+  if(UPLOAD_MODE==='single') groups=[{gender:null,sections:GROUPS['all']||[]}];
+  else if(UPLOAD_MODE==='gender'){
+    if(GROUPS['F']) groups.push({gender:'F',sections:GROUPS['F']});
+    if(GROUPS['M']) groups.push({gender:'M',sections:GROUPS['M']});
+  }
+  else groups=[{gender:null,sections:MULTI_FILES.filter(f=>f.status==='ok').flatMap(f=>f.sections||[])}];
+
+  META={
+    cname:document.getElementById('cfg_college').value,
+    sname:document.getElementById('cfg_name').value,
+    dept:document.getElementById('cfg_dept').value,
+    semester:document.getElementById('cfg_semester').value,
+    loc:document.getElementById('cfg_loc').value,
+    category:document.getElementById('cfg_category').value,
+  };
+  RES={groups,meta:META};
+  buildUI(groups);
+  go(3);
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+const clf=m=>{
+  if(m>=4.5)return{l:'ممتاز',bg:'#E2EFDA',c:'#375623'};
+  if(m>=3.5)return{l:'جيد جداً',bg:'#E2EFDA',c:'#375623'};
+  if(m>=2.5)return{l:'جيد',bg:'#FFEB9C',c:'#7F6000'};
+  if(m>=1.5)return{l:'مقبول',bg:'#FFC7CE',c:'#9C0006'};
+  return{l:'ضعيف',bg:'#FFC7CE',c:'#9C0006'};
+};
+
+function buildUI(groups){
+  const allSecs=groups.flatMap(g=>g.sections.map(s=>({...s,gender:g.gender})));
+  const hasGender=groups.some(g=>g.gender);
+  const totalN=allSecs.reduce((a,s)=>a+s.n,0);
+  const totalE=allSecs.reduce((a,s)=>a+s.enrolled_num,0);
+  const totalNot=allSecs.reduce((a,s)=>a+s.not_responded,0);
+  const pct=totalE>0?Math.round(totalN/totalE*100):0;
+  const gMean=+(allSecs.reduce((a,s)=>a+s.sec_mean*s.n,0)/totalN).toFixed(2);
+  const clg=clf(gMean);
+
+  // Stats bar
+  document.getElementById('stats_bar').innerHTML=[
+    {v:totalE,l:'إجمالي المسجلين',cls:''},
+    {v:totalN,l:'المقيّمون',cls:'green'},
+    {v:totalNot,l:'لم يستبينوا',cls:totalNot>0?'red':'green'},
+    {v:pct+'%',l:'نسبة المشاركة',cls:pct>=80?'green':pct>=60?'':'red'},
+    {v:allSecs.length,l:'عدد الشعب',cls:''},
+    {v:gMean,l:'المتوسط العام',cls:gMean>=4.5?'green':gMean>=2.5?'':'red'},
+  ].map(({v,l,cls})=>`<div class="stat ${cls}"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+
+  // Participation tab
+  let part=`<div class="tbl-wrap"><table><thead><tr>
+    <th>#</th><th>الشعبة</th><th>المقرر</th><th>المحاضر</th>
+    <th>المسجلون</th><th style="background:#375623">المقيّمون ✅</th>
+    <th style="background:#9C0006">لم يستبينوا ❌</th>
+    <th>نسبة المشاركة</th><th>المتوسط</th>
+  </tr></thead><tbody>`;
+  allSecs.forEach((s,i)=>{
+    const cl=clf(s.sec_mean);
+    const pp=s.participation_pct||0;
+    const gT=s.gender==='F'?'👩':s.gender==='M'?'👨':'';
+    part+=`<tr class="${i%2?'':'even'}">
+      <td>${i+1}</td>
+      <td>${esc(s.sec_num)} ${gT}</td>
+      <td style="font-weight:700;color:#1F4E79">${esc(s.course)}</td>
+      <td style="text-align:right;font-size:11px">${esc(s.lecturer)}</td>
+      <td style="font-weight:700">${s.enrolled_num||'—'}</td>
+      <td style="font-weight:700;color:#375623">${s.n}</td>
+      <td style="font-weight:700;color:${s.not_responded>0?'#9C0006':'#375623'}">${s.not_responded}${s.not_responded>0&&s.enrolled_num?` (${100-pp}%)`:''}</td>
+      <td><span class="tag" style="background:${pp>=80?'#E2EFDA':pp>=60?'#FFEB9C':'#FFC7CE'};color:${pp>=80?'#375623':pp>=60?'#7F6000':'#9C0006'}">${pp}%</span></td>
+      <td style="font-weight:700;color:${cl.c};background:${cl.bg}">${s.sec_mean.toFixed(2)}</td>
+    </tr>`;
+  });
+  part+=`<tr style="background:#1F4E79">
+    <td colspan="4" style="color:white;font-weight:700;text-align:center">الإجمالي الكلي</td>
+    <td style="color:white;font-weight:700">${totalE||'—'}</td>
+    <td style="color:#90EE90;font-weight:800;font-size:14px">${totalN}</td>
+    <td style="color:${totalNot>0?'#FFB3B3':'#90EE90'};font-weight:800;font-size:14px">${totalNot}</td>
+    <td><span class="tag" style="background:${pct>=80?'#E2EFDA':pct>=60?'#FFEB9C':'#FFC7CE'};color:${pct>=80?'#375623':pct>=60?'#7F6000':'#9C0006'}">${pct}%</span></td>
+    <td style="color:${clg.c};background:${clg.bg};font-weight:700">${gMean}</td>
+  </tr>`;
+  part+='</tbody></table></div>';
+  document.getElementById('tab_participation').innerHTML=part;
+
+  // Summary tab
+  const keyFn=s=>MODE==='instructor'?s.lecturer:s.course;
+  const gMap={};
+  allSecs.forEach(s=>{const k=keyFn(s);if(!gMap[k])gMap[k]=[];gMap[k].push(s);});
+
+  let summ=`<div class="tbl-wrap"><table><thead><tr>
+    <th>${MODE==='instructor'?'المحاضر':'المقرر'}</th>
+    <th>الشعب</th><th style="background:#375623">المقيّمون</th><th>المسجلون</th>
+    <th style="background:#9C0006">لم يستبينوا</th><th>المشاركة%</th>
+    ${hasGender?'<th style="background:#843C0C">F.Mean</th><th style="background:#1F4E79">M.Mean</th>':''}
+    <th>المتوسط</th><th>التصنيف</th>
+  </tr></thead><tbody>`;
+  Object.entries(gMap).forEach(([key,secs],i)=>{
+    const tn=secs.reduce((a,s)=>a+s.n,0);
+    const te=secs.reduce((a,s)=>a+s.enrolled_num,0);
+    const tnot=secs.reduce((a,s)=>a+s.not_responded,0);
+    const pp=te>0?Math.round(tn/te*100):0;
+    const mean=+(secs.reduce((a,s)=>a+s.sec_mean*s.n,0)/tn).toFixed(2);
+    const cl=clf(mean);
+    const secsF=secs.filter(s=>s.gender==='F'),secsM=secs.filter(s=>s.gender==='M');
+    const tnF=secsF.reduce((a,s)=>a+s.n,0),tnM=secsM.reduce((a,s)=>a+s.n,0);
+    const mF=tnF?+(secsF.reduce((a,s)=>a+s.sec_mean*s.n,0)/tnF).toFixed(2):null;
+    const mM=tnM?+(secsM.reduce((a,s)=>a+s.sec_mean*s.n,0)/tnM).toFixed(2):null;
+    summ+=`<tr class="${i%2?'':'even'}">
+      <td style="text-align:right;font-weight:700;color:#1F4E79;font-size:13px">${esc(key)}</td>
+      <td>${secs.length}</td>
+      <td style="color:#375623;font-weight:700">${tn}</td>
+      <td>${te||'—'}</td>
+      <td style="color:${tnot>0?'#9C0006':'#375623'};font-weight:700">${tnot}</td>
+      <td><span class="tag" style="background:${pp>=80?'#E2EFDA':pp>=60?'#FFEB9C':'#FFC7CE'};color:${pp>=80?'#375623':pp>=60?'#7F6000':'#9C0006'}">${pp}%</span></td>
+      ${hasGender?`<td style="background:#FCE4D6;color:#843C0C;font-weight:700">${mF??'—'}</td><td style="background:#DDEBF7;color:#1F4E79;font-weight:700">${mM??'—'}</td>`:''}
+      <td style="font-weight:700;color:${cl.c};background:${cl.bg}">${mean}</td>
+      <td style="background:${cl.bg}"><span class="tag" style="color:${cl.c}">${cl.l}</span></td>
+    </tr>`;
+  });
+  summ+='</tbody></table></div>';
+  document.getElementById('tab_summary').innerHTML=summ;
+
+  // Detail tab
+  const nQ=allSecs[0]?.questions.length||0;
+  let det=`<div class="tbl-wrap"><table><thead><tr>
+    <th>الشعبة</th><th>المقرر / المحاضر</th><th>مقيّمون</th><th>مسجلون</th><th>لم يستبينوا</th>
+    ${Array.from({length:nQ},(_,i)=>`<th>Q${i+1}</th>`).join('')}
+    <th>المتوسط</th>
+  </tr></thead><tbody>`;
+  allSecs.forEach((s,i)=>{
+    const cl=clf(s.sec_mean);
+    const gT=s.gender==='F'?'👩':s.gender==='M'?'👨':'';
+    det+=`<tr class="${i%2?'':'even'}">
+      <td style="font-size:11px">${esc(s.sec_num)} ${gT}</td>
+      <td style="text-align:right;font-size:11px">${esc(s.course)}<br><span style="color:#64748b">${esc(s.lecturer)}</span></td>
+      <td style="color:#375623;font-weight:700">${s.n}</td>
+      <td>${s.enrolled_num||'—'}</td>
+      <td style="color:${s.not_responded>0?'#9C0006':'#375623'};font-weight:700">${s.not_responded}</td>
+      ${s.questions.map(q=>{const qc=clf(q.mean);return`<td style="background:${qc.bg};color:${qc.c};font-weight:700;font-size:11px">${q.mean.toFixed(2)}</td>`;}).join('')}
+      <td style="background:${cl.bg};color:${cl.c};font-weight:700">${s.sec_mean.toFixed(2)}</td>
+    </tr>`;
+  });
+  det+='</tbody></table></div>';
+  document.getElementById('tab_detail').innerHTML=det;
+}
+
+async function downloadWord(){
+  if(!RES)return;
+  const btn=document.getElementById('dlbtn');
+  const prog=document.getElementById('dl_prog'),bar=document.getElementById('dl_bar');
+  const msg=document.getElementById('dl_msg');
+  btn.disabled=true;prog.style.display='block';msg.innerHTML='';
+  const setP=(p,t)=>{bar.style.width=p+'%';if(t)msg.innerHTML=`<div class="msg-info">⏳ ${t}</div>`;};
+  try{
+    setP(30,'إرسال البيانات للخادم...');
+    const resp=await fetch('/api/word',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({groups:RES.groups,meta:RES.meta,reportType:MODE})});
+    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error||'Server error');}
+    setP(85,'استلام الملف...');
+    const blob=await resp.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=(RES.meta.sname||'Report')+'.docx';
+    a.style.display='none';document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2000);
+    setP(100,'');
+    msg.innerHTML='<div class="msg-ok">✅ تم تحميل التقرير Word بنجاح!</div>';
+  }catch(e){
+    msg.innerHTML=`<div class="msg-err">⚠️ ${e.message}</div>`;
+    prog.style.display='none';
+  }
+  btn.disabled=false;
+}
+
+// Init
+setUploadMode('single');
+MULTI_FILES=[{name:'الشعبة الأولى',sections:null,status:'wait'}];
+renderMultiFiles();
 </script>
 </body>
 </html>
