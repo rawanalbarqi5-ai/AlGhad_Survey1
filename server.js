@@ -329,20 +329,20 @@ async function buildCourseWord(groups, meta) {
       return new TableCell({width:{size:cW},borders:allB(MID),shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
         children:[
           new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:c.code,bold:true,color:WHITE,size:15,font:'Arial'})]}),
-          new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:'('+(c.mean||0).toFixed(2)+')',color:'BDD7EE',size:13,font:'Arab'})]}),
+          new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:'('+(c.mean||0).toFixed(2)+')',color:'BDD7EE',size:13,font:'Arial'})]}),
         ]});
     }),
     mH(['الإجمالي'],ovW),
   ]});
 
   const h2=hasGender?[new TableRow({children:[
-    new TableCell({width:{size:700},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'#',bold:true,color:WHITE,size:15,font:'Arab'})]}),]}),
-    new TableCell({width:{size:qTW},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'السؤال',bold:true,color:WHITE,size:15,font:'Arab'})]}),]}),
+    new TableCell({width:{size:700},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'#',bold:true,color:WHITE,size:15,font:'Arial'})]}),]}),
+    new TableCell({width:{size:qTW},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'السؤال',bold:true,color:WHITE,size:15,font:'Arial'})]}),]}),
     ...courses.flatMap(()=>[
       new TableCell({width:{size:cW},borders:allB('843C0C'),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'F',bold:true,color:'843C0C',size:17,font:'Arial'})]}),]}),
       new TableCell({width:{size:cW},borders:allB('1F4E79'),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'M',bold:true,color:DARK,size:17,font:'Arial'})]}),]}),
     ]),
-    new TableCell({width:{size:ovW},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'الإجمالي',bold:true,color:WHITE,size:15,font:'Arab'})]}),]}),
+    new TableCell({width:{size:ovW},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'الإجمالي',bold:true,color:WHITE,size:15,font:'Arial'})]}),]}),
   ]})]:[]; 
 
   const overallQM=Array.from({length:nQ},(_,qi)=>+(courses.reduce((a,c)=>a+(c.qMeans[qi]||0)*c.n,0)/totalN).toFixed(2));
@@ -374,7 +374,7 @@ async function buildCourseWord(groups, meta) {
       if(hasGender){
         return [
           new TableCell({width:{size:cW},borders:allB(),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:c.meanF!=null?c.meanF.toFixed(2):'—',bold:true,color:'843C0C',size:17,font:'Arial'})]}),]}),
-          new TableCell({width:{size:cW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:c.meanM!=null?c.meanM.toFixed(2):'—',bold:true,color:DARK,size:17,font:'Arab'})]}),]}),
+          new TableCell({width:{size:cW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:c.meanM!=null?c.meanM.toFixed(2):'—',bold:true,color:DARK,size:17,font:'Arial'})]}),]}),
         ];
       }
       return [mC((c.mean||0).toFixed(2),cW,cl.bg,{bold:true,color:cl.c,size:18})];
@@ -387,7 +387,7 @@ async function buildCourseWord(groups, meta) {
     ...courses.flatMap(c=>{
       if(hasGender) return [
         new TableCell({width:{size:cW},borders:allB(),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:String(c.nF||'—'),bold:true,color:'843C0C',size:15,font:'Arial'})]}),]}),
-        new TableCell({width:{size:cW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:String(c.nM||'—'),bold:true,color:DARK,size:15,font:'Arab'})]}),]}),
+        new TableCell({width:{size:cW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:String(c.nM||'—'),bold:true,color:DARK,size:15,font:'Arial'})]}),]}),
       ];
       return [mC(c.n,cW,PALE,{bold:true,color:DARK})];
     }),
@@ -568,19 +568,19 @@ async function buildInstructorWord(groups,meta){
         shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
         children:[
           new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:code,bold:true,color:WHITE,size:15,font:'Arial'})]}),
-          new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:'('+cMeans[code].toFixed(2)+')',color:'BDD7EE',size:12,font:'Arab'})]}),
+          new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:'('+cMeans[code].toFixed(2)+')',color:'BDD7EE',size:12,font:'Arial'})]}),
         ]});
     }),
     mH(['الإجمالي'],t3C[t3C.length-1]),
   ]});
 
   const ch_h2=hasGender?[new TableRow({children:[
-    new TableCell({width:{size:1800},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'السؤال',bold:true,color:WHITE,size:14,font:'Arab'})]}),]}),
+    new TableCell({width:{size:1800},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'السؤال',bold:true,color:WHITE,size:14,font:'Arial'})]}),]}),
     ...uniqueCourses.flatMap(()=>[
       new TableCell({width:{size:ccW},borders:allB('843C0C'),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'F',bold:true,color:'843C0C',size:16,font:'Arial'})]}),]}),
-      new TableCell({width:{size:ccW},borders:allB('1F4E79'),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'M',bold:true,color:DARK,size:16,font:'Arab'})]}),]}),
+      new TableCell({width:{size:ccW},borders:allB('1F4E79'),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'M',bold:true,color:DARK,size:16,font:'Arial'})]}),]}),
     ]),
-    new TableCell({width:{size:t3C[t3C.length-1]},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'الإجمالي',bold:true,color:WHITE,size:14,font:'Arab'})]}),]}),
+    new TableCell({width:{size:t3C[t3C.length-1]},rowSpan:0,borders:allB(),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'الإجمالي',bold:true,color:WHITE,size:14,font:'Arial'})]}),]}),
   ]})]:[]; 
 
   const ovQM=Array.from({length:nQ},(_,qi)=>+(allSecs.reduce((a,s)=>a+(s.questions[qi]?.mean||0)*s.n,0)/totalN).toFixed(2));
@@ -592,7 +592,7 @@ async function buildInstructorWord(groups,meta){
       ...uniqueCourses.flatMap(code=>{
         if(hasGender) return [
           new TableCell({width:{size:ccW},borders:allB(),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cQMF[code][qi]!=null?cQMF[code][qi].toFixed(2):'—',bold:!!cQMF[code][qi],color:cQMF[code][qi]?'843C0C':'AAAAAA',size:13,font:'Arial'})]}),]}),
-          new TableCell({width:{size:ccW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cQMM[code][qi]!=null?cQMM[code][qi].toFixed(2):'—',bold:!!cQMM[code][qi],color:cQMM[code][qi]?DARK:'AAAAAA',size:13,font:'Arab'})]}),]}),
+          new TableCell({width:{size:ccW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cQMM[code][qi]!=null?cQMM[code][qi].toFixed(2):'—',bold:!!cQMM[code][qi],color:cQMM[code][qi]?DARK:'AAAAAA',size:13,font:'Arial'})]}),]}),
         ];
         const qM=cQM[code][qi];const qCl=qM!=null?clf(qM):{bg,c:'000000'};
         return [mC(qM!=null?qM.toFixed(2):'—',ccW,qCl.bg,{color:qCl.c,size:13})];
@@ -613,7 +613,7 @@ async function buildInstructorWord(groups,meta){
         const mM=tnM?+(csM.reduce((a,s)=>a+s.sec_mean*s.n,0)/tnM).toFixed(2):null;
         return [
           new TableCell({width:{size:ccW},borders:allB(),shading:{fill:PINK,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:mF!=null?mF.toFixed(2):'—',bold:true,color:'843C0C',size:15,font:'Arial'})]}),]}),
-          new TableCell({width:{size:ccW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:mM!=null?mM.toFixed(2):'—',bold:true,color:DARK,size:15,font:'Arab'})]}),]}),
+          new TableCell({width:{size:ccW},borders:allB(),shading:{fill:BLUE2,type:ShadingType.CLEAR},margins:mg(),children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:mM!=null?mM.toFixed(2):'—',bold:true,color:DARK,size:15,font:'Arial'})]}),]}),
         ];
       }
       return [mC(cMeans[code].toFixed(2),ccW,cl.bg,{bold:true,color:cl.c,size:16})];
@@ -632,6 +632,9 @@ async function buildInstructorWord(groups,meta){
 
 function buildDoc(children){
   const doc=new Document({
+    numbering:{config:[{reference:'bullets',levels:[{level:0,format:'bullet',text:'•',
+      alignment:AlignmentType.RIGHT,
+      style:{paragraph:{indent:{left:500,hanging:300}},run:{font:'Arial',size:20}}}]}]},
     styles:{default:{document:{run:{font:'Arial',size:18}}}},
     sections:[{properties:{page:{
       size:{width:12240,height:15840,orientation:PageOrientation.LANDSCAPE},
