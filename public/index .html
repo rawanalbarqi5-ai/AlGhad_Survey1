@@ -109,8 +109,8 @@ td{border:1px solid #BDD7EE;padding:7px 9px;text-align:center}
   <div class="card">
     <div style="font-weight:800;color:#1F4E79;font-size:17px;margin-bottom:14px">اختاري طريقة التحليل</div>
     <div class="mode-switch">
-      <button class="mode-btn on" onclick="setMode('single')">📄 ملف واحد<br><span style="font-size:11px;font-weight:400">تحليل استبيان واحد</span></button>
-      <button class="mode-btn" onclick="setMode('multi')">📚 دمج شعب متعددة<br><span style="font-size:11px;font-weight:400">مقرر فيه أكثر من شعبة</span></button>
+      <button class="mode-btn on" data-mode="single" onclick="setMode('single')">📄 ملف واحد<br><span style="font-size:11px;font-weight:400">تحليل استبيان واحد</span></button>
+      <button class="mode-btn" data-mode="multi" onclick="setMode('multi')">📚 دمج شعب متعددة<br><span style="font-size:11px;font-weight:400">مقرر فيه أكثر من شعبة</span></button>
     </div>
 
     <!-- Single file upload -->
@@ -125,7 +125,11 @@ td{border:1px solid #BDD7EE;padding:7px 9px;text-align:center}
             <option value="instructor">👩‍🏫 تقييم المحاضر</option>
             <option value="program">🎓 تقييم البرنامج</option>
             <option value="experience">⭐ تقييم الخبرة / التدريب</option>
+            <option value="custom">✏️ اكتبي اسماً مخصصاً</option>
           </select>
+          <input id="survey_type_custom_s" placeholder="اكتبي اسم الاستبيان..." 
+            style="display:none;margin-top:6px;width:100%;padding:9px 12px;border:2px solid #2E75B6;border-radius:10px;font-size:14px;font-family:inherit;color:#1F4E79;background:#fff"
+            oninput="document.getElementById('sname').value=this.value">
         </div>
       </div>
       <div class="upzone" id="dropzone" onclick="document.getElementById('fi').click()">
@@ -153,7 +157,11 @@ td{border:1px solid #BDD7EE;padding:7px 9px;text-align:center}
             <option value="instructor">👩‍🏫 تقييم المحاضر</option>
             <option value="program">🎓 تقييم البرنامج</option>
             <option value="experience">⭐ تقييم الخبرة / التدريب</option>
+            <option value="custom">✏️ اكتبي اسماً مخصصاً</option>
           </select>
+          <input id="survey_type_custom" placeholder="اكتبي اسم الاستبيان..." 
+            style="display:none;margin-top:6px;width:100%;padding:9px 12px;border:2px solid #2E75B6;border-radius:10px;font-size:14px;font-family:inherit;color:#1F4E79;background:#fff"
+            oninput="document.getElementById('sname').value=this.value">
         </div>
       </div>
       <div id="secFiles"></div>
@@ -23988,7 +23996,7 @@ let SEC_FILES = []; // [{name, raw, status}]
 
 function setMode(mode) {
   AMODE = mode;
-  document.querySelectorAll('.mode-btn').forEach((b,i)=>b.classList.toggle('on',(i===0&&mode==='single')||(i===1&&mode==='multi')));
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('on',b.dataset.mode===mode));
   document.getElementById('single_mode').style.display = mode==='single'?'block':'none';
   document.getElementById('multi_mode').style.display  = mode==='multi'?'block':'none';
   if(mode==='multi' && SEC_FILES.length===0){
@@ -24268,12 +24276,15 @@ function doAnalyze(){
 
 
 function setSurveyType(val){
-  // Sync both dropdowns
   ['survey_type','survey_type_s'].forEach(function(id){
     var el=document.getElementById(id);
     if(el && el.value!==val) el.value=val;
   });
-  // Update sname field
+  // Show/hide custom input
+  ['survey_type_custom','survey_type_custom_s'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.style.display=(val==='custom')?'block':'none';
+  });
   var names={
     'course':'استبانة تقييم المقررات الدراسية',
     'instructor':'استبانة تقييم المحاضرين',
@@ -24281,7 +24292,8 @@ function setSurveyType(val){
     'experience':'استبانة تقييم الخبرة والتدريب'
   };
   var sn=document.getElementById('sname');
-  if(sn && names[val]) sn.value=names[val];
+  if(sn && val!=='custom' && names[val]) sn.value=names[val];
+  if(sn && val==='custom') sn.value='';
 }
 </script>
 </body>
