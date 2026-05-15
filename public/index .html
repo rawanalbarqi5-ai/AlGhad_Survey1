@@ -148,10 +148,12 @@ td{border:1px solid #BDD7EE;padding:5px 7px;text-align:center}
             👩‍🏫 تقييم محاضر (ملف XLS من النظام)</button>
         </div>
       </div>
-      <div class="msg-info">ارفعي ملف كل شعبة — سيتم حساب المتوسط الموزون تلقائياً</div>
-      <div id="secFilesList"></div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="addSF()">＋ إضافة شعبة</button>
+      <div class="msg-info" style="margin-bottom:10px">
+        أضيفي كل مقرر على حدة — لكل مقرر يمكنك رفع شعب متعددة
+      </div>
+      <div id="coursesList"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="addCourse()">＋ إضافة مقرر</button>
         <button class="btn btn-sm btn-g" id="combineBtn" onclick="combineAndGo()" disabled>✔ دمج وتحليل</button>
       </div>
     </div>
@@ -7883,9 +7885,13 @@ function setMode(mode){
   });
   document.getElementById('md_single').style.display=mode==='single'?'block':'none';
   document.getElementById('md_multi').style.display=mode==='multi'?'block':'none';
-  if(mode==='multi'&&SEC_FILES.length===0){
-    SEC_FILES=[{name:'الشعبة الأولى',raw:null,ok:false},{name:'الشعبة الثانية',raw:null,ok:false}];
-    renderSF();
+  if(mode==='multi'&&COURSES.length===0){
+    COURSES=[
+      {name:'المقرر الأول', files:[{raw:null,ok:false,fileName:''},{raw:null,ok:false,fileName:''}]},
+    ];
+    renderCourses();
+  } else if(mode==='multi'){
+    renderCourses();
   }
   checkNext();
 }
@@ -7987,36 +7993,69 @@ function previewData(){
 // ════════════════════════════════════════════════════════════════
 // MULTI FILE
 // ════════════════════════════════════════════════════════════════
-function addSF(){
-  SEC_FILES.push({name:'الشعبة '+(SEC_FILES.length+1),raw:null,ok:false});
-  renderSF();
+// ── COURSES STATE ────────────────────────────────────────────────────────────
+var COURSES = []; // [{name, files:[{raw,ok,fileName}]}]
+
+function addCourse(){
+  COURSES.push({name:'المقرر '+(COURSES.length+1), files:[{raw:null,ok:false,fileName:''}]});
+  renderCourses();
 }
 
-function renderSF(){
-  var c=document.getElementById('secFilesList'); c.innerHTML='';
-  SEC_FILES.forEach(function(sf,i){
-    var d=document.createElement('div'); d.className='sec-card';
-    d.innerHTML='<h4>'
-      +'<input value="'+esc(sf.name)+'" onchange="SEC_FILES['+i+'].name=this.value" style="padding:4px 8px;font-size:12px;border:2px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;direction:rtl;max-width:160px">'
-      +'<label style="cursor:pointer"><span style="background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع ملف<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadSF('+i+',this)"></span></label>'
-      +'<span id="sfst'+i+'" style="font-size:11px;padding:3px 8px;border-radius:20px;background:'+(sf.ok?'#E2EFDA':'#EBF3FB')+';color:'+(sf.ok?'#375623':'#64748b')+'">'+(sf.ok?'✅ '+sf.fileName:'⏳ لم يُرفع')+'</span>'
-      +(SEC_FILES.length>2?'<button onclick="SEC_FILES.splice('+i+',1);renderSF()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:15px">🗑</button>':'')
-      +'</h4>';
+function renderCourses(){
+  var c=document.getElementById('coursesList'); if(!c) return;
+  c.innerHTML='';
+  COURSES.forEach(function(course,ci){
+    var d=document.createElement('div');
+    d.style.cssText='border:2px solid #BDD7EE;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafbff';
+    
+    // Course header
+    var hdr='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
+    hdr+='<input value="'+esc(course.name)+'" onchange="COURSES['+ci+'].name=this.value" '
+        +'style="padding:5px 10px;font-size:13px;border:2px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;direction:rtl;width:160px">';
+    hdr+='<span style="font-size:11px;color:#64748b">الشعب: '+course.files.length+'</span>';
+    if(COURSES.length>1) hdr+='<button onclick="COURSES.splice('+ci+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:15px;margin-right:auto">🗑 حذف المقرر</button>';
+    hdr+='</div>';
+    
+    // Files list for this course
+    var filesHtml='';
+    course.files.forEach(function(f,fi){
+      filesHtml+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;padding-right:8px;border-right:3px solid #BDD7EE">';
+      filesHtml+='<span style="font-size:11px;color:#64748b;min-width:50px">شعبة '+(fi+1)+'</span>';
+      filesHtml+='<label style="cursor:pointer">'
+               +'<span style="background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع ملف'
+               +'<input type="file" accept=".xlsx,.xls,.csv" style="display:none" '
+               +'onchange="loadCourseFile('+ci+','+fi+',this)"></span></label>';
+      filesHtml+='<span id="cfst_'+ci+'_'+fi+'" style="font-size:11px;padding:3px 8px;border-radius:20px;'
+               +'background:'+(f.ok?'#E2EFDA':'#EBF3FB')+';color:'+(f.ok?'#375623':'#64748b')+'">'
+               +(f.ok?'✅ '+f.fileName:'⏳ لم يُرفع')+'</span>';
+      if(course.files.length>1) filesHtml+='<button onclick="COURSES['+ci+'].files.splice('+fi+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:13px">✕</button>';
+      filesHtml+='</div>';
+    });
+    
+    var addBtn='<button onclick="COURSES['+ci+'].files.push({raw:null,ok:false,fileName:\'\'});renderCourses()" '
+              +'style="background:none;border:1px dashed #BDD7EE;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:11px;color:#2E75B6;font-family:inherit;margin-top:2px">＋ إضافة شعبة أخرى</button>';
+    
+    d.innerHTML=hdr+filesHtml+addBtn;
     c.appendChild(d);
   });
-  var allOk=SEC_FILES.length>=2&&SEC_FILES.every(function(s){return s.ok;});
-  document.getElementById('combineBtn').disabled=!allOk;
+  
+  // Enable combine if at least one course has files
+  var hasData=COURSES.length>0&&COURSES.some(function(co){return co.files.some(function(f){return f.ok;});});
+  var btn=document.getElementById('combineBtn');
+  if(btn){btn.disabled=!hasData;}
   checkNext();
 }
 
-function loadSF(i,inp){
-  var f=inp.files[0]; if(!f)return;
-  SEC_FILES[i].fileName=f.name; SEC_FILES[i].ok=false; renderSF();
+function loadCourseFile(ci,fi,inp){
+  var f=inp.files[0]; if(!f) return;
+  COURSES[ci].files[fi].fileName=f.name;
+  COURSES[ci].files[fi].ok=false;
+  renderCourses();
   var ext=f.name.split('.').pop().toLowerCase();
   var r=new FileReader();
-  var done=function(raw){SEC_FILES[i].raw=raw;SEC_FILES[i].ok=true;renderSF();};
+  var done=function(raw){COURSES[ci].files[fi].raw=raw;COURSES[ci].files[fi].ok=true;renderCourses();};
   if(ext==='csv'){
-    r.onload=function(e){try{done(parseCSV(e.target.result));}catch(ex){SEC_FILES[i].ok=false;renderSF();}};
+    r.onload=function(e){try{done(parseCSV(e.target.result));}catch(ex){COURSES[ci].files[fi].ok=false;renderCourses();}};
     r.readAsText(f,'UTF-8');
   } else {
     r.onload=function(e){
@@ -8025,52 +8064,89 @@ function loadSF(i,inp){
         var ws=wb.Sheets[wb.SheetNames[0]];
         var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
         done({headers:j[0].map(function(h){return String(h||'').trim();}),rows:j.slice(1).filter(function(r){return r.some(function(v){return v!=='';});})});
-      }catch(ex){SEC_FILES[i].ok=false;renderSF();}
+      }catch(ex){COURSES[ci].files[fi].ok=false;renderCourses();}
     };
     r.readAsArrayBuffer(f);
   }
 }
 
-// ════════════════════════════════════════════════════════════════
-// COMBINE MULTI → compute weighted means
-// ════════════════════════════════════════════════════════════════
+// Keep old addSF/renderSF for backward compat (unused now)
+function addSF(){addCourse();}
+function renderSF(){renderCourses();}
+
+
 function combineAndGo(){
-  if(REPORT_TYPE==='instructor'){ combineInstructorAndGo(); return; }
-  var qCounts=SEC_FILES.map(function(s){return s.raw.headers.length;});
+  if(REPORT_TYPE==='instructor'){combineInstructorAndGo();return;}
+
+  // Build flat sections from COURSES
+  var allSections=[];
+  COURSES.forEach(function(course){
+    course.files.filter(function(f){return f.ok;}).forEach(function(f){
+      allSections.push({raw:f.raw, courseName:course.name});
+    });
+  });
+
+  if(!allSections.length){showE('e1','ارفعي ملفاً واحداً على الأقل');return;}
+
+  // Validate same Q count
+  var qCounts=allSections.map(function(s){return s.raw.headers.length;});
   if(new Set(qCounts).size>1){showE('e1','الملفات فيها عدد أعمدة مختلف: '+qCounts.join(', '));return;}
 
-  var nQ=SEC_FILES[0].raw.headers.length;
-  // Compute dist per question per file, then weighted merge
+  var nQ=allSections[0].raw.headers.length;
+  var qH=allSections[0].raw.headers;
+
   var compDist=function(rows,ci){
     var n=rows.length; if(!n)return [0,0,0,0,0];
     return [1,2,3,4,5].map(function(r){return +((rows.filter(function(row){return parseFloat(row[ci])===r;}).length/n*100).toFixed(1));});
   };
-  var sectionsData=SEC_FILES.map(function(sf){
-    var rows=sf.raw.rows; var n=rows.length;
-    var qDists=sf.raw.headers.map(function(_,ci){return compDist(rows,ci);});
-    return {n:n,qDists:qDists,headers:sf.raw.headers};
+  var mergeDists=function(secs){
+    var tn=secs.reduce(function(a,s){return a+s.n;},0); if(!tn)return [0,0,0,0,0];
+    return [0,1,2,3,4].map(function(i){return +(secs.reduce(function(a,s){return a+s.dist[i]*(s.n/tn);},0).toFixed(1));});
+  };
+
+  // Group by course name and compute per-course merged Q means
+  var courseResults={};
+  COURSES.forEach(function(course){
+    var okFiles=course.files.filter(function(f){return f.ok;});
+    if(!okFiles.length) return;
+    var allRows=okFiles.flatMap(function(f){return f.raw.rows;});
+    var n=allRows.length;
+    var qDists=Array.from({length:nQ},function(_,qi){return compDist(allRows,qi);});
+    var qMeans=qDists.map(function(d){return +mOf(d).toFixed(3);});
+    var mean=+(qMeans.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3);
+    courseResults[course.name]={n:n,qMeans:qMeans,mean:mean,
+      sectionCount:okFiles.length};
   });
-  var totalN=sectionsData.reduce(function(a,s){return a+s.n;},0);
-  // Weighted merged dists
-  var mergedQs=Array.from({length:nQ},function(_,qi){
-    var merged=[0,0,0,0,0];
-    sectionsData.forEach(function(s){
-      s.qDists[qi].forEach(function(v,di){merged[di]+=(v*s.n/totalN);});
-    });
-    merged=merged.map(function(v){return +v.toFixed(1);});
-    var cM=+mOf(merged).toFixed(3);
-    return {qn:qi+1,lbl:SEC_FILES[0].raw.headers[qi],fD:merged,mD:merged,cD:merged,
+
+  // Overall merged
+  var totalN=Object.values(courseResults).reduce(function(a,c){return a+c.n;},0);
+  var preQ=Array.from({length:nQ},function(_,qi){
+    return +(Object.values(courseResults).reduce(function(a,c){return a+c.qMeans[qi]*c.n;},0)/totalN).toFixed(2);
+  });
+  var overallMean=+(preQ.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3);
+
+  // Build precomputedQ using overall weighted dists
+  var allRows=COURSES.flatMap(function(co){return co.files.filter(function(f){return f.ok;}).flatMap(function(f){return f.raw.rows;});});
+  var precomputedQ=Array.from({length:nQ},function(_,qi){
+    var cD=compDist(allRows,qi);
+    var cM=+mOf(cD).toFixed(3);
+    return {qn:qi+1,lbl:qH[qi],fD:cD,mD:cD,cD:cD,
       fM:cM,mM:cM,cM:cM,maxM:cM,minM:cM,
-      pos:Math.round(merged[0]+merged[1]),neg:Math.round(merged[3]+merged[4]),cl:clf(cM)};
+      pos:Math.round(cD[0]+cD[1]),neg:Math.round(cD[3]+cD[4]),cl:clf(cM)};
   });
-  CFG.precomputedQ=mergedQs;
-  CFG.nF=totalN; CFG.nM=0; CFG.qH=SEC_FILES[0].raw.headers;
+
+  CFG.precomputedQ=precomputedQ;
+  CFG.courseResults=courseResults;
+  CFG.nF=totalN; CFG.nM=0; CFG.qH=qH;
   CFG.gmode='all_f'; CFG.isMulti=true;
-  CFG.secNames=SEC_FILES.map(function(s){return s.name;});
-  CFG.nPerSec=sectionsData.map(function(s){return s.n;});
-  document.getElementById('s3title').textContent='✅ دمج '+SEC_FILES.length+' شعب — '+totalN+' مستجيب';
-  document.getElementById('s3info').textContent=SEC_FILES.map(function(s,i){return s.name+': '+sectionsData[i].n;}).join(' · ');
-  SECS=[{name:'Section 1',ar:'المحور الأول',qs:[]}];
+  CFG.secNames=Object.keys(courseResults);
+  CFG.nPerSec=Object.values(courseResults).map(function(c){return c.n;});
+
+  document.getElementById('s3title').textContent='✅ دمج '+Object.keys(courseResults).length+' مقرر — '+totalN+' مستجيب';
+  document.getElementById('s3info').textContent=Object.entries(courseResults).map(function(e){return e[0]+': n='+e[1].n;}).join(' · ');
+
+  var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس'];
+  SECS=[{name:'Section 1',ar:ars[0],qs:[]}];
   buildSecUI(); go(3);
 }
 
