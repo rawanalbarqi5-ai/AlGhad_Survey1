@@ -920,6 +920,100 @@ async function buildWordFromResult(result, cfg){
     ]}),sp(80,40));
   });
 
+
+  // ── ENHANCEMENT PLANS ─────────────────────────────────────────────────────
+  children.push(
+    new Paragraph({pageBreakBefore:true,children:[]}),
+    mP('خطة التحسين والتطوير | Enhancement Plans',{bold:true,size:30,color:DARK,before:0,after:80}),
+    mP('بناءً على نتائج الاستبيان، يوصى بتبني الخطة التالية لتعزيز جودة التعليم:',{size:18,color:'555555',before:0,after:120}),
+  );
+
+  // Build enhancement items based on results
+  const enhancements=[];
+  secs.forEach(s=>{
+    const cl=clf(s.mean);
+    if(s.mean>2.0){  // Needs improvement
+      enhancements.push({
+        area:s.ar,
+        status:cl.l,
+        mean:s.mean,
+        priority:s.mean>3.0?'عاجل':'متوسط',
+        action:s.mean>3.0
+          ?`مراجعة فورية لـ "${s.ar}" وإعداد خطة تدخل خلال الفصل الدراسي القادم`
+          :`تعزيز وتطوير "${s.ar}" من خلال ورش عمل وجلسات تدريبية`,
+        kpi:`رفع المتوسط من ${s.mean} إلى أقل من 2.0 خلال فصلين دراسيين`,
+      });
+    }
+  });
+
+  // Always add strengths to build on
+  const strengths=secs.filter(s=>s.mean<=2.0);
+  const weaknesses=secs.filter(s=>s.mean>2.0);
+
+  // Enhancement table
+  const epC=[2200,1800,1200,1000,3600,CW-2200-1800-1200-1000-3600];
+  children.push(
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:epC,rows:[
+      new TableRow({children:[
+        mH(['المجال / Area'],epC[0]),
+        mH(['المتوسط / Mean'],epC[1]),
+        mH(['الأولوية / Priority'],epC[2]),
+        mH(['الحالة / Status'],epC[3]),
+        mH(['الإجراء المقترح / Recommended Action'],epC[4]),
+        mH(['مؤشر النجاح / KPI'],epC[5]),
+      ]}),
+      ...secs.map((s,i)=>{
+        const cl=clf(s.mean);
+        const priority=s.mean>3.0?'🔴 عاجل':s.mean>2.0?'🟡 متوسط':'🟢 قوة';
+        const action=s.mean>3.0
+          ?`مراجعة فورية وخطة تدخل عاجلة لتحسين "${s.ar}"`
+          :s.mean>2.0
+          ?`تطوير وتعزيز "${s.ar}" عبر برامج تدريبية`
+          :`توثيق وتكرار ممارسات النجاح في "${s.ar}"`;
+        const kpi=s.mean>2.0
+          ?`رفع المتوسط من ${s.mean} إلى أقل من 2.0`
+          :`الحفاظ على المتوسط ${s.mean} أو تحسينه`;
+        const bg=i%2===0?PALE:WHITE;
+        return new TableRow({children:[
+          mC(s.ar,epC[0],bg,{align:AlignmentType.RIGHT,bold:s.mean>2.0}),
+          mC(s.mean,epC[1],cl.bg,{bold:true,color:cl.c}),
+          mC(priority,epC[2],s.mean>3.0?RED2:s.mean>2.0?AMBER2:GREEN2,{bold:true,color:s.mean>3.0?RED:s.mean>2.0?AMBER:GREEN}),
+          mC(cl.l,epC[3],cl.bg,{bold:true,color:cl.c,size:14}),
+          mC(action,epC[4],bg,{align:AlignmentType.RIGHT,size:15}),
+          mC(kpi,epC[5],bg,{align:AlignmentType.RIGHT,size:14,color:'555555'}),
+        ]});
+      }),
+    ]}),
+    sp(200,100),
+  );
+
+  // Action plan summary
+  children.push(
+    mP('ملخص خطة العمل | Action Plan Summary',{bold:true,size:22,color:DARK,before:0,after:80}),
+  );
+
+  const planItems=[
+    weaknesses.length>0
+      ?`📌 يوجد ${weaknesses.length} محور يحتاج تطوير فوري: ${weaknesses.map(s=>s.ar).join(' | ')}`
+      :'✅ جميع المحاور ضمن المستوى المقبول — استمر في التميز',
+    strengths.length>0
+      ?`💪 نقاط القوة (${strengths.length} محور): ${strengths.map(s=>s.ar).join(' | ')} — يُوصى بتوثيقها كممارسات جيدة`
+      :'',
+    `📊 المتوسط العام الحالي: ${overall} — الهدف المقترح: ${Math.max(1.0,parseFloat((overall-0.3).toFixed(2)))} خلال فصل دراسي`,
+    `🗓️ يُقترح مراجعة النتائج في منتصف الفصل القادم وإعداد تقرير متابعة`,
+    `👥 مشاركة نتائج الاستبيان مع أعضاء هيئة التدريس في اجتماع القسم القادم`,
+  ].filter(Boolean);
+
+  children.push(
+    ...planItems.map(item=>new Paragraph({
+      alignment:AlignmentType.RIGHT,
+      spacing:{before:60,after:60},
+      numbering:{reference:'bullets',level:0},
+      children:[new TextRun({text:item,size:19,font:'Arial',color:'222222'})]
+    })),
+    sp(200,80),
+  );
+
   return buildDoc(children);
 }
 
