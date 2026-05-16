@@ -8572,58 +8572,62 @@ function parseInstructorXLS(raw){
   var sections = [];
   var current = null;
   var rows = raw.rows;
-  var headers = raw.headers;
 
   for(var i=0; i<rows.length; i++){
     var row = rows[i];
+    if(!row || row.length < 3) continue;
     var rowStr = row.join(' ');
 
-    // Section header: contains المحاضر
-    if(rowStr.indexOf('المحاضر') >= 0 && rowStr.indexOf(':') >= 0){
+    // Section header row: col11 = 'المحاضر:'
+    // Structure: col2=lecturer, col11='المحاضر:', col15=sec#, col18='الشعبة', col23=enrolled, col27=dept
+    if(String(row[11]||'').trim().indexOf('المحاضر') >= 0){
       if(current && current.questions.length > 0) sections.push(current);
       current = {
-        lecturer: String(row[2]||'').trim(),
-        sec_num:  String(row[15]||'').trim(),
-        course:   String(row[27]||'').trim(),
-        semester: String(row[32]||'').trim(),
-        dept:     String(row[29]||'').trim(),
-        loc:      String(row[34]||'').trim(),
-        enrolled: 0, n: 0, questions: []
+        lecturer:  String(row[2]||'').trim(),
+        sec_num:   String(row[15]||'').trim(),
+        enrolled:  parseInt(row[23])||0,
+        dept:      String(row[27]||'').trim(),
+        loc:       String(row[32]||'').trim(),
+        course:    '',
+        semester:  '',
+        n:         0,
+        questions: [],
       };
-      for(var j=0; j<row.length-1; j++){
-        var v = String(row[j]||'').trim();
-        if(v==='المسجلين :') current.enrolled = parseInt(row[j+2]||row[j+1]||0)||0;
-        if(v==='الشعبة :')  current.sec_num  = String(row[j+2]||row[j+1]||'').trim();
-        if(v==='المقرر :')  current.course   = String(row[j+2]||row[j+1]||'').trim();
-        if(v==='القسم :')   current.dept     = String(row[j+2]||row[j+1]||'').trim();
+    }
+
+    // Next row after header: col23=evaluators, col25='المقيميين', col27=course, col32=semester
+    if(current && current.n === 0 && String(row[25]||'').indexOf('المقيميين') >= 0){
+      current.n       = parseInt(row[23])||0;
+      current.course  = String(row[27]||'').trim();
+      current.semester= String(row[32]||'').trim();
+      // Also try col30 for المقرر
+      if(!current.course && String(row[30]||'').indexOf('المقرر') >= 0){
+        current.course = String(row[27]||'').trim();
       }
     }
 
-    // Evaluators row
-    if(current && rowStr.indexOf('المقيميين') >= 0){
-      for(var j=0; j<row.length-1; j++){
-        var v = String(row[j]||'').trim();
-        if(v.indexOf('المقيميين') >= 0) current.n = parseInt(row[j-1]||row[j+2]||0)||0;
-        if(v==='المقرر :')  current.course   = String(row[j+2]||row[j+1]||current.course||'').trim();
-        if(v==='الفصل :')   current.semester = String(row[j+2]||row[j+1]||current.semester||'').trim();
-      }
-      if(!current.n) current.n = parseInt(row[23]||0)||0;
-      if(!current.course) current.course = String(row[27]||'').trim();
-    }
-
-    // Question row: col38 = Q#, col2 = mean
+    // Question row: col38 = Q#, col2 = mean, col22 = question text
+    // col4=pct_sa, col5=cnt_sa, col7=pct_a, col8=cnt_a
+    // col12=pct_n, col13=cnt_n, col16=pct_d, col17=cnt_d, col19=pct_sd, col20=cnt_sd
     if(current){
-      var qn = parseFloat(row[38]);
+      var qn   = parseFloat(row[38]);
       var mean = parseFloat(row[2]);
       var text = String(row[22]||'').trim();
-      if(!isNaN(qn) && !isNaN(mean) && qn>=1 && qn<=50 && mean>0){
+      if(!isNaN(qn) && !isNaN(mean) && qn>=1 && qn<=50 && mean>0 && mean<=5){
         current.questions.push({
-          qn: Math.round(qn), text: text, mean: +mean.toFixed(3),
-          pct_sa: +(parseFloat(row[5])||0).toFixed(1),
-          pct_a:  +(parseFloat(row[8])||0).toFixed(1),
-          pct_n:  +(parseFloat(row[13])||0).toFixed(1),
-          pct_d:  +(parseFloat(row[17])||0).toFixed(1),
-          pct_sd: +(parseFloat(row[20])||0).toFixed(1),
+          qn:     Math.round(qn),
+          text:   text,
+          mean:   +mean.toFixed(3),
+          pct_sa: +(parseFloat(row[4])||0).toFixed(1),
+          cnt_sa: parseInt(row[5])||0,
+          pct_a:  +(parseFloat(row[7])||0).toFixed(1),
+          cnt_a:  parseInt(row[8])||0,
+          pct_n:  +(parseFloat(row[12])||0).toFixed(1),
+          cnt_n:  parseInt(row[13])||0,
+          pct_d:  +(parseFloat(row[16])||0).toFixed(1),
+          cnt_d:  parseInt(row[17])||0,
+          pct_sd: +(parseFloat(row[19])||0).toFixed(1),
+          cnt_sd: parseInt(row[20])||0,
         });
       }
     }
@@ -8634,16 +8638,15 @@ function parseInstructorXLS(raw){
   sections.forEach(function(s){
     var qm = s.questions.map(function(q){return q.mean;});
     s.sec_mean = qm.length ? +(qm.reduce(function(a,b){return a+b;},0)/qm.length).toFixed(3) : 0;
-    s.not_responded = Math.max(0, s.enrolled - s.n);
+    s.enrolled_num   = s.enrolled;
+    s.not_responded  = Math.max(0, s.enrolled - s.n);
     s.participation_pct = s.enrolled > 0 ? Math.round(s.n/s.enrolled*100) : 0;
   });
 
-  return sections;
+  return sections.filter(function(s){return s.questions.length > 0;});
 }
 
-// ════════════════════════════════════════════════════════════════
-// COMBINE INSTRUCTOR FILES
-// ════════════════════════════════════════════════════════════════
+
 function combineInstructorAndGo(){
   // Parse instructor XLS (from INSTRUCTOR_RAW or legacy SEC_FILES)
   var rawFiles = [];
