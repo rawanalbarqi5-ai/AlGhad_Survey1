@@ -55,7 +55,7 @@ const clf=m=>{
 };
 
 const mC=(text,w,shade,opts={})=>new TableCell({
-  width:{size:w,type:WidthType.DXA},borders:allB(),
+  width:{size:Math.max(1,w||400),type:WidthType.DXA},borders:allB(),
   shading:shade?{fill:shade,type:ShadingType.CLEAR}:undefined,
   margins:mg(),verticalAlign:VerticalAlign.CENTER,
   rowSpan:opts.rowSpan,columnSpan:opts.colSpan,
@@ -65,7 +65,7 @@ const mC=(text,w,shade,opts={})=>new TableCell({
 });
 
 const mH=(lines,w,shade=DARK,size=16)=>new TableCell({
-  width:{size:w,type:WidthType.DXA},borders:allB(shade),
+  width:{size:Math.max(1,w||400),type:WidthType.DXA},borders:allB(shade),
   shading:{fill:shade,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
   children:lines.map(l=>new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},
     children:[new TextRun({text:l,bold:true,color:WHITE,size,font:'Arial'})]}))
@@ -532,7 +532,7 @@ async function buildInstructorWord(groups,meta){
         return new TableRow({children:[
           mC(i+1,t2C[0],bg,{bold:true,color:DARK,size:13}),
           mC(lec.name,t2C[1],bg,{align:AlignmentType.RIGHT,size:13}),
-          mC(lec.secs.length,t2C[2],bg),mC(lec.n,t2C[3],bg,{bold:true}),
+          mC((lec.secs||[]).length,t2C[2],bg),mC(lec.n,t2C[3],bg,{bold:true}),
           ...lec.qMeans.map((qm,qi)=>{const qcl=qm!=null?clf(qm):{bg,c:'000000'};
             return mC(qm!=null?qm.toFixed(2):'—',t2C[4+qi],qcl.bg,{color:qcl.c,size:12});}),
           mC((lec.mean||0).toFixed(2),t2C[4+nQ],cl.bg,{bold:true,color:cl.c,size:16}),
@@ -932,8 +932,9 @@ async function buildWordFromResult(result, cfg){
 
   // Collect all questions needing improvement
   const epItems=[];
-  secs.forEach((sec,si)=>{
+  (secs||[]).forEach((sec,si)=>{
     (sec.qs||[]).forEach((q,qi)=>{
+      if(!q||q.cM===undefined) return;
       const cD=q.cD||[0,0,0,0,0];
       const posP=Math.round((cD[0]||0)+(cD[1]||0));
       const negP=Math.round((cD[3]||0)+(cD[4]||0));
@@ -990,20 +991,20 @@ async function buildWordFromResult(result, cfg){
       mH(['Recommended\nEnhancement Action'],epC[7]),
       mH(['KPI / Target'],epC[8]),
     ]}),
-    ...epItems.map((item,i)=>{
+    ...epItems.filter(function(item){return item&&item.q&&item.q.cM!==undefined;}).map((item,i)=>{
       const pr=getPriority(item.q.cM||0);
       const bg=i%2===0?PALE:WHITE;
       return new TableRow({children:[
         mC(pr.p,epC[0],pr.bg,{bold:true,color:pr.c,size:14}),
         mC('S'+item.secIdx,epC[1],bg,{bold:true,color:DARK,size:14}),
         mC(item.sec.ar,epC[2],bg,{align:AlignmentType.RIGHT,size:13}),
-        mC((item.q.lbl||'').slice(0,60),epC[3],bg,{align:AlignmentType.RIGHT,size:12}),
+        mC(String(item.q&&item.q.lbl?item.q.lbl:'').slice(0,60),epC[3],bg,{align:AlignmentType.RIGHT,size:12}),
         mC((item.q.cM||0).toFixed(2),epC[4],item.cl.bg,{bold:true,color:item.cl.c}),
         mC(item.cl.l,epC[5],item.cl.bg,{bold:true,color:item.cl.c,size:13}),
         mC(item.posP+'%',epC[6],item.posP>=80?GREEN2:item.posP>=60?AMBER2:RED2,
           {bold:true,color:item.posP>=80?GREEN:item.posP>=60?AMBER:RED,size:14}),
-        mC(getAction(item.q,item.sec),epC[7],bg,{align:AlignmentType.RIGHT,size:12}),
-        mC(getKPI(item.q),epC[8],bg,{align:AlignmentType.RIGHT,size:12,color:'444444'}),
+        mC(item.q?getAction(item.q,item.sec):'Review and improve this area',epC[7],bg,{align:AlignmentType.RIGHT,size:12}),
+        mC(item.q?getKPI(item.q):'Improve score',epC[8],bg,{align:AlignmentType.RIGHT,size:12,color:'444444'}),
       ]});
     }),
   ]}),sp(200,80));
@@ -1094,18 +1095,18 @@ async function buildInstructorWordFromResult(result, cfg){
     new Table({width:{size:CW,type:WidthType.DXA},columnWidths:s2C,rows:[
       new TableRow({children:[
         mH(['#'],s2C[0]),mH(['المحاضر'],s2C[1]),mH(['الشعب'],s2C[2]),mH(['عدد\nالمقيّمين'],s2C[3]),
-        ...qTexts.map((_,i)=>mH(['Q'+(i+1)],s2C[4+i],MID,13)),
-        mH(['المتوسط\nالموزون'],s2C[4+nQ]),mH(['التصنيف'],s2C[5+nQ]),
+        ...Array.from({length:lqShowN},(_,i)=>mH(['Q'+(i+1)],s2C[4+i],MID,13)),
+        mH(['المتوسط\nالموزون'],s2C[4+lqShowN]),mH(['التصنيف'],s2C[5+lqShowN]),
       ]}),
       ...lecturers.map((lec,i)=>{
         const cl=clf(lec.mean||0); const bg=i%2===0?PALE:WHITE;
         return new TableRow({children:[
           mC(i+1,s2C[0],bg,{bold:true,color:DARK,size:13}),
           mC(lec.name,s2C[1],bg,{align:AlignmentType.RIGHT,size:13}),
-          mC(lec.secs.length,s2C[2],bg),mC(lec.n,s2C[3],bg,{bold:true}),
-          ...lec.qMeans.slice(0,maxShowQ).map((qm,qi)=>{const qcl=clf(qm);return mC(qm.toFixed(2),s2C[4+qi],qcl.bg,{color:qcl.c,size:12});}),
+          mC((lec.secs||[]).length,s2C[2],bg),mC(lec.n,s2C[3],bg,{bold:true}),
+          ...(lec.qMeans||[]).slice(0,lqShowN).map((qm,qi)=>{const qcl=clf(qm);return mC(qm.toFixed(2),s2C[4+qi],qcl.bg,{color:qcl.c,size:12});}),
           mC((lec.mean||0).toFixed(2),s2C[4+nQ],cl.bg,{bold:true,color:cl.c,size:16}),
-          mC(cl.l,s2C[5+nQ],cl.bg,{bold:true,color:cl.c,size:12}),
+          mC(cl.l,s2C[5+lqShowN],cl.bg,{bold:true,color:cl.c,size:12}),
         ]});
       }),
     ]}),
@@ -1189,7 +1190,7 @@ async function buildInstructorWordFromResult(result, cfg){
     const cl=clf(lec.mean||0);
     children.push(
       mP(`${li+1}. ${lec.name}`,{bold:true,size:20,color:MID,before:li===0?0:200,after:40}),
-      mP(`المقررات: ${lec.courses.join(' | ')}  |  الشعب: ${lec.secs.length}  |  المقيّمون: ${lec.n}  |  المتوسط: ${(lec.mean||0).toFixed(2)}  |  ${cl.l}`,
+      mP(`المقررات: ${lec.courses.join(' | ')}  |  الشعب: ${(lec.secs||[]).length}  |  المقيّمون: ${lec.n}  |  المتوسط: ${(lec.mean||0).toFixed(2)}  |  ${cl.l}`,
         {size:15,color:'444444',before:0,after:70}),
     );
 
@@ -1202,13 +1203,13 @@ async function buildInstructorWordFromResult(result, cfg){
         ...Array.from({length:nQ},(_,i)=>mH(['Q'+(i+1)],dC[3+i],MID,13)),
         mH(['المتوسط'],dC[3+nQ]),
       ]}),
-      ...lec.secs.map((s,si)=>{
+      ...(lec.secs||[]).map((s,si)=>{
         const scl=clf(s.sec_mean); const bg=si%2===0?PALE:WHITE;
         return new TableRow({children:[
           mC(s.sec_num,dC[0],bg,{size:13}),
           mC(s.course,dC[1],bg,{bold:true,color:DARK,size:13}),
           mC(s.n,dC[2],bg,{bold:true}),
-          ...(s.questions||[]).map((q,qi)=>{const qcl=clf(q.mean);return mC(q.mean.toFixed(2),dC[3+qi],qcl.bg,{color:qcl.c,size:12});}),
+          ...(s.questions||[]).filter(q=>q&&q.mean!==undefined).map((q,qi)=>{const qcl=clf(q.mean);return mC(q.mean.toFixed(2),dC[3+qi],qcl.bg,{color:qcl.c,size:12});}),
           mC(s.sec_mean.toFixed(2),dC[3+nQ],scl.bg,{bold:true,color:scl.c,size:15}),
         ]});
       }),
