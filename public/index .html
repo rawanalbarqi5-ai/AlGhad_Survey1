@@ -7883,6 +7883,22 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 var clf=function(m){
   // 1=موافق بشدة (أفضل) → 5=لا أوافق بشدة (أسوأ)
   if(m<=1.80)return{l:'ممتاز',    bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+// مقياس تقييم المحاضر: 5=موافق بشدة (ممتاز) → 1=لا أوافق بشدة (ضعيف)
+var clf5=function(m){
+  if(m>=4.50)return{l:'ممتاز',    bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+  if(m>=3.50)return{l:'جيد جداً', bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+  if(m>=2.50)return{l:'جيد',      bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
+  if(m>=1.50)return{l:'مقبول',    bg:'#FFC7CE',c:'#C55A11',hx:'FFC7CE',hc:'C55A11'};
+  return      {l:'ضعيف',          bg:'#FF0000',c:'#ffffff', hx:'FF0000',hc:'ffffff'};
+};
+// مقياس تقييم المحاضر: 5=موافق بشدة (ممتاز) → 1=لا أوافق بشدة (ضعيف)
+var clf5=function(m){
+  if(m>=4.50)return{l:'ممتاز',    bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+  if(m>=3.50)return{l:'جيد جداً', bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+  if(m>=2.50)return{l:'جيد',      bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
+  if(m>=1.50)return{l:'مقبول',    bg:'#FFC7CE',c:'#C55A11',hx:'FFC7CE',hc:'C55A11'};
+  return      {l:'ضعيف',          bg:'#FF0000',c:'#ffffff', hx:'FF0000',hc:'ffffff'};
+};
   if(m<=2.60)return{l:'جيد جداً', bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
   if(m<=3.40)return{l:'جيد',      bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
   if(m<=4.20)return{l:'مقبول',    bg:'#FFC7CE',c:'#C55A11',hx:'FFC7CE',hc:'C55A11'};
@@ -8720,7 +8736,7 @@ function buildInstructorUI(allSecs, lecturers, qTexts, totalN){
   var totalNot = allSecs.reduce(function(a,s){return a+s.not_responded;},0);
   var pct = totalEnrolled>0?Math.round(totalN/totalEnrolled*100):0;
   var grandMean = totalN>0?+(allSecs.reduce(function(a,s){return a+s.sec_mean*s.n;},0)/totalN).toFixed(3):0;
-  var cl = clf(grandMean);
+  var cl = clf5(grandMean);
 
   // Stats
   document.getElementById('st4').innerHTML=[
@@ -8736,7 +8752,7 @@ function buildInstructorUI(allSecs, lecturers, qTexts, totalN){
     +'<th>المسجلون</th><th>المقيّمون</th><th>لم يستبينوا</th><th>المشاركة%</th><th>المتوسط</th>'
     +'</tr></thead><tbody>';
   allSecs.forEach(function(s,i){
-    var scl=clf(s.sec_mean); var pp=s.participation_pct||0;
+    var scl=clf5(s.sec_mean); var pp=s.participation_pct||0;
     t1+='<tr class="'+(i%2?'':'even')+'">'
       +'<td>'+(i+1)+'</td>'
       +'<td style="font-size:11px">'+esc(s.sec_num)+'</td>'
@@ -8769,14 +8785,14 @@ function buildInstructorUI(allSecs, lecturers, qTexts, totalN){
     +'<th>المتوسط الموزون</th><th>التصنيف</th>'
     +'</tr></thead><tbody>';
   lecturers.forEach(function(lec,i){
-    var lcl=clf(lec.mean);
+    var lcl=clf5(lec.mean);
     t2+='<tr class="'+(i%2?'':'even')+'">'
       +'<td>'+(i+1)+'</td>'
       +'<td style="text-align:right;font-size:11px">'+esc(lec.name)+'</td>'
       +'<td style="font-size:10px">'+lec.courses.join(' | ')+'</td>'
       +'<td>'+lec.secs.length+'</td>'
       +'<td style="font-weight:700">'+lec.n+'</td>'
-      +lec.qMeans.map(function(qm){var qcl=clf(qm);return '<td style="font-size:11px;color:'+qcl.c+';background:'+qcl.bg+'">'+qm.toFixed(2)+'</td>';}).join('')
+      +lec.qMeans.map(function(qm){var qcl=clf5(qm);return '<td style="font-size:11px;color:'+qcl.c+';background:'+qcl.bg+'">'+qm.toFixed(2)+'</td>';}).join('')
       +'<td style="font-weight:700;font-size:14px;color:'+lcl.c+';background:'+lcl.bg+'">'+lec.mean.toFixed(3)+'</td>'
       +'<td style="background:'+lcl.bg+'"><span class="tag" style="color:'+lcl.c+'">'+lcl.l+'</span></td>'
       +'</tr>';
@@ -8801,11 +8817,11 @@ function buildInstructorUI(allSecs, lecturers, qTexts, totalN){
 
   Array.from({length:nQ},function(_,qi){
     var oMean = +(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0)*s.n;},0)/totalN).toFixed(2);
-    var oCl = clf(oMean);
+    var oCl = clf5(oMean);
     t3+='<tr class="'+(qi%2?'':'even')+'">';
     t3+='<td style="text-align:right;font-size:11px;max-width:200px;direction:rtl">Q'+(qi+1)+' — '+esc((qTexts[qi]||'').slice(0,40))+'</td>';
     courses.forEach(function(code){
-      var qm=courseQMeans[code][qi]; var qcl=clf(qm);
+      var qm=courseQMeans[code][qi]; var qcl=clf5(qm);
       t3+='<td style="color:'+qcl.c+';background:'+qcl.bg+';font-weight:700">'+qm.toFixed(2)+'</td>';
     });
     t3+='<td style="font-weight:700;color:'+oCl.c+';background:'+oCl.bg+'">'+oMean+'</td>';
