@@ -8163,8 +8163,10 @@ function combineAndGo(){
 
   // Overall merged
   var totalN=Object.values(courseResults).reduce(function(a,c){return a+c.n;},0);
+  var nCourses=Object.keys(courseResults).length||1;
   var preQ=Array.from({length:nQ},function(_,qi){
-    return +(Object.values(courseResults).reduce(function(a,c){return a+c.qMeans[qi]*c.n;},0)/totalN).toFixed(2);
+    // Simple average: sum of course Q means ÷ number of courses
+    return +(Object.values(courseResults).reduce(function(a,c){return a+c.qMeans[qi];},0)/nCourses).toFixed(2);
   });
   var overallMean=+(preQ.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3);
 
@@ -8679,8 +8681,10 @@ function combineInstructorAndGo(){
   var lecturers = Object.keys(lecMap).map(function(name){
     var secs = lecMap[name];
     var tn = secs.reduce(function(a,s){return a+s.n;},0);
+    var ns = secs.length || 1;
     var qMeans = Array.from({length:nQ},function(_,qi){
-      return tn ? +(secs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0)*s.n;},0)/tn).toFixed(3) : 0;
+      // Simple average: sum of section means ÷ number of sections
+      return +(secs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3);
     });
     var mean = qMeans.length ? +(qMeans.reduce(function(a,b){return a+b;},0)/qMeans.length).toFixed(3) : 0;
     return {name:name, secs:secs, n:tn, mean:mean, qMeans:qMeans,
