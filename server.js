@@ -924,95 +924,87 @@ async function buildWordFromResult(result, cfg){
   // ── ENHANCEMENT PLANS ─────────────────────────────────────────────────────
   children.push(
     new Paragraph({pageBreakBefore:true,children:[]}),
-    mP('خطة التحسين والتطوير | Enhancement Plans',{bold:true,size:30,color:DARK,before:0,after:80}),
-    mP('بناءً على نتائج الاستبيان، يوصى بتبني الخطة التالية لتعزيز جودة التعليم:',{size:18,color:'555555',before:0,after:120}),
+    mP('Enhancement Plans | خطة التحسين والتطوير',{bold:true,size:32,color:DARK,before:0,after:60}),
+    mP('Based on survey results — items with Mean > 2.60 require attention | بناءً على نتائج الاستبيان',
+      {size:17,color:'555555',italic:true,before:0,after:100}),
   );
 
-  // Build enhancement items based on results
-  const enhancements=[];
-  secs.forEach(s=>{
-    const cl=clf(s.mean);
-    if(s.mean>2.0){  // Needs improvement
-      enhancements.push({
-        area:s.ar,
-        status:cl.l,
-        mean:s.mean,
-        priority:s.mean>3.0?'عاجل':'متوسط',
-        action:s.mean>3.0
-          ?`مراجعة فورية لـ "${s.ar}" وإعداد خطة تدخل خلال الفصل الدراسي القادم`
-          :`تعزيز وتطوير "${s.ar}" من خلال ورش عمل وجلسات تدريبية`,
-        kpi:`رفع المتوسط من ${s.mean} إلى أقل من 2.0 خلال فصلين دراسيين`,
+  // Collect all questions needing improvement
+  const epItems=[];
+  secs.forEach((sec,si)=>{
+    (sec.qs||[]).forEach((q,qi)=>{
+      const cD=q.cD||[0,0,0,0,0];
+      const posP=Math.round((cD[0]||0)+(cD[1]||0));
+      const negP=Math.round((cD[3]||0)+(cD[4]||0));
+      const cl=clf(q.cM||0);
+      // All items go in table, sorted by mean desc (worst first)
+      epItems.push({
+        sec, secIdx:si+1, q, qi,
+        posP, negP, cl,
       });
-    }
+    });
   });
 
-  // Always add strengths to build on
-  const strengths=secs.filter(s=>s.mean<=2.0);
-  const weaknesses=secs.filter(s=>s.mean>2.0);
+  // Sort: worst (highest mean) first
+  epItems.sort((a,b)=>(b.q.cM||0)-(a.q.cM||0));
 
-  // Enhancement table
-  const epC=[2200,1800,1200,1000,3600,CW-2200-1800-1200-1000-3600];
-  children.push(
-    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:epC,rows:[
-      new TableRow({children:[
-        mH(['المجال / Area'],epC[0]),
-        mH(['المتوسط / Mean'],epC[1]),
-        mH(['الأولوية / Priority'],epC[2]),
-        mH(['الحالة / Status'],epC[3]),
-        mH(['الإجراء المقترح / Recommended Action'],epC[4]),
-        mH(['مؤشر النجاح / KPI'],epC[5]),
-      ]}),
-      ...secs.map((s,i)=>{
-        const cl=clf(s.mean);
-        const priority=s.mean>3.0?'🔴 عاجل':s.mean>2.0?'🟡 متوسط':'🟢 قوة';
-        const action=s.mean>3.0
-          ?`مراجعة فورية وخطة تدخل عاجلة لتحسين "${s.ar}"`
-          :s.mean>2.0
-          ?`تطوير وتعزيز "${s.ar}" عبر برامج تدريبية`
-          :`توثيق وتكرار ممارسات النجاح في "${s.ar}"`;
-        const kpi=s.mean>2.0
-          ?`رفع المتوسط من ${s.mean} إلى أقل من 2.0`
-          :`الحفاظ على المتوسط ${s.mean} أو تحسينه`;
-        const bg=i%2===0?PALE:WHITE;
-        return new TableRow({children:[
-          mC(s.ar,epC[0],bg,{align:AlignmentType.RIGHT,bold:s.mean>2.0}),
-          mC(s.mean,epC[1],cl.bg,{bold:true,color:cl.c}),
-          mC(priority,epC[2],s.mean>3.0?RED2:s.mean>2.0?AMBER2:GREEN2,{bold:true,color:s.mean>3.0?RED:s.mean>2.0?AMBER:GREEN}),
-          mC(cl.l,epC[3],cl.bg,{bold:true,color:cl.c,size:14}),
-          mC(action,epC[4],bg,{align:AlignmentType.RIGHT,size:15}),
-          mC(kpi,epC[5],bg,{align:AlignmentType.RIGHT,size:14,color:'555555'}),
-        ]});
-      }),
+  // Determine priority
+  const getPriority=m=>{
+    if(m>3.40) return {p:'High',bg:RED2,c:RED};
+    if(m>2.60) return {p:'Medium',bg:AMBER2,c:AMBER};
+    if(m>1.80) return {p:'Low',bg:GREEN2,c:GREEN};
+    return {p:'Strength',bg:GREEN2,c:GREEN};
+  };
+
+  // Enhancement action templates
+  const getAction=(q,sec)=>{
+    const lbl=(q.lbl||sec.ar||'').toLowerCase();
+    const m=q.cM||0;
+    if(m>3.40) return `Immediate review required for "${q.lbl||sec.ar}". Develop action plan, assign responsible parties, and schedule follow-up within one semester.`;
+    if(m>2.60) return `Review and improve "${q.lbl||sec.ar}" through training workshops, peer feedback sessions, and periodic monitoring.`;
+    if(m>1.80) return `Good performance. Document best practices for "${q.lbl||sec.ar}" and share with team to maintain quality.`;
+    return `Excellent performance in "${q.lbl||sec.ar}". Document as best practice and share across departments.`;
+  };
+
+  const getKPI=(q)=>{
+    const m=q.cM||0;
+    const targetMean=Math.max(1.0,+(m-0.4).toFixed(1));
+    const targetPos=Math.min(95,Math.round((q.posP||0)+15));
+    if(m>2.60) return `Reduce mean to ≤${targetMean}; raise Positive% to ≥${targetPos}%; reduce Negative% by 50%`;
+    return `Maintain mean ≤${m}; Positive agreement ≥${Math.max(80,q.posP||0)}%`;
+  };
+
+  // Build EP table
+  const epC=[900,700,1600,1600,800,1400,1400,2200,CW-900-700-1600-1600-800-1400-1400-2200];
+  children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:epC,rows:[
+    new TableRow({children:[
+      mH(['Priority'],epC[0]),
+      mH(['Section\nID'],epC[1]),
+      mH(['Section'],epC[2]),
+      mH(['Survey Item / Question'],epC[3]),
+      mH(['Mean'],epC[4]),
+      mH(['Current\nClassification'],epC[5]),
+      mH(['Positive\nSA+A%'],epC[6]),
+      mH(['Recommended\nEnhancement Action'],epC[7]),
+      mH(['KPI / Target'],epC[8]),
     ]}),
-    sp(200,100),
-  );
-
-  // Action plan summary
-  children.push(
-    mP('ملخص خطة العمل | Action Plan Summary',{bold:true,size:22,color:DARK,before:0,after:80}),
-  );
-
-  const planItems=[
-    weaknesses.length>0
-      ?`📌 يوجد ${weaknesses.length} محور يحتاج تطوير فوري: ${weaknesses.map(s=>s.ar).join(' | ')}`
-      :'✅ جميع المحاور ضمن المستوى المقبول — استمر في التميز',
-    strengths.length>0
-      ?`💪 نقاط القوة (${strengths.length} محور): ${strengths.map(s=>s.ar).join(' | ')} — يُوصى بتوثيقها كممارسات جيدة`
-      :'',
-    `📊 المتوسط العام الحالي: ${overall} — الهدف المقترح: ${Math.max(1.0,parseFloat((overall-0.3).toFixed(2)))} خلال فصل دراسي`,
-    `🗓️ يُقترح مراجعة النتائج في منتصف الفصل القادم وإعداد تقرير متابعة`,
-    `👥 مشاركة نتائج الاستبيان مع أعضاء هيئة التدريس في اجتماع القسم القادم`,
-  ].filter(Boolean);
-
-  children.push(
-    ...planItems.map(item=>new Paragraph({
-      alignment:AlignmentType.RIGHT,
-      spacing:{before:60,after:60},
-      numbering:{reference:'bullets',level:0},
-      children:[new TextRun({text:item,size:19,font:'Arial',color:'222222'})]
-    })),
-    sp(200,80),
-  );
+    ...epItems.map((item,i)=>{
+      const pr=getPriority(item.q.cM||0);
+      const bg=i%2===0?PALE:WHITE;
+      return new TableRow({children:[
+        mC(pr.p,epC[0],pr.bg,{bold:true,color:pr.c,size:14}),
+        mC('S'+item.secIdx,epC[1],bg,{bold:true,color:DARK,size:14}),
+        mC(item.sec.ar,epC[2],bg,{align:AlignmentType.RIGHT,size:13}),
+        mC((item.q.lbl||'').slice(0,60),epC[3],bg,{align:AlignmentType.RIGHT,size:12}),
+        mC((item.q.cM||0).toFixed(2),epC[4],item.cl.bg,{bold:true,color:item.cl.c}),
+        mC(item.cl.l,epC[5],item.cl.bg,{bold:true,color:item.cl.c,size:13}),
+        mC(item.posP+'%',epC[6],item.posP>=80?GREEN2:item.posP>=60?AMBER2:RED2,
+          {bold:true,color:item.posP>=80?GREEN:item.posP>=60?AMBER:RED,size:14}),
+        mC(getAction(item.q,item.sec),epC[7],bg,{align:AlignmentType.RIGHT,size:12}),
+        mC(getKPI(item.q),epC[8],bg,{align:AlignmentType.RIGHT,size:12,color:'444444'}),
+      ]});
+    }),
+  ]}),sp(200,80));
 
   return buildDoc(children);
 }
