@@ -54,6 +54,15 @@ const clf=m=>{
   return      {l:'ضعيف',          en:'Weak',       bg:RED2,  c:RED};
 };
 
+// clf for 5=best scale (instructor evaluation: 5=موافق بشدة=ممتاز)
+const clf5=m=>{
+  if(m>=4.50)return{l:'ممتاز',    en:'Excellent', bg:GREEN2,c:GREEN};
+  if(m>=3.50)return{l:'جيد جداً', en:'Very Good',  bg:GREEN2,c:GREEN};
+  if(m>=2.50)return{l:'جيد',      en:'Good',       bg:AMBER2,c:AMBER};
+  if(m>=1.50)return{l:'مقبول',    en:'Acceptable', bg:RED2,  c:RED};
+  return      {l:'ضعيف',          en:'Weak',       bg:RED2,  c:RED};
+};
+
 const mC=(text,w,shade,opts={})=>new TableCell({
   width:{size:Math.max(1,w||400),type:WidthType.DXA},borders:allB(),
   shading:shade?{fill:shade,type:ShadingType.CLEAR}:undefined,
@@ -1016,57 +1025,109 @@ async function buildInstructorWordFromResult(result, cfg){
   const CW=15398;
   const {allSecs,lecturers,qTexts,totalN,totalEnrolled,totalNot,grandMean}=result;
   const nQ=qTexts.length;
-  const gCl=clf(grandMean);
+  const gCl=clf5(grandMean);
   const pct=totalEnrolled>0?Math.round(totalN/totalEnrolled*100):0;
   const children=[];
-
-  // unique courses list
   const courses=[...new Set(allSecs.map(s=>s.course))];
 
   // ── TITLE ──────────────────────────────────────────────────────────────
   children.push(
     sp(0,200),
     mP('تقرير استبانة تقييم المحاضرين',{align:AlignmentType.CENTER,bold:true,size:52,color:DARK,before:0,after:80}),
-    mP('Instructor Evaluation Report',{align:AlignmentType.CENTER,bold:true,size:32,color:MID,before:0,after:80}),
+    mP('Instructor Evaluation Report',{align:AlignmentType.CENTER,bold:true,size:30,color:MID,before:0,after:80}),
     mP(cfg.cname||'كليات الغد للعلوم الطبية التطبيقية – جدة',{align:AlignmentType.CENTER,size:22,color:'555555',before:0,after:60}),
-    mP((cfg.dept||'')+(cfg.semester?' | '+cfg.semester:''),{align:AlignmentType.CENTER,size:20,color:'777777',before:0,after:300}),
+    mP(cfg.semester||'',{align:AlignmentType.CENTER,size:20,color:'777777',before:0,after:300}),
   );
 
-  // ── OVERALL STATS ──────────────────────────────────────────────────────
-  const stC=[Math.round(CW/5),Math.round(CW/5),Math.round(CW/5),Math.round(CW/5),CW-Math.round(CW/5)*4];
+  // ── GOAL / INFO ────────────────────────────────────────────────────────
+  if(cfg.obj){
+    children.push(
+      mP('هدف الاستبيان',{bold:true,size:24,color:DARK,before:200,after:60}),
+      mP(cfg.obj,{size:20,before:0,after:200}),
+    );
+  }
+
+  // ── SCALE ──────────────────────────────────────────────────────────────
+  const sCols=[Math.round(CW*0.22),Math.round(CW*0.15),Math.round(CW*0.15),Math.round(CW*0.15),Math.round(CW*0.15)];
   children.push(
-    mP('إحصائيات عامة | Overall Statistics',{bold:true,size:24,color:DARK,before:0,after:80}),
-    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:stC,rows:[
-      new TableRow({children:[mH(['إجمالي الشعب'],stC[0]),mH(['إجمالي المقيّمين'],stC[1]),mH(['المحاضرون'],stC[2]),mH(['المقررات'],stC[3]),mH(['المتوسط العام'],stC[4])]}),
+    mP('المقياس المستخدم | Likert Scale (5=Strongly Agree)',{bold:true,size:22,color:DARK,before:0,after:80}),
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:sCols,rows:[
       new TableRow({children:[
-        mC(allSecs.length,stC[0],PALE,{bold:true,color:DARK,size:28}),
-        mC(totalN,stC[1],GREEN2,{bold:true,color:GREEN,size:28}),
-        mC(lecturers.length,stC[2],PALE,{bold:true,color:DARK,size:28}),
-        mC(courses.length,stC[3],PALE,{bold:true,color:DARK,size:28}),
-        mC(grandMean,stC[4],gCl.bg,{bold:true,color:gCl.c,size:36}),
+        mH(['5 = موافق بشدة\nStrongly Agree'],sCols[0],GREEN),
+        mH(['4 = موافق\nAgree'],sCols[1],GREEN),
+        mH(['3 = محايد\nNeutral'],sCols[2],'7F7F7F'),
+        mH(['2 = لا أوافق\nDisagree'],sCols[3],RED),
+        mH(['1 = لا أوافق بشدة\nStrongly Disagree'],sCols[4],RED),
       ]}),
-    ]}),
-    sp(200,100),
+    ]}),sp(120,80),
   );
 
-  // ── SECTION 1: ALL SECTIONS SUMMARY ────────────────────────────────────
-  const s1C=[600,2800,2600,1000,1000,1200,1400,CW-600-2800-2600-1000-1000-1200-1400];
+  // ── CLASSIFICATION SCALE ───────────────────────────────────────────────
+  const clsCols=[Math.round(CW*0.10),Math.round(CW*0.16),Math.round(CW*0.14),CW-Math.round(CW*0.40)];
+  children.push(
+    mP('Classification Scale | مقياس التصنيف',{bold:true,size:22,color:DARK,before:0,after:80}),
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:clsCols,rows:[
+      new TableRow({children:[mH(['Range'],clsCols[0]),mH(['Classification'],clsCols[1]),mH(['التصنيف'],clsCols[2]),mH(['Interpretation'],clsCols[3])]}),
+      ...[
+        ['≥4.50','Excellent','ممتاز','Strong positive outcome — maintain and share best practices',GREEN2,GREEN],
+        ['3.50–4.49','Very Good','جيد جداً','Good performance — monitor and continue improvement',GREEN2,GREEN],
+        ['2.50–3.49','Good','جيد','Acceptable — review and support further development',AMBER2,AMBER],
+        ['1.50–2.49','Acceptable','مقبول','Below expectations — improvement plan required',RED2,RED],
+        ['<1.50','Weak','ضعيف','Significant weakness — immediate intervention required',RED2,RED],
+      ].map(([r,cl,ar,interp,bg,c])=>new TableRow({children:[
+        mC(r,clsCols[0],bg,{bold:true,color:c,align:AlignmentType.CENTER}),
+        mC(cl,clsCols[1],bg,{bold:true,color:c}),
+        mC(ar,clsCols[2],bg,{bold:true,color:c}),
+        mC(interp,clsCols[3],WHITE,{size:17,align:AlignmentType.LEFT}),
+      ]}))
+    ]}),sp(160,80),
+  );
+
+  // ── SAMPLE PROFILE ─────────────────────────────────────────────────────
+  const spCols=[Math.round(CW*0.22),Math.round(CW*0.12),Math.round(CW*0.22),Math.round(CW*0.12)];
+  children.push(
+    mP('Sample Profile | بيانات العينة',{bold:true,size:22,color:DARK,before:0,after:80}),
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:spCols,rows:[
+      new TableRow({children:[mH(['Detail'],spCols[0]),mH(['Value'],spCols[1]),mH(['التفاصيل'],spCols[2]),mH(['القيمة'],spCols[3])]}),
+      ...[
+        ['Total Enrolled',totalEnrolled,'إجمالي المسجلين',totalEnrolled],
+        ['Total Evaluators',totalN,'إجمالي المقيّمين',totalN],
+        ['Did Not Respond',totalNot,'لم يستبينوا',totalNot],
+        ['Participation Rate',pct+'%','نسبة المشاركة',pct+'%'],
+        ['No. of Sections',allSecs.length,'عدد الشعب',allSecs.length],
+        ['No. of Instructors',lecturers.length,'عدد المحاضرين',lecturers.length],
+        ['No. of Courses',courses.length,'عدد المقررات',courses.length],
+        ['No. of Questions',nQ,'عدد الأسئلة',nQ],
+        ['Overall Mean',grandMean,'المتوسط العام',grandMean],
+        ['Survey Period',cfg.semester||'—','الفصل الدراسي',cfg.semester||'—'],
+      ].map(([e,ev,a,av],i)=>new TableRow({children:[
+        mC(e,spCols[0],i%2===0?PALE:WHITE,{align:AlignmentType.LEFT}),
+        mC(ev,spCols[1],i%2===0?PALE:WHITE,{bold:true,color:DARK}),
+        mC(a,spCols[2],i%2===0?PALE:WHITE,{align:AlignmentType.RIGHT}),
+        mC(av,spCols[3],i%2===0?PALE:WHITE,{bold:true,color:DARK}),
+      ]}))
+    ]}),sp(200,80),
+  );
+
+  // ── SECTION 1: ALL SECTIONS ────────────────────────────────────────────
+  const s1C=[600,Math.round(CW*0.17),Math.round(CW*0.16),900,900,1100,1300,Math.max(400,CW-600-Math.round(CW*0.17)-Math.round(CW*0.16)-900-900-1100-1300)];
   children.push(
     mP('أولاً: ملخص جميع الشعب | All Sections Summary',{bold:true,size:22,color:DARK,before:0,after:80}),
     new Table({width:{size:CW,type:WidthType.DXA},columnWidths:s1C,rows:[
       new TableRow({children:[
-        mH(['الشعبة'],s1C[0]),mH(['المقرر'],s1C[1]),mH(['المحاضر'],s1C[2]),
+        mH(['الشعبة'],s1C[0]),mH(['المحاضر'],s1C[1]),mH(['المقرر'],s1C[2]),
         mH(['المسجلون'],s1C[3]),mH(['المقيّمون'],s1C[4]),
-        mH(['نسبة\nالمشاركة'],s1C[5]),mH(['المتوسط'],s1C[6]),mH(['التصنيف'],s1C[7]),
+        mH(['المشاركة%'],s1C[5]),mH(['المتوسط'],s1C[6]),mH(['التصنيف'],s1C[7]),
       ]}),
       ...allSecs.map((s,i)=>{
-        const cl=clf(s.sec_mean); const bg=i%2===0?PALE:WHITE;
+        const cl=clf5(s.sec_mean); const bg=i%2===0?PALE:WHITE;
         const pp=s.participation_pct||0;
         return new TableRow({children:[
           mC(s.sec_num,s1C[0],bg,{size:14}),
-          mC(s.course,s1C[1],bg,{bold:true,color:DARK,size:15}),
-          mC(s.lecturer,s1C[2],bg,{align:AlignmentType.RIGHT,size:14}),
-          mC(s.enrolled,s1C[3],bg),mC(s.n,s1C[4],bg,{bold:true}),
+          mC(s.lecturer,s1C[1],bg,{align:AlignmentType.RIGHT,size:13}),
+          mC(s.course,s1C[2],bg,{bold:true,color:DARK,size:14}),
+          mC(s.enrolled||s.enrolled_num||'—',s1C[3],bg),
+          mC(s.n,s1C[4],bg,{bold:true}),
           mC(pp+'%',s1C[5],pp>=80?GREEN2:pp>=60?AMBER2:RED2,{color:pp>=80?GREEN:pp>=60?AMBER:RED,bold:true}),
           mC(s.sec_mean.toFixed(2),s1C[6],cl.bg,{bold:true,color:cl.c}),
           mC(cl.l,s1C[7],cl.bg,{bold:true,color:cl.c,size:14}),
@@ -1074,157 +1135,193 @@ async function buildInstructorWordFromResult(result, cfg){
       }),
       new TableRow({children:[
         mC('الإجمالي',s1C[0]+s1C[1]+s1C[2],DARK,{bold:true,color:WHITE,colSpan:3}),
-        mC('—',s1C[3],PALE),mC(totalN,s1C[4],GREEN2,{bold:true,color:GREEN,size:18}),
-        mC(pct+'%',s1C[5],pct>=80?GREEN2:pct>=60?AMBER2:RED2,{bold:true,color:pct>=80?GREEN:pct>=60?AMBER:RED,size:16}),
-        mC(grandMean,s1C[6],gCl.bg,{bold:true,color:gCl.c,size:20}),
+        mC(totalEnrolled,s1C[3],PALE,{bold:true}),
+        mC(totalN,s1C[4],GREEN2,{bold:true,color:GREEN,size:16}),
+        mC(pct+'%',s1C[5],pct>=80?GREEN2:pct>=60?AMBER2:RED2,{bold:true,color:pct>=80?GREEN:pct>=60?AMBER:RED,size:15}),
+        mC(grandMean,s1C[6],gCl.bg,{bold:true,color:gCl.c,size:18}),
         mC(gCl.l,s1C[7],gCl.bg,{bold:true,color:gCl.c}),
       ]}),
-    ]}),
-    sp(200,100),
+    ]}),sp(200,80),
   );
 
-  // ── SECTION 2: INSTRUCTOR SUMMARY ──────────────────────────────────────
-  const lqW=Math.max(500,Math.floor((CW-400-2800-700-700-1500)/Math.max(Math.min(nQ,12),1)));
-  const lqShowN=Math.min(nQ,12);
-  const lqUsedW=lqW*lqShowN;
-  const s2LastW2=Math.max(400,CW-400-2800-700-700-lqUsedW-1500);
-  const s2C=[400,2800,700,700,...Array(lqShowN).fill(lqW),1500,s2LastW2];
+  // ── SECTION 2: Q × COURSE OVERALL ANALYSIS ────────────────────────────
+  const nC=courses.length;
+  const qLblW=Math.round(CW*0.22);
+  const qCW=Math.max(600,Math.floor((CW-qLblW-1200)/(nC+1)));
+  const qLastW=Math.max(400,CW-qLblW-qCW*nC-1200);
+  const oaC=[qLblW,...Array(nC).fill(qCW),1200,qLastW];
+
+  // Course means per Q
+  const courseQData={};
+  courses.forEach(code=>{
+    const cs=allSecs.filter(s=>s.course===code);
+    const ns=cs.length||1;
+    courseQData[code]={
+      mean:+(cs.reduce((a,s)=>a+s.sec_mean,0)/ns).toFixed(2),
+      qMeans:Array.from({length:nQ},(_,qi)=>+(cs.reduce((a,s)=>a+(s.questions[qi]?.mean||0),0)/ns).toFixed(2)),
+    };
+  });
+  const overallQM=Array.from({length:nQ},(_,qi)=>+(allSecs.reduce((a,s)=>a+(s.questions[qi]?.mean||0),0)/(allSecs.length||1)).toFixed(2));
+
   children.push(
     new Paragraph({pageBreakBefore:true,children:[]}),
-    mP('ثانياً: ملخص تقييم المحاضرين (متوسط موزون) | Instructor Summary',{bold:true,size:22,color:DARK,before:0,after:80}),
+    mP('ثانياً: التحليل الإجمالي — كل الأسئلة عبر المقررات | Overall Analysis',{bold:true,size:22,color:DARK,before:0,after:80}),
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:oaC,rows:[
+      new TableRow({children:[
+        mH(['السؤال / Question'],oaC[0]),
+        ...courses.map((code,ci)=>{
+          return new TableCell({width:{size:Math.max(1,qCW),type:WidthType.DXA},borders:allB(MID),
+            shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+            children:[
+              new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:code,bold:true,color:WHITE,size:15,font:'Arial'})]}),
+              new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:'('+courseQData[code].mean.toFixed(2)+')',color:'AAAAAA',size:12,font:'Arial'})]}),
+            ]
+          });
+        }),
+        mH(['الإجمالي'],oaC[nC+1]),
+        mH(['التصنيف'],oaC[nC+2]),
+      ]}),
+      ...Array.from({length:nQ},(_,qi)=>{
+        const oM=overallQM[qi]; const oCl=clf5(oM); const bg=qi%2===0?PALE:WHITE;
+        return new TableRow({children:[
+          mC('Q'+(qi+1)+' — '+(qTexts[qi]||'').slice(0,45),oaC[0],bg,{align:AlignmentType.RIGHT,size:13}),
+          ...courses.map((code,ci)=>{
+            const qm=courseQData[code].qMeans[qi]; const qcl=clf5(qm);
+            return mC(qm.toFixed(2),oaC[ci+1],qcl.bg,{color:qcl.c,size:14});
+          }),
+          mC(oM.toFixed(2),oaC[nC+1],oCl.bg,{bold:true,color:oCl.c,size:15}),
+          mC(oCl.l,oaC[nC+2],oCl.bg,{bold:true,color:oCl.c,size:13}),
+        ]});
+      }),
+      new TableRow({children:[
+        mC('المتوسط العام',oaC[0],DARK,{bold:true,color:WHITE}),
+        ...courses.map((code,ci)=>{const cl=clf5(courseQData[code].mean);return mC(courseQData[code].mean.toFixed(2),oaC[ci+1],cl.bg,{bold:true,color:cl.c,size:16});}),
+        mC(grandMean,oaC[nC+1],gCl.bg,{bold:true,color:gCl.c,size:18}),
+        mC(gCl.l,oaC[nC+2],gCl.bg,{bold:true,color:gCl.c}),
+      ]}),
+    ]}),sp(200,80),
+  );
+
+  // ── SECTION 3: INSTRUCTOR SUMMARY ─────────────────────────────────────
+  const lqShowN=Math.min(nQ,12);
+  const lqW=Math.max(500,Math.floor((CW-400-2800-600-600-1500)/Math.max(lqShowN,1)));
+  const lqUsedW=lqW*lqShowN;
+  const s2LastW=Math.max(400,CW-400-2800-600-600-lqUsedW-1500);
+  const s2C=[400,2800,600,600,...Array(lqShowN).fill(lqW),1500,s2LastW];
+
+  children.push(
+    new Paragraph({pageBreakBefore:true,children:[]}),
+    mP('ثالثاً: ملخص تقييم المحاضرين | Instructor Summary',{bold:true,size:22,color:DARK,before:0,after:80}),
+    lqShowN<nQ?mP(`* يعرض أول ${lqShowN} سؤال من ${nQ} — الإجمالي يشمل جميع الأسئلة`,{size:15,color:'777777',italic:true,before:0,after:60}):sp(0,0),
     new Table({width:{size:CW,type:WidthType.DXA},columnWidths:s2C,rows:[
       new TableRow({children:[
-        mH(['#'],s2C[0]),mH(['المحاضر'],s2C[1]),mH(['الشعب'],s2C[2]),mH(['عدد\nالمقيّمين'],s2C[3]),
+        mH(['#'],s2C[0]),mH(['المحاضر'],s2C[1]),mH(['الشعب'],s2C[2]),mH(['المقيّمون'],s2C[3]),
         ...Array.from({length:lqShowN},(_,i)=>mH(['Q'+(i+1)],s2C[4+i],MID,13)),
-        mH(['المتوسط\nالموزون'],s2C[4+lqShowN]),mH(['التصنيف'],s2C[5+lqShowN]),
+        mH(['المتوسط'],s2C[4+lqShowN]),mH(['التصنيف'],s2C[5+lqShowN]),
       ]}),
       ...lecturers.map((lec,i)=>{
-        const cl=clf(lec.mean||0); const bg=i%2===0?PALE:WHITE;
+        const cl=clf5(lec.mean||0); const bg=i%2===0?PALE:WHITE;
         return new TableRow({children:[
-          mC(i+1,s2C[0],bg,{bold:true,color:DARK,size:13}),
+          mC(i+1,s2C[0],bg,{bold:true,size:13}),
           mC(lec.name,s2C[1],bg,{align:AlignmentType.RIGHT,size:13}),
-          mC((lec.secs||[]).length,s2C[2],bg),mC(lec.n,s2C[3],bg,{bold:true}),
-          ...(lec.qMeans||[]).slice(0,lqShowN).map((qm,qi)=>{const qcl=clf(qm);return mC(qm.toFixed(2),s2C[4+qi],qcl.bg,{color:qcl.c,size:12});}),
-          mC((lec.mean||0).toFixed(2),s2C[4+nQ],cl.bg,{bold:true,color:cl.c,size:16}),
+          mC((lec.secs||[]).length,s2C[2],bg),
+          mC(lec.n,s2C[3],bg,{bold:true}),
+          ...(lec.qMeans||[]).slice(0,lqShowN).map((qm,qi)=>{const qcl=clf5(qm);return mC(qm.toFixed(2),s2C[4+qi],qcl.bg,{color:qcl.c,size:12});}),
+          mC((lec.mean||0).toFixed(2),s2C[4+lqShowN],cl.bg,{bold:true,color:cl.c,size:16}),
           mC(cl.l,s2C[5+lqShowN],cl.bg,{bold:true,color:cl.c,size:12}),
         ]});
       }),
-    ]}),
-    sp(200,100),
+    ]}),sp(200,80),
   );
 
-  // ── SECTION 3: COURSE COMPARISON TABLE ─────────────────────────────────
-  const nC=courses.length;
-  const qLabelW=Math.round(CW*0.16);
-  const cqW=Math.max(600,Math.floor((CW-qLabelW-1200)/(nC+1)));
-  const s3LastW=Math.max(400,CW-qLabelW-cqW*nC-1200);
-  const s3C=[qLabelW,...Array(nC).fill(cqW),1200,s3LastW];
-
-  // Course means
-  const courseData={};
-  courses.forEach(code=>{
-    const cs=allSecs.filter(s=>s.course===code);
-    const tn=cs.reduce((a,s)=>a+s.n,0);
-    const nsC=cs.length||1;
-    courseData[code]={
-      n:tn,
-      // Simple average: sum of section means ÷ number of sections
-      mean:+(cs.reduce((a,s)=>a+s.sec_mean,0)/nsC).toFixed(2),
-      qMeans:Array.from({length:nQ},(_,qi)=>+(cs.reduce((a,s)=>a+(s.questions[qi]?.mean||0),0)/nsC).toFixed(2)),
-    };
-  });
-  const nAllSecs=allSecs.length||1;
-  const overallQMeans=Array.from({length:nQ},(_,qi)=>+(allSecs.reduce((a,s)=>a+(s.questions[qi]?.mean||0),0)/nAllSecs).toFixed(2));
-
+  // ── SECTION 4: DETAILED PER LECTURER ──────────────────────────────────
   children.push(
     new Paragraph({pageBreakBefore:true,children:[]}),
-    mP('ثالثاً: جدول المقارنة بين المقررات | Course Comparison Table',{bold:true,size:22,color:DARK,before:0,after:60}),
-    mP('المتوسط الحسابي لكل سؤال عبر جميع المقررات — الخلايا الملونة تشير للتصنيف',{size:16,color:'777777',italic:true,before:0,after:80}),
-    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:s3C,rows:[
-      // Header row: course codes
-      new TableRow({children:[
-        mH(['السؤال / Criteria'],s3C[0]),
-        ...courses.map((code,ci)=>new TableCell({
-          width:{size:cqW,type:WidthType.DXA},borders:allB(MID),
-          shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
-          children:[
-            new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:code,bold:true,color:WHITE,size:15,font:'Arial'})]}),
-            new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[new TextRun({text:'('+courseData[code].mean.toFixed(2)+')',color:'AAAAAA',size:12,font:'Arial'})]}),
-          ]
-        })),
-        mH(['الإجمالي'],s3C[nC+1]),
-        mH(['التصنيف'],s3C[nC+2]),
-      ]}),
-      // Q rows
-      ...Array.from({length:nQ},(_,qi)=>{
-        const oM=overallQMeans[qi]; const oCl=clf(oM); const bg=qi%2===0?PALE:WHITE;
-        return new TableRow({children:[
-          mC('Q'+(qi+1)+' — '+(qTexts[qi]||'').slice(0,35),s3C[0],bg,{align:AlignmentType.RIGHT,size:13}),
-          ...courses.map((code,ci)=>{const qm=courseData[code].qMeans[qi];const qcl=clf(qm);return mC(qm.toFixed(2),cqW,qcl.bg,{color:qcl.c,size:14});}),
-          mC(oM.toFixed(2),s3C[nC+1],oCl.bg,{bold:true,color:oCl.c,size:15}),
-          mC(oCl.l,s3C[nC+2],oCl.bg,{bold:true,color:oCl.c,size:13}),
-        ]});
-      }),
-      // Mean row
-      new TableRow({children:[
-        mC('المتوسط العام',s3C[0],DARK,{bold:true,color:WHITE}),
-        ...courses.map((code,ci)=>{const cl=clf(courseData[code].mean);return mC(courseData[code].mean.toFixed(2),cqW,cl.bg,{bold:true,color:cl.c,size:16});}),
-        mC(grandMean,s3C[nC+1],gCl.bg,{bold:true,color:gCl.c,size:18}),
-        mC(gCl.l,s3C[nC+2],gCl.bg,{bold:true,color:gCl.c}),
-      ]}),
-      // N row
-      new TableRow({children:[
-        mC('عدد المقيّمين',s3C[0],BLUE2||'DDEBF7',{bold:true,color:DARK}),
-        ...courses.map((code,ci)=>mC(courseData[code].n,cqW,PALE,{color:DARK,size:13})),
-        mC(totalN,s3C[nC+1],PALE,{bold:true,color:DARK,size:16}),
-        mC('',s3C[nC+2],PALE),
-      ]}),
-    ]}),
-    sp(200,100),
-  );
-
-  // ── SECTION 4: DETAILED PER LECTURER ───────────────────────────────────
-  children.push(
-    new Paragraph({pageBreakBefore:true,children:[]}),
-    mP('رابعاً: التحليل التفصيلي لكل محاضر | Detailed Instructor Analysis',{bold:true,size:22,color:DARK,before:0,after:100}),
+    mP('رابعاً: التحليل التفصيلي لكل محاضر | Detailed Analysis',{bold:true,size:22,color:DARK,before:0,after:100}),
   );
 
   lecturers.forEach((lec,li)=>{
-    const cl=clf(lec.mean||0);
+    const cl=clf5(lec.mean||0);
     children.push(
-      mP(`${li+1}. ${lec.name}`,{bold:true,size:20,color:MID,before:li===0?0:200,after:40}),
-      mP(`المقررات: ${lec.courses.join(' | ')}  |  الشعب: ${(lec.secs||[]).length}  |  المقيّمون: ${lec.n}  |  المتوسط: ${(lec.mean||0).toFixed(2)}  |  ${cl.l}`,
-        {size:15,color:'444444',before:0,after:70}),
+      mP(`${li+1}. ${lec.name}`,{bold:true,size:22,color:MID,before:li===0?0:180,after:40}),
+      mP(`المقررات: ${(lec.courses||[]).join(' | ')}  |  الشعب: ${(lec.secs||[]).length}  |  المقيّمون: ${lec.n}  |  المتوسط: ${(lec.mean||0).toFixed(2)}  |  ${cl.l}`,
+        {size:16,color:'444444',before:0,after:70}),
     );
-
-    const dqW=Math.max(400,Math.floor((CW-600-2600-800-1400)/Math.max(nQ,1)));
-    const dLastW=Math.max(400,CW-600-2600-800-dqW*nQ-1400);
-    const dC=[600,2600,800,...Array(nQ).fill(dqW),dLastW];
+    const dqW=Math.max(400,Math.floor((CW-600-2400-700-1400)/Math.max(nQ,1)));
+    const dLastW=Math.max(400,CW-600-2400-700-dqW*nQ-1400);
+    const dC=[600,2400,700,...Array(nQ).fill(dqW),dLastW];
     children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:[
       new TableRow({children:[
         mH(['الشعبة'],dC[0]),mH(['المقرر'],dC[1]),mH(['المقيّمون'],dC[2]),
-        ...Array.from({length:nQ},(_,i)=>mH(['Q'+(i+1)],dC[3+i],MID,13)),
+        ...Array.from({length:nQ},(_,i)=>mH(['Q'+(i+1)],dC[3+i],MID,12)),
         mH(['المتوسط'],dC[3+nQ]),
       ]}),
       ...(lec.secs||[]).map((s,si)=>{
-        const scl=clf(s.sec_mean); const bg=si%2===0?PALE:WHITE;
+        const scl=clf5(s.sec_mean||0); const bg=si%2===0?PALE:WHITE;
         return new TableRow({children:[
           mC(s.sec_num,dC[0],bg,{size:13}),
           mC(s.course,dC[1],bg,{bold:true,color:DARK,size:13}),
           mC(s.n,dC[2],bg,{bold:true}),
-          ...(s.questions||[]).filter(q=>q&&q.mean!==undefined).map((q,qi)=>{const qcl=clf(q.mean);return mC(q.mean.toFixed(2),dC[3+qi],qcl.bg,{color:qcl.c,size:12});}),
-          mC(s.sec_mean.toFixed(2),dC[3+nQ],scl.bg,{bold:true,color:scl.c,size:15}),
+          ...(s.questions||[]).map((q,qi)=>{const qcl=clf5(q.mean||0);return mC((q.mean||0).toFixed(2),dC[3+qi],qcl.bg,{color:qcl.c,size:12});}),
+          mC((s.sec_mean||0).toFixed(2),dC[3+nQ],scl.bg,{bold:true,color:scl.c,size:15}),
         ]});
       }),
-      // Weighted mean row
       new TableRow({children:[
-        mC('المتوسط الموزون',dC[0]+dC[1],DARK,{bold:true,color:WHITE,colSpan:2}),
+        mC('المتوسط',dC[0]+dC[1],DARK,{bold:true,color:WHITE,colSpan:2}),
         mC(lec.n,dC[2],PALE,{bold:true}),
-        ...lec.qMeans.map((qm,qi)=>{const qcl=clf(qm);return mC(qm.toFixed(2),dC[3+qi],qcl.bg,{bold:true,color:qcl.c,size:14});}),
+        ...(lec.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm);return mC(qm.toFixed(2),dC[3+qi],qcl.bg,{bold:true,color:qcl.c,size:13});}),
         mC((lec.mean||0).toFixed(2),dC[3+nQ],cl.bg,{bold:true,color:cl.c,size:17}),
       ]}),
     ]}),sp(60,40));
   });
+
+  // ── ENHANCEMENT PLANS ─────────────────────────────────────────────────
+  children.push(
+    new Paragraph({pageBreakBefore:true,children:[]}),
+    mP('Enhancement Plans | خطة التحسين',{bold:true,size:30,color:DARK,before:0,after:80}),
+    mP('بناءً على نتائج التقييم — العناصر التي تحتاج اهتماماً مرتبة حسب الأولوية',{size:17,color:'555555',italic:true,before:0,after:120}),
+  );
+
+  // Build EP items per Q overall
+  const epItems=[];
+  Array.from({length:nQ},(_,qi)=>{
+    const oM=overallQM[qi]; if(oM===undefined||oM===0) return;
+    const cl=clf5(oM);
+    const posP=Math.round(allSecs.reduce((a,s)=>{const q=s.questions[qi];return a+(q?(q.pct_sa||0)+(q.pct_a||0):0);},0)/(allSecs.length||1));
+    epItems.push({qi,text:qTexts[qi]||('Q'+(qi+1)),mean:oM,cl,posP,
+      priority:oM<2.5?'🔴 High':oM<3.5?'🟡 Medium':'🟢 Good',
+      action:oM<2.5?`Immediate improvement required for Q${qi+1}. Develop action plan and assign responsible parties.`
+            :oM<3.5?`Review and enhance Q${qi+1} through training and peer feedback sessions.`
+            :`Maintain performance on Q${qi+1}. Document as best practice.`,
+      kpi:oM<3.5?`Raise mean to ≥${Math.min(5,+(oM+0.5).toFixed(1))}; Positive% ≥${Math.min(95,posP+15)}%`
+               :`Maintain mean ≥${oM}; Positive% ≥${posP}%`,
+    });
+  });
+  epItems.sort((a,b)=>a.mean-b.mean); // worst (lowest) first for 5=best scale
+
+  const epC=[900,1200,3500,800,1400,1400,Math.max(400,CW-900-1200-3500-800-1400-1400)];
+  children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:epC,rows:[
+    new TableRow({children:[
+      mH(['Priority'],epC[0]),mH(['Q#'],epC[1]),
+      mH(['Survey Item / Question'],epC[2]),
+      mH(['Mean'],epC[3]),mH(['Classification'],epC[4]),
+      mH(['Positive%\nSA+A'],epC[5]),
+      mH(['Recommended Action | KPI'],epC[6]),
+    ]}),
+    ...epItems.map((item,i)=>{
+      const bg=i%2===0?PALE:WHITE;
+      return new TableRow({children:[
+        mC(item.priority,epC[0],item.cl.bg,{bold:true,color:item.cl.c,size:13}),
+        mC('Q'+(item.qi+1),epC[1],bg,{bold:true,color:DARK}),
+        mC(item.text.slice(0,60),epC[2],bg,{align:AlignmentType.RIGHT,size:12}),
+        mC(item.mean.toFixed(2),epC[3],item.cl.bg,{bold:true,color:item.cl.c}),
+        mC(item.cl.l,epC[4],item.cl.bg,{bold:true,color:item.cl.c,size:13}),
+        mC(item.posP+'%',epC[5],item.posP>=80?GREEN2:item.posP>=60?AMBER2:RED2,
+          {bold:true,color:item.posP>=80?GREEN:item.posP>=60?AMBER:RED,size:14}),
+        mC(item.action+'\n'+item.kpi,epC[6],bg,{align:AlignmentType.LEFT,size:12}),
+      ]});
+    }),
+  ]}),sp(200,80));
 
   return buildDoc(children);
 }
