@@ -459,7 +459,7 @@ async function buildInstructorWord(groups,meta){
   const totalEnrolled=allSecs.reduce((a,s)=>a+s.enrolled_num,0);
   const totalNot=allSecs.reduce((a,s)=>a+s.not_responded,0);
   const overallPct=totalEnrolled>0?Math.round(totalN/totalEnrolled*100):0;
-  const grandMean=+(allSecs.reduce((a,s)=>a+s.sec_mean*s.n,0)/totalN).toFixed(3);
+  const grandMean=+(allSecs.reduce((a,s)=>a+s.sec_mean,0)/(allSecs.length||1)).toFixed(3);
   const gCl=clf(grandMean);
 
   const lecMap={};
@@ -1125,13 +1125,16 @@ async function buildInstructorWordFromResult(result, cfg){
   courses.forEach(code=>{
     const cs=allSecs.filter(s=>s.course===code);
     const tn=cs.reduce((a,s)=>a+s.n,0);
+    const nsC=cs.length||1;
     courseData[code]={
       n:tn,
-      mean:tn?+(cs.reduce((a,s)=>a+s.sec_mean*s.n,0)/tn).toFixed(2):0,
-      qMeans:Array.from({length:nQ},(_,qi)=>tn?+(cs.reduce((a,s)=>a+(s.questions[qi]?.mean||0)*s.n,0)/tn).toFixed(2):0),
+      // Simple average: sum of section means ÷ number of sections
+      mean:+(cs.reduce((a,s)=>a+s.sec_mean,0)/nsC).toFixed(2),
+      qMeans:Array.from({length:nQ},(_,qi)=>+(cs.reduce((a,s)=>a+(s.questions[qi]?.mean||0),0)/nsC).toFixed(2)),
     };
   });
-  const overallQMeans=Array.from({length:nQ},(_,qi)=>+(allSecs.reduce((a,s)=>a+(s.questions[qi]?.mean||0)*s.n,0)/totalN).toFixed(2));
+  const nAllSecs=allSecs.length||1;
+  const overallQMeans=Array.from({length:nQ},(_,qi)=>+(allSecs.reduce((a,s)=>a+(s.questions[qi]?.mean||0),0)/nAllSecs).toFixed(2));
 
   children.push(
     new Paragraph({pageBreakBefore:true,children:[]}),
