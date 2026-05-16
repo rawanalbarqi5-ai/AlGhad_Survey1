@@ -545,8 +545,9 @@ async function buildInstructorWord(groups,meta){
   // Q × Course cross table
   const uniqueCourses=[...new Set(allSecs.map(s=>s.course))];
   const nCC=uniqueCourses.length;
-  const ccW=Math.floor((CW-1800-1400)/(hasGender?nCC*2:nCC));
-  const t3C=[1800,...(hasGender?uniqueCourses.flatMap(()=>[ccW,ccW]):uniqueCourses.map(()=>ccW)),1400];
+  const ccW=Math.max(500,Math.floor((CW-1800-1400)/Math.max(hasGender?nCC*2:nCC,1)));
+  const t3LastW=Math.max(400,CW-1800-(hasGender?ccW*2*nCC:ccW*nCC)-1400);
+  const t3C=[1800,...(hasGender?uniqueCourses.flatMap(()=>[ccW,ccW]):uniqueCourses.map(()=>ccW)),t3LastW];
 
   const cQM={},cQMF={},cQMM={},cMeans={};
   uniqueCourses.forEach(code=>{
@@ -975,7 +976,8 @@ async function buildWordFromResult(result, cfg){
   };
 
   // Build EP table
-  const epC=[900,700,1600,1600,800,1400,1400,2200,CW-900-700-1600-1600-800-1400-1400-2200];
+  const epLastW=Math.max(400,CW-900-700-1600-1600-800-1400-1400-2200);
+  const epC=[900,700,1600,1600,800,1400,1400,2200,epLastW];
   children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:epC,rows:[
     new TableRow({children:[
       mH(['Priority'],epC[0]),
@@ -1081,8 +1083,11 @@ async function buildInstructorWordFromResult(result, cfg){
   );
 
   // ── SECTION 2: INSTRUCTOR SUMMARY ──────────────────────────────────────
-  const lqW=Math.max(700,Math.floor((CW-400-2800-700-700-1500)/Math.max(nQ,1)));
-  const s2C=[400,2800,700,700,...Array(nQ).fill(lqW),1500,CW-400-2800-700-700-lqW*nQ-1500];
+  const lqW=Math.max(500,Math.floor((CW-400-2800-700-700-1500)/Math.max(Math.min(nQ,12),1)));
+  const lqShowN=Math.min(nQ,12);
+  const lqUsedW=lqW*lqShowN;
+  const s2LastW2=Math.max(400,CW-400-2800-700-700-lqUsedW-1500);
+  const s2C=[400,2800,700,700,...Array(lqShowN).fill(lqW),1500,s2LastW2];
   children.push(
     new Paragraph({pageBreakBefore:true,children:[]}),
     mP('ثانياً: ملخص تقييم المحاضرين (متوسط موزون) | Instructor Summary',{bold:true,size:22,color:DARK,before:0,after:80}),
@@ -1098,7 +1103,7 @@ async function buildInstructorWordFromResult(result, cfg){
           mC(i+1,s2C[0],bg,{bold:true,color:DARK,size:13}),
           mC(lec.name,s2C[1],bg,{align:AlignmentType.RIGHT,size:13}),
           mC(lec.secs.length,s2C[2],bg),mC(lec.n,s2C[3],bg,{bold:true}),
-          ...lec.qMeans.map((qm,qi)=>{const qcl=clf(qm);return mC(qm.toFixed(2),s2C[4+qi],qcl.bg,{color:qcl.c,size:12});}),
+          ...lec.qMeans.slice(0,maxShowQ).map((qm,qi)=>{const qcl=clf(qm);return mC(qm.toFixed(2),s2C[4+qi],qcl.bg,{color:qcl.c,size:12});}),
           mC((lec.mean||0).toFixed(2),s2C[4+nQ],cl.bg,{bold:true,color:cl.c,size:16}),
           mC(cl.l,s2C[5+nQ],cl.bg,{bold:true,color:cl.c,size:12}),
         ]});
@@ -1110,8 +1115,9 @@ async function buildInstructorWordFromResult(result, cfg){
   // ── SECTION 3: COURSE COMPARISON TABLE ─────────────────────────────────
   const nC=courses.length;
   const qLabelW=Math.round(CW*0.16);
-  const cqW=Math.floor((CW-qLabelW-1200)/(nC+1));
-  const s3C=[qLabelW,...Array(nC).fill(cqW),1200,CW-qLabelW-cqW*nC-1200];
+  const cqW=Math.max(600,Math.floor((CW-qLabelW-1200)/(nC+1)));
+  const s3LastW=Math.max(400,CW-qLabelW-cqW*nC-1200);
+  const s3C=[qLabelW,...Array(nC).fill(cqW),1200,s3LastW];
 
   // Course means
   const courseData={};
@@ -1187,7 +1193,9 @@ async function buildInstructorWordFromResult(result, cfg){
         {size:15,color:'444444',before:0,after:70}),
     );
 
-    const dC=[600,2600,800,...Array(nQ).fill(Math.floor((CW-600-2600-800-1400)/nQ)),1400];
+    const dqW=Math.max(400,Math.floor((CW-600-2600-800-1400)/Math.max(nQ,1)));
+    const dLastW=Math.max(400,CW-600-2600-800-dqW*nQ-1400);
+    const dC=[600,2600,800,...Array(nQ).fill(dqW),dLastW];
     children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:[
       new TableRow({children:[
         mH(['الشعبة'],dC[0]),mH(['المقرر'],dC[1]),mH(['المقيّمون'],dC[2]),
