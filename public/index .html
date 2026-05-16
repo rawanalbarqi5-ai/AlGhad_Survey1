@@ -145,11 +145,26 @@ td{border:1px solid #BDD7EE;padding:5px 7px;text-align:center}
             📚 تقييم مقرر</button>
           <button id="rt_instructor" onclick="setReportType('instructor')"
             style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:2px solid #BDD7EE;background:#fff;color:#1F4E79">
-            👩‍🏫 تقييم محاضر (ملف XLS من النظام)</button>
+            👩‍🏫 تقييم محاضر — ملفات XLS من النظام</button>
         </div>
       </div>
-      <div class="msg-info" style="margin-bottom:10px">
+      <!-- Course mode info (hidden for instructor) -->
+      <div id="courseMode_info" class="msg-info" style="margin-bottom:10px">
         أضيفي كل مقرر على حدة — لكل مقرر يمكنك رفع شعب متعددة
+      </div>
+      <!-- Instructor mode: single XLS file from system -->
+      <div id="instructorMode_info" style="display:none">
+        <div class="msg-info" style="margin-bottom:10px">
+          ارفعي ملف XLS الاستبانة المحاضر المُصدَّر من النظام — يقرأه ويقسّمه تلقائياً
+        </div>
+        <div class="file-group">
+          <h4>📂 ملف استبانة المحاضرين (XLS من النظام)</h4>
+          <label class="btn btn-sm" style="cursor:pointer">
+            📎 رفع الملف
+            <input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadInstructorFile(this)">
+          </label>
+          <span id="instructor_file_stat" class="file-stat fs-wait" style="display:block;margin-top:6px">⏳ لم يُرفع</span>
+        </div>
       </div>
       <div id="coursesList"></div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
@@ -7994,7 +8009,31 @@ function previewData(){
 // MULTI FILE
 // ════════════════════════════════════════════════════════════════
 // ── COURSES STATE ────────────────────────────────────────────────────────────
-var COURSES = []; // [{name, files:[{raw,ok,fileName}]}]
+var COURSES = [];
+var INSTRUCTOR_RAW = null; // parsed sections from instructor XLS
+
+function loadInstructorFile(inp){
+  var f=inp.files[0]; if(!f)return;
+  var st=document.getElementById('instructor_file_stat');
+  st.className='file-stat fs-wait'; st.textContent='⏳ جاري القراءة...';
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      INSTRUCTOR_RAW={headers:j[0].map(function(h){return String(h||'').trim();}),rows:j.slice(1)};
+      st.className='file-stat fs-ok';
+      st.textContent='✅ '+f.name+' — جاهز للتحليل';
+      // enable combine button
+      var btn=document.getElementById('combineBtn');
+      if(btn){btn.disabled=false;}
+    }catch(ex){
+      st.className='file-stat fs-err'; st.textContent='❌ خطأ: '+ex.message;
+    }
+  };
+  r.readAsArrayBuffer(f);
+} // [{name, files:[{raw,ok,fileName}]}]
 
 function addCourse(){
   COURSES.push({name:'المقرر '+(COURSES.length+1), files:[{raw:null,ok:false,fileName:''}]});
@@ -8076,7 +8115,11 @@ function renderSF(){renderCourses();}
 
 
 function combineAndGo(){
-  if(REPORT_TYPE==='instructor'){combineInstructorAndGo();return;}
+  if(REPORT_TYPE==='instructor'){
+    if(INSTRUCTOR_RAW) combineInstructorAndGo();
+    else showE('e1','ارفعي ملف استبانة المحاضرين أولاً');
+    return;
+  }
 
   // Build flat sections from COURSES
   var allSections=[];
@@ -8513,6 +8556,13 @@ function setReportType(t){
   var bi = document.getElementById('rt_instructor');
   if(bc){ bc.style.background = t==='course'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff'; bc.style.color=t==='course'?'#fff':'#1F4E79'; bc.style.border=t==='course'?'none':'2px solid #BDD7EE'; }
   if(bi){ bi.style.background = t==='instructor'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff'; bi.style.color=t==='instructor'?'#fff':'#1F4E79'; bi.style.border=t==='instructor'?'none':'2px solid #BDD7EE'; }
+  // Show/hide UI sections
+  var ci = document.getElementById('courseMode_info');
+  var ii = document.getElementById('instructorMode_info');
+  var cl = document.getElementById('coursesList');
+  if(ci) ci.style.display = t==='course'?'block':'none';
+  if(ii) ii.style.display = t==='instructor'?'block':'none';
+  if(cl) cl.style.display = t==='course'?'block':'none';
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -8595,13 +8645,22 @@ function parseInstructorXLS(raw){
 // COMBINE INSTRUCTOR FILES
 // ════════════════════════════════════════════════════════════════
 function combineInstructorAndGo(){
+  // Parse instructor XLS (from INSTRUCTOR_RAW or legacy SEC_FILES)
+  var rawFiles = [];
+  if(INSTRUCTOR_RAW){
+    rawFiles = [INSTRUCTOR_RAW];
+  } else {
+    rawFiles = SEC_FILES.filter(function(sf){return sf.ok && sf.raw;}).map(function(sf){return sf.raw;});
+  }
+  if(!rawFiles.length){showE('e1','ارفعي الملف أولاً');return;}
+
   var allSecs = [];
-  SEC_FILES.forEach(function(sf){
-    var parsed = parseInstructorXLS(sf.raw);
+  rawFiles.forEach(function(raw){
+    var parsed = parseInstructorXLS(raw);
     allSecs = allSecs.concat(parsed);
   });
 
-  if(!allSecs.length){ showE('e1','لم يتم العثور على شعب في الملفات'); return; }
+  if(!allSecs.length){showE('e1','لم يتم العثور على شعب في الملف — تأكدي من أنه ملف XLS استبانة المحاضرين');return;}
 
   var nQ = allSecs[0].questions.length;
   var qTexts = allSecs[0].questions.map(function(q){return q.text;});
@@ -8614,7 +8673,6 @@ function combineInstructorAndGo(){
     lecMap[s.lecturer].push(s);
   });
 
-  // Weighted means per lecturer
   var lecturers = Object.keys(lecMap).map(function(name){
     var secs = lecMap[name];
     var tn = secs.reduce(function(a,s){return a+s.n;},0);
@@ -8622,11 +8680,10 @@ function combineInstructorAndGo(){
       return tn ? +(secs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0)*s.n;},0)/tn).toFixed(3) : 0;
     });
     var mean = qMeans.length ? +(qMeans.reduce(function(a,b){return a+b;},0)/qMeans.length).toFixed(3) : 0;
-    return { name:name, secs:secs, n:tn, mean:mean, qMeans:qMeans,
-      courses:[...new Set(secs.map(function(s){return s.course;}))] };
+    return {name:name, secs:secs, n:tn, mean:mean, qMeans:qMeans,
+      courses:[...new Set(secs.map(function(s){return s.course;}))]};
   }).sort(function(a,b){return b.mean-a.mean;});
 
-  // Store result
   CFG.instructorMode = true;
   CFG.allSecs = allSecs;
   CFG.lecturers = lecturers;
@@ -8636,7 +8693,14 @@ function combineInstructorAndGo(){
   CFG.cname = document.getElementById('cname').value;
   CFG.semester = document.getElementById('semester').value;
 
-  // Build instructor results
+  var totalEnrolled = allSecs.reduce(function(a,s){return a+s.enrolled_num;},0);
+  var totalNot = allSecs.reduce(function(a,s){return a+s.not_responded;},0);
+  var grandMean = totalN>0?+(allSecs.reduce(function(a,s){return a+s.sec_mean*s.n;},0)/totalN).toFixed(3):0;
+
+  RES = {instructorMode:true, allSecs:allSecs, lecturers:lecturers,
+    qTexts:qTexts, totalN:totalN, totalEnrolled:totalEnrolled,
+    totalNot:totalNot, grandMean:grandMean};
+
   buildInstructorUI(allSecs, lecturers, qTexts, totalN);
   go(4);
 }
