@@ -7904,6 +7904,7 @@ var clf5=function(m){
   if(m<=4.20)return{l:'مقبول',    bg:'#FFC7CE',c:'#C55A11',hx:'FFC7CE',hc:'C55A11'};
   return      {l:'ضعيف',          bg:'#FF0000',c:'#ffffff', hx:'FF0000',hc:'ffffff'};
 };
+var clfAuto=function(m){ return (CFG&&CFG.isMulti)?clf5(m):clf(m); };
 var mOf=function(d){return [1,2,3,4,5].reduce(function(s,r,i){return s+r*(d[i]/100);},0);};
 
 // ════════════════════════════════════════════════════════════════
@@ -7918,9 +7919,8 @@ function setMode(mode){
   document.getElementById('md_multi').style.display=mode==='multi'?'block':'none';
   if(mode==='multi'&&COURSES.length===0){
     COURSES=[
-      {name:'المقرر الأول', sections:[
-        {label:'',boys:{raw:null,ok:false,fn:''},girls:{raw:null,ok:false,fn:''}},
-      ]},
+      {name:'المقرر الأول', xls_mode:false, xls_files:[],
+        sections:[{label:'',boys:{raw:null,ok:false,fn:''},girls:{raw:null,ok:false,fn:''}}]},
     ];
     renderCourses();
   } else if(mode==='multi'){
@@ -8028,7 +8028,64 @@ function previewData(){
 // ════════════════════════════════════════════════════════════════
 // ── COURSES STATE ────────────────────────────────────────────────────────────
 var COURSES = [];
-var INSTRUCTOR_RAW = null; // parsed sections from instructor XLS
+var INSTRUCTOR_RAW = null;
+var COURSE_XLS_RAWS = []; // array of raw XLS files from system for course survey
+
+// Parse course survey XLS from system (same format as instructor XLS)
+// Returns array of sections: [{course, sec_num, lecturer, enrolled, n, questions, sec_mean, ...}]
+function parseCourseXLS(raw){
+  var sections=[];
+  var current=null;
+  var rows=raw.rows;
+
+  for(var i=0;i<rows.length;i++){
+    var row=rows[i];
+    if(!row||row.length<3) continue;
+
+    // Section header: col11 = 'المحاضر:'
+    if(String(row[11]||'').trim().indexOf('المحاضر')>=0){
+      if(current&&current.questions.length>0) sections.push(current);
+      current={
+        lecturer: String(row[2]||'').trim(),
+        sec_num:  String(row[15]||'').trim(),
+        enrolled: parseInt(row[23])||0,
+        dept:     String(row[27]||'').trim(),
+        loc:      String(row[32]||'').trim(),
+        course:'', semester:'', n:0, questions:[],
+      };
+    }
+    // Evaluators row: col25='المقيميين'
+    if(current&&current.n===0&&String(row[25]||'').indexOf('المقيميين')>=0){
+      current.n       = parseInt(row[23])||0;
+      current.course  = String(row[27]||'').trim();
+      current.semester= String(row[32]||'').trim();
+    }
+    // Q row: col38=Q#, col2=mean, col22=text
+    if(current){
+      var qn=parseFloat(row[38]), mean=parseFloat(row[2]);
+      if(!isNaN(qn)&&!isNaN(mean)&&qn>=1&&qn<=50&&mean>0&&mean<=5){
+        current.questions.push({
+          qn:Math.round(qn), text:String(row[22]||'').trim(), mean:+mean.toFixed(3),
+          pct_sa:+(parseFloat(row[4])||0).toFixed(1), cnt_sa:parseInt(row[5])||0,
+          pct_a: +(parseFloat(row[7])||0).toFixed(1), cnt_a: parseInt(row[8])||0,
+          pct_n: +(parseFloat(row[12])||0).toFixed(1), cnt_n: parseInt(row[13])||0,
+          pct_d: +(parseFloat(row[16])||0).toFixed(1), cnt_d: parseInt(row[17])||0,
+          pct_sd:+(parseFloat(row[19])||0).toFixed(1), cnt_sd:parseInt(row[20])||0,
+        });
+      }
+    }
+  }
+  if(current&&current.questions.length>0) sections.push(current);
+
+  sections.forEach(function(s){
+    var qm=s.questions.map(function(q){return q.mean;});
+    s.sec_mean=qm.length?+(qm.reduce(function(a,b){return a+b;},0)/qm.length).toFixed(3):0;
+    s.enrolled_num=s.enrolled;
+    s.not_responded=Math.max(0,s.enrolled-s.n);
+    s.participation_pct=s.enrolled>0?Math.round(s.n/s.enrolled*100):0;
+  });
+  return sections.filter(function(s){return s.questions.length>0;});
+} // parsed sections from instructor XLS
 
 function loadInstructorFile(inp){
   var f=inp.files[0]; if(!f)return;
@@ -8055,6 +8112,8 @@ function loadInstructorFile(inp){
 
 function addCourse(){
   COURSES.push({name:'المقرر '+(COURSES.length+1),
+    xls_mode: false, // false=عادي, true=XLS من النظام
+    xls_files: [], // [{raw,ok,fn}] for system XLS
     sections:[{label:'',boys:{raw:null,ok:false,fn:''},girls:{raw:null,ok:false,fn:''}}]
   });
   renderCourses();
@@ -8074,7 +8133,35 @@ function renderCourses(){
       +(COURSES.length>1?'<button onclick="COURSES.splice('+ci+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:15px;margin-right:auto">🗑 حذف</button>':'')
       +'</div>';
 
-    // Sections
+    // XLS mode toggle
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+      +'<span style="font-size:11px;font-weight:700;color:#64748b">نوع الملف:</span>'
+      +'<button onclick="COURSES['+ci+'].xls_mode=false;renderCourses()" '
+      +'style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;'+(course.xls_mode?'background:#fff;color:#1F4E79;border:2px solid #BDD7EE':'background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff')+'">'
+      +'📊 Excel عادي</button>'
+      +'<button onclick="COURSES['+ci+'].xls_mode=true;renderCourses()" '
+      +'style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;'+(course.xls_mode?'background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff':'background:#fff;color:#1F4E79;border:2px solid #BDD7EE')+'">'
+      +'📋 XLS من النظام</button>'
+      +'</div>';
+
+    if(course.xls_mode){
+      // XLS from system: show file list
+      html+='<div style="background:#FFF8E7;border-radius:8px;padding:10px;margin-bottom:8px;border-right:3px solid #F59E0B">'
+        +'<div style="font-size:11px;color:#92400E;margin-bottom:8px">ارفعي ملف XLS المصدَّر من النظام — يقرأ كل الشعب تلقائياً</div>';
+      (course.xls_files||[]).forEach(function(f,fi){
+        html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+          +'<span style="font-size:11px;color:#64748b;min-width:50px">ملف '+(fi+1)+'</span>'
+          +'<label style="cursor:pointer"><span style="background:#F59E0B;color:#fff;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع'
+          +'<input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadCourseXLS('+ci+','+fi+',this)"></span></label>'
+          +'<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:'+(f.ok?'#E2EFDA':'#EBF3FB')+';color:'+(f.ok?'#375623':'#64748b')+'">'+(f.ok?'✅ '+f.fn:'⏳ لم يُرفع')+'</span>'
+          +(course.xls_files.length>1?'<button onclick="COURSES['+ci+'].xls_files.splice('+fi+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:13px">✕</button>':'')
+          +'</div>';
+      });
+      html+='<button onclick="COURSES['+ci+'].xls_files.push({raw:null,ok:false,fn:\"\"});renderCourses()" '
+        +'style="background:none;border:1px dashed #F59E0B;border-radius:8px;padding:3px 10px;cursor:pointer;font-size:11px;color:#92400E;font-family:inherit">＋ إضافة ملف XLS</button>'
+        +'</div>';
+    } else {
+    // Normal Excel: Sections
     course.sections.forEach(function(sec,si){
       html+='<div style="background:#fff;border:1px solid #BDD7EE;border-radius:8px;padding:10px;margin-bottom:8px">'
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
@@ -8101,7 +8188,9 @@ function renderCourses(){
         +'</div>';
     });
 
-    // Add section button
+    } // end else (normal mode)
+    // Add section button (only in normal mode)
+    if(!course.xls_mode)
     html+='<button onclick="COURSES['+ci+'].sections.push({label:\'\',boys:{raw:null,ok:false,fn:\'\'},girls:{raw:null,ok:false,fn:\'\'}});renderCourses()" '
         +'style="background:none;border:1px dashed #BDD7EE;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:11px;color:#2E75B6;font-family:inherit;margin-top:2px">＋ إضافة شعبة</button>';
 
@@ -8145,6 +8234,31 @@ function loadSectionFile(ci,si,gender,inp){
   }
 }
 
+function loadCourseXLS(ci,fi,inp){
+  var f=inp.files[0]; if(!f) return;
+  if(!COURSES[ci].xls_files[fi]) COURSES[ci].xls_files[fi]={raw:null,ok:false,fn:''};
+  COURSES[ci].xls_files[fi].fn=f.name;
+  COURSES[ci].xls_files[fi].ok=false;
+  renderCourses();
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      var raw={headers:j[0].map(function(h){return String(h||'').trim();}),rows:j.slice(1)};
+      COURSES[ci].xls_files[fi].raw=raw;
+      COURSES[ci].xls_files[fi].ok=true;
+      renderCourses();
+    }catch(ex){COURSES[ci].xls_files[fi].ok=false;renderCourses();}
+  };
+  r.readAsArrayBuffer(f);
+  // Init xls_files array if needed
+  while(COURSES[ci].xls_files.length<=fi+1){
+    COURSES[ci].xls_files.push({raw:null,ok:false,fn:''});
+  }
+}
+
 // Legacy compat
 function addSF(){addCourse();}
 function renderSF(){renderCourses();}
@@ -8153,6 +8267,69 @@ function renderSF(){renderCourses();}
 function addSF(){addCourse();}
 function renderSF(){renderCourses();}
 
+
+function combineFromParsedSections(xlsFiles){
+  // Group by course name
+  var courseMap={};
+  xlsFiles.forEach(function(f){
+    var cn=f.courseName;
+    if(!courseMap[cn]) courseMap[cn]=[];
+    courseMap[cn].push(f.parsedSec);
+  });
+
+  var nQ=xlsFiles[0].parsedSec.questions.length;
+  var qTexts=xlsFiles[0].parsedSec.questions.map(function(q){return q.text;});
+  var qH=qTexts;
+
+  // Build courseResults
+  var courseResults={};
+  Object.keys(courseMap).forEach(function(cn){
+    var secs=courseMap[cn];
+    var ns=secs.length||1;
+    var qMeans=Array.from({length:nQ},function(_,qi){
+      return +(secs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3);
+    });
+    var mean=+(qMeans.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3);
+    courseResults[cn]={n:secs.reduce(function(a,s){return a+s.n;},0),nB:0,nG:0,qMeans:qMeans,mean:mean,sectionCount:ns};
+  });
+
+  var totalN=Object.values(courseResults).reduce(function(a,c){return a+c.n;},0);
+  var nCourses=Object.keys(courseResults).length||1;
+
+  // Overall Q means
+  var preQ=Array.from({length:nQ},function(_,qi){
+    return +(Object.values(courseResults).reduce(function(a,c){return a+(c.qMeans[qi]||0);},0)/nCourses).toFixed(3);
+  });
+  var overallMean=+(preQ.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3);
+
+  // Build precomputedQ
+  var allSecs=xlsFiles.map(function(f){return f.parsedSec;});
+  var precomputedQ=Array.from({length:nQ},function(_,qi){
+    var ns2=allSecs.length||1;
+    var meanVal=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns2).toFixed(3);
+    var pctSA=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_sa:0);},0)/ns2).toFixed(1);
+    var pctA= +(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_a:0);},0)/ns2).toFixed(1);
+    var pctD= +(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_d:0);},0)/ns2).toFixed(1);
+    var pctSD=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_sd:0);},0)/ns2).toFixed(1);
+    var cD=[pctSA,pctA,0,pctD,pctSD];
+    var pos=Math.round(pctSA+pctA), neg=Math.round(pctD+pctSD);
+    return {qn:qi+1,lbl:qTexts[qi]||('Q'+(qi+1)),fD:cD,mD:cD,cD:cD,
+      fM:meanVal,mM:meanVal,cM:meanVal,maxM:meanVal,minM:meanVal,
+      pos:pos,neg:neg,cl:clf5(meanVal)};
+  });
+
+  CFG.precomputedQ=precomputedQ;
+  CFG.courseResults=courseResults;
+  CFG.nF=totalN; CFG.nM=0; CFG.qH=qH;
+  CFG.gmode='all_f'; CFG.isMulti=true;
+
+  document.getElementById('s3title').textContent='✅ '+nCourses+' مقرر (XLS) — '+totalN+' مستجيب';
+  document.getElementById('s3info').textContent=Object.entries(courseResults).map(function(e){return e[0]+': n='+e[1].n;}).join(' · ');
+
+  var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس'];
+  SECS=[{name:'Section 1',ar:ars[0],qs:[]}];
+  buildSecUI(); go(3);
+}
 
 function combineAndGo(){
   if(REPORT_TYPE==='instructor'){
@@ -8166,11 +8343,36 @@ function combineAndGo(){
   // Build flat list: [{raw, courseName, gender, sectionLabel}]
   var allFiles=[];
   COURSES.forEach(function(course){
-    course.sections.forEach(function(sec){
-      if(sec.boys.ok) allFiles.push({raw:sec.boys.raw, courseName:course.name, gender:'boys', label:sec.label});
-      if(sec.girls.ok) allFiles.push({raw:sec.girls.raw, courseName:course.name, gender:'girls', label:sec.label});
-    });
+    if(course.xls_mode){
+      // XLS from system: parse each file and add all sections as 'boys' (combined)
+      (course.xls_files||[]).filter(function(f){return f.ok;}).forEach(function(f){
+        var secs=parseCourseXLS(f.raw);
+        secs.forEach(function(sec){
+          // Convert section to a fake "raw" with rows derived from Q means
+          // We store parsed sections in a special field
+          allFiles.push({
+            raw:f.raw, courseName:course.name, gender:'combined',
+            label:sec.sec_num, parsedSec:sec,
+            isXLS:true
+          });
+        });
+      });
+    } else {
+      course.sections.forEach(function(sec){
+        if(sec.boys.ok) allFiles.push({raw:sec.boys.raw, courseName:course.name, gender:'boys', label:sec.label});
+        if(sec.girls.ok) allFiles.push({raw:sec.girls.raw, courseName:course.name, gender:'girls', label:sec.label});
+      });
+    }
   });
+
+  // For XLS files, build a special path
+  var xlsFiles=allFiles.filter(function(f){return f.isXLS;});
+  var normalFiles=allFiles.filter(function(f){return !f.isXLS;});
+  if(xlsFiles.length>0&&normalFiles.length===0){
+    // All XLS mode - use parsedSec data directly
+    combineFromParsedSections(xlsFiles);
+    return;
+  }
 
   if(!allFiles.length){showE('e1','ارفعي ملفاً واحداً على الأقل');return;}
 
@@ -8248,7 +8450,7 @@ function combineAndGo(){
     var mM=+mOf(mD).toFixed(3);
     return {qn:qi+1,lbl:qH[qi],fD:fD,mD:mD,cD:cD,
       fM:fM,mM:mM,cM:cM,maxM:Math.max(fM,mM),minM:Math.min(fM,mM),
-      pos:Math.round(cD[0]+cD[1]),neg:Math.round(cD[3]+cD[4]),cl:clf(cM)};
+      pos:Math.round(cD[0]+cD[1]),neg:Math.round(cD[3]+cD[4]),cl:clf5(cM)};
   });
 
   CFG.precomputedQ=precomputedQ;
@@ -8426,7 +8628,7 @@ function doAnalyze(){
     if(!secs.length)secs=[{name:'All',ar:'جميع الأسئلة',qs:CFG.precomputedQ}];
     secs=secs.map(function(s){
       var sm=+(s.qs.reduce(function(a,q){return a+q.cM;},0)/s.qs.length).toFixed(3);
-      return Object.assign({},s,{mean:sm,fMean:sm,mMean:sm,cl:clf(sm)});
+      return Object.assign({},s,{mean:sm,fMean:sm,mMean:sm,cl:clfAuto(sm)});
     });
     var overall=+(secs.reduce(function(a,s){return a+s.mean;},0)/secs.length).toFixed(3);
     RES={nF:CFG.nF,nM:0,n:CFG.nF,secs:secs,overall:overall};
@@ -8460,7 +8662,7 @@ function doAnalyze(){
     var sm=+(s.qs.reduce(function(a,q){return a+q.cM;},0)/s.qs.length).toFixed(3);
     var fm=+(s.qs.reduce(function(a,q){return a+q.fM;},0)/s.qs.length).toFixed(3);
     var mm=+(s.qs.reduce(function(a,q){return a+q.mM;},0)/s.qs.length).toFixed(3);
-    return Object.assign({},s,{mean:sm,fMean:fm,mMean:mm,cl:clf(sm)});
+    return Object.assign({},s,{mean:sm,fMean:fm,mMean:mm,cl:clfAuto(sm)});
   });
   var overall=+(secs.reduce(function(a,s){return a+s.mean;},0)/secs.length).toFixed(3);
   RES={nF:nF,nM:nM,n:n,secs:secs,overall:overall};
@@ -8473,7 +8675,7 @@ function doAnalyze(){
 function buildUI(){
   var nF=RES.nF,nM=RES.nM,n=RES.n,secs=RES.secs,overall=RES.overall;
   var showG=CFG.gmode==='col';
-  var oCl=clf(overall);
+  var oCl=clfAuto(overall);
 
   // Stats bar
   document.getElementById('st4').innerHTML=[
