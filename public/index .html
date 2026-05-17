@@ -169,7 +169,7 @@ td{border:1px solid #BDD7EE;padding:5px 7px;text-align:center}
       <div id="coursesList"></div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="addCourse()">＋ إضافة مقرر</button>
-        <button class="btn btn-sm btn-g" id="combineBtn" onclick="combineAndGo()" disabled>✔ دمج وتحليل</button>
+        <button class="btn btn-sm btn-g" id="combineBtn" onclick="combineAndGo()">✔ دمج وتحليل</button>
       </div>
     </div>
 
@@ -7877,7 +7877,7 @@ function swTab(name){
 // ════════════════════════════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════════════════════════════
-function showE(id,m){console.log('showE:',id,m);var e=document.getElementById(id);if(e){e.style.display='block';e.textContent='⚠️ '+m;}}
+function showE(id,m){var e=document.getElementById(id);if(e){e.style.display='block';e.textContent='⚠️ '+m;}}
 function hideE(id){var e=document.getElementById(id);if(e)e.style.display='none';}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 var clf=function(m){
@@ -8035,115 +8035,79 @@ var COURSE_XLS_RAWS = []; // array of raw XLS files from system for course surve
 // Parse course survey XLS from system (same format as instructor XLS)
 // Returns array of sections: [{course, sec_num, lecturer, enrolled, n, questions, sec_mean, ...}]
 function parseCourseXLS(raw){
-  var sections=[];
-  var current=null;
+  var sections=[], current=null;
   var rows=raw.rows;
-  console.log('parseCourseXLS: total rows=', rows.length, 'headers=', raw.headers.length);
-
-  // Debug: show first few rows
-  for(var dbg=0;dbg<Math.min(8,rows.length);dbg++){
-    var r=rows[dbg];
-    var nonEmpty=[];
-    for(var ci=0;ci<(r?r.length:0);ci++){
-      if(r[ci]!==''&&r[ci]!==undefined&&r[ci]!==0) nonEmpty.push(ci+':'+JSON.stringify(r[ci]).slice(0,20));
-    }
-    if(nonEmpty.length) console.log('Row'+dbg+':', nonEmpty.slice(0,6).join(' | '));
-  }
 
   for(var i=0;i<rows.length;i++){
     var row=rows[i];
     if(!row||!row.length) continue;
 
-    // APPROACH: search entire row for 'المحاضر:' string
-    var isSectionHdr=false;
+    // Find 'المحاضر:' in any column
     var mahIdx=-1;
     for(var c=0;c<row.length;c++){
-      var cell=String(row[c]||'');
-      if(cell.trim()==='المحاضر:'){mahIdx=c;isSectionHdr=true;break;}
+      if(String(row[c]||'').trim()==='المحاضر:'){mahIdx=c;break;}
     }
 
-    if(isSectionHdr){
+    if(mahIdx>=0){
       if(current&&current.questions.length>0) sections.push(current);
-      var lecturer='',secNum='',enrolled=0,dept='',loc='';
-      // Search whole row for keywords
+      var enrolled=0, secNum='', dept='', loc='';
       for(var c2=0;c2<row.length-1;c2++){
         var kw=String(row[c2]||'').trim();
-        if(kw==='المسجلين :'||kw==='المسجلين:'){
+        if(kw==='المسجلين :'||kw==='المسجلين:')
           enrolled=parseInt(row[c2-2]||0)||parseInt(row[c2+2]||0)||0;
-        }
-        if(kw==='الشعبة :'||kw==='الشعبة:'){
+        if(kw==='الشعبة :'||kw==='الشعبة:')
           secNum=String(row[c2-3]||row[c2+2]||'').trim();
-        }
         if(kw==='القسم :') dept=String(row[c2+2]||'').trim();
         if(kw==='المقر :') loc=String(row[c2+2]||'').trim();
       }
-      // Lecturer: col before المحاضر: or col2
-      lecturer=String(row[mahIdx>0?mahIdx-9:2]||row[2]||'').trim();
-      if(!lecturer||lecturer==='المحاضر:'){
-        for(var cx=0;cx<row.length;cx++){
-          var vx=String(row[cx]||'').trim();
-          if(vx.length>3&&!vx.includes(':')){lecturer=vx;break;}
-        }
-      }
-      console.log('Section found: lecturer=',lecturer,'sec=',secNum,'enrolled=',enrolled);
-      current={lecturer:lecturer,sec_num:secNum,enrolled:enrolled,dept:dept,loc:loc,
-        course:'',semester:'',n:0,questions:[]};
+      current={
+        lecturer:String(row[2]||'').trim(),
+        sec_num:secNum, enrolled:enrolled, dept:dept, loc:loc,
+        course:'', semester:'', n:0, questions:[]
+      };
     }
 
-    // Evaluators row
+    // Evaluators row: find المقيميين
     if(current&&current.n===0){
+      var hasEval=false;
       for(var c3=0;c3<row.length;c3++){
-        var kw3=String(row[c3]||'');
-        if(kw3.indexOf('المقيميين')>=0){
-          current.n=parseInt(row[c3-2]||0)||parseInt(row[c3+2]||0)||0;
+        if(String(row[c3]||'').indexOf('المقيميين')>=0){hasEval=true;break;}
+      }
+      if(hasEval){
+        for(var c4=0;c4<row.length-1;c4++){
+          var kw4=String(row[c4]||'').trim();
+          // n = value 2 cols BEFORE 'المقيميين :'
+          if(kw4.indexOf('المقيميين')>=0)
+            current.n=parseInt(row[c4-2]||0)||parseInt(row[c4+2]||0)||0;
+          // course = col27 (value before 'المقرر :' which is at col30)
+          // So: find 'المقرر :' and take col at index-3
+          if(kw4==='المقرر :')
+            current.course=String(row[c4-3]||row[c4+2]||'').trim();
+          if(kw4==='الفصل :')
+            current.semester=String(row[c4-3]||row[c4+2]||'').trim();
         }
-        if(String(row[c3]||'').trim()==='المقرر :'){
-          current.course=String(row[c3+2]||'').trim();
-        }
-        if(String(row[c3]||'').trim()==='الفصل :'){
-          current.semester=String(row[c3+2]||'').trim();
-        }
+        // Fallback: col27 = course code
+        if(!current.course) current.course=String(row[27]||'').trim();
+        if(!current.n) current.n=parseInt(row[23]||0)||0;
       }
     }
 
-    // Q row: look for Q# in col38 AND mean in col2
-    // Also try: any row where last non-empty value is integer 1-24
-    if(current){
-      var qn=-1,mean=-1,text='';
-      // Primary: col38=Q#, col2=mean
-      if(row.length>38){
-        var v38=parseFloat(row[38]);
-        var v2=parseFloat(row[2]);
-        if(!isNaN(v38)&&v38>=1&&v38<=50&&!isNaN(v2)&&v2>0&&v2<=5){
-          qn=v38; mean=v2; text=String(row[22]||'').trim();
-        }
-      }
-      // Secondary: scan last few columns for integer 1-24
-      if(qn<0){
-        for(var cl=row.length-1;cl>=Math.max(0,row.length-5);cl--){
-          var vl=parseFloat(row[cl]);
-          if(!isNaN(vl)&&vl>=1&&vl<=50&&Number.isInteger(vl)){
-            var v2b=parseFloat(row[2]);
-            if(!isNaN(v2b)&&v2b>0&&v2b<=5){
-              qn=vl; mean=v2b; text=String(row[22]||'').trim(); break;
-            }
-          }
-        }
-      }
-      if(qn>=1&&mean>0){
+    // Q row: col38=Q#, col2=mean, col22=text
+    if(current&&row.length>38){
+      var qn=parseFloat(row[38]), mean=parseFloat(row[2]);
+      if(!isNaN(qn)&&qn>=1&&qn<=50&&!isNaN(mean)&&mean>0&&mean<=5){
         current.questions.push({
-          qn:Math.round(qn),text:text,mean:+mean.toFixed(3),
-          pct_sa:+(parseFloat(row[4])||0).toFixed(1),cnt_sa:parseInt(row[5])||0,
-          pct_a: +(parseFloat(row[7])||0).toFixed(1),cnt_a: parseInt(row[8])||0,
-          pct_n: +(parseFloat(row[12])||0).toFixed(1),cnt_n: parseInt(row[13])||0,
-          pct_d: +(parseFloat(row[16])||0).toFixed(1),cnt_d: parseInt(row[17])||0,
-          pct_sd:+(parseFloat(row[19])||0).toFixed(1),cnt_sd:parseInt(row[20])||0,
+          qn:Math.round(qn), text:String(row[22]||'').trim(), mean:+mean.toFixed(3),
+          pct_sa:+(parseFloat(row[4])||0).toFixed(1), cnt_sa:parseInt(row[5])||0,
+          pct_a: +(parseFloat(row[7])||0).toFixed(1), cnt_a: parseInt(row[8])||0,
+          pct_n: +(parseFloat(row[12])||0).toFixed(1), cnt_n: parseInt(row[13])||0,
+          pct_d: +(parseFloat(row[16])||0).toFixed(1), cnt_d: parseInt(row[17])||0,
+          pct_sd:+(parseFloat(row[19])||0).toFixed(1), cnt_sd:parseInt(row[20])||0,
         });
       }
     }
   }
   if(current&&current.questions.length>0) sections.push(current);
-  console.log('parseCourseXLS result: sections=', sections.length);
 
   sections.forEach(function(s){
     var qm=s.questions.map(function(q){return q.mean;});
@@ -8157,7 +8121,6 @@ function parseCourseXLS(raw){
 
 
 function combineFromParsedSections(xlsFiles){
-  console.log('combineFromParsedSections: files=', xlsFiles.length);
 
   // All sections from all files
   var allParsed=[]; // {sec, gender, courseName}
@@ -8262,13 +8225,11 @@ function combineFromParsedSections(xlsFiles){
 
 
 function combineAndGo(){
-  console.log('combineAndGo called, REPORT_TYPE=', REPORT_TYPE, 'COURSES=', COURSES.length);
   if(REPORT_TYPE==='instructor'){
     if(INSTRUCTOR_RAW) combineInstructorAndGo();
     else showE('e1','ارفعي ملف استبانة المحاضرين أولاً');
     return;
   }
-
   hideE('e1');
 
   // Build flat list: [{raw, courseName, gender, sectionLabel}]
@@ -8781,81 +8742,88 @@ function setReportType(t){
 // PARSE INSTRUCTOR XLS (النظام format: col2=mean, col22=text, col38=Q#)
 // ════════════════════════════════════════════════════════════════
 function parseInstructorXLS(raw){
-  var sections = [];
-  var current = null;
-  var rows = raw.rows;
+  var sections=[], current=null;
+  var rows=raw.rows;
 
-  for(var i=0; i<rows.length; i++){
-    var row = rows[i];
-    if(!row || row.length < 3) continue;
-    var rowStr = row.join(' ');
+  for(var i=0;i<rows.length;i++){
+    var row=rows[i];
+    if(!row||!row.length) continue;
 
-    // Section header row: col11 = 'المحاضر:'
-    // Structure: col2=lecturer, col11='المحاضر:', col15=sec#, col18='الشعبة', col23=enrolled, col27=dept
-    if(String(row[11]||'').trim().indexOf('المحاضر') >= 0){
-      if(current && current.questions.length > 0) sections.push(current);
-      current = {
-        lecturer:  String(row[2]||'').trim(),
-        sec_num:   String(row[15]||'').trim(),
-        enrolled:  parseInt(row[23])||0,
-        dept:      String(row[27]||'').trim(),
-        loc:       String(row[32]||'').trim(),
-        course:    '',
-        semester:  '',
-        n:         0,
-        questions: [],
+    // Find 'المحاضر:' in any column
+    var mahIdx=-1;
+    for(var c=0;c<row.length;c++){
+      if(String(row[c]||'').trim()==='المحاضر:'){mahIdx=c;break;}
+    }
+
+    if(mahIdx>=0){
+      if(current&&current.questions.length>0) sections.push(current);
+      var enrolled=0, secNum='', dept='', loc='';
+      for(var c2=0;c2<row.length-1;c2++){
+        var kw=String(row[c2]||'').trim();
+        if(kw==='المسجلين :'||kw==='المسجلين:')
+          enrolled=parseInt(row[c2-2]||0)||parseInt(row[c2+2]||0)||0;
+        if(kw==='الشعبة :'||kw==='الشعبة:')
+          secNum=String(row[c2-3]||row[c2+2]||'').trim();
+        if(kw==='القسم :') dept=String(row[c2+2]||'').trim();
+        if(kw==='المقر :') loc=String(row[c2+2]||'').trim();
+      }
+      current={
+        lecturer:String(row[2]||'').trim(),
+        sec_num:secNum, enrolled:enrolled, dept:dept, loc:loc,
+        course:'', semester:'', n:0, questions:[]
       };
     }
 
-    // Next row after header: col23=evaluators, col25='المقيميين', col27=course, col32=semester
-    if(current && current.n === 0 && String(row[25]||'').indexOf('المقيميين') >= 0){
-      current.n       = parseInt(row[23])||0;
-      current.course  = String(row[27]||'').trim();
-      current.semester= String(row[32]||'').trim();
-      // Also try col30 for المقرر
-      if(!current.course && String(row[30]||'').indexOf('المقرر') >= 0){
-        current.course = String(row[27]||'').trim();
+    // Evaluators row: find المقيميين
+    if(current&&current.n===0){
+      var hasEval=false;
+      for(var c3=0;c3<row.length;c3++){
+        if(String(row[c3]||'').indexOf('المقيميين')>=0){hasEval=true;break;}
+      }
+      if(hasEval){
+        for(var c4=0;c4<row.length-1;c4++){
+          var kw4=String(row[c4]||'').trim();
+          // n = value 2 cols BEFORE 'المقيميين :'
+          if(kw4.indexOf('المقيميين')>=0)
+            current.n=parseInt(row[c4-2]||0)||parseInt(row[c4+2]||0)||0;
+          // course = col27 (value before 'المقرر :' which is at col30)
+          // So: find 'المقرر :' and take col at index-3
+          if(kw4==='المقرر :')
+            current.course=String(row[c4-3]||row[c4+2]||'').trim();
+          if(kw4==='الفصل :')
+            current.semester=String(row[c4-3]||row[c4+2]||'').trim();
+        }
+        // Fallback: col27 = course code
+        if(!current.course) current.course=String(row[27]||'').trim();
+        if(!current.n) current.n=parseInt(row[23]||0)||0;
       }
     }
 
-    // Question row: col38 = Q#, col2 = mean, col22 = question text
-    // col4=pct_sa, col5=cnt_sa, col7=pct_a, col8=cnt_a
-    // col12=pct_n, col13=cnt_n, col16=pct_d, col17=cnt_d, col19=pct_sd, col20=cnt_sd
-    if(current){
-      var qn   = parseFloat(row[38]);
-      var mean = parseFloat(row[2]);
-      var text = String(row[22]||'').trim();
-      if(!isNaN(qn) && !isNaN(mean) && qn>=1 && qn<=50 && mean>0 && mean<=5){
+    // Q row: col38=Q#, col2=mean, col22=text
+    if(current&&row.length>38){
+      var qn=parseFloat(row[38]), mean=parseFloat(row[2]);
+      if(!isNaN(qn)&&qn>=1&&qn<=50&&!isNaN(mean)&&mean>0&&mean<=5){
         current.questions.push({
-          qn:     Math.round(qn),
-          text:   text,
-          mean:   +mean.toFixed(3),
-          pct_sa: +(parseFloat(row[4])||0).toFixed(1),
-          cnt_sa: parseInt(row[5])||0,
-          pct_a:  +(parseFloat(row[7])||0).toFixed(1),
-          cnt_a:  parseInt(row[8])||0,
-          pct_n:  +(parseFloat(row[12])||0).toFixed(1),
-          cnt_n:  parseInt(row[13])||0,
-          pct_d:  +(parseFloat(row[16])||0).toFixed(1),
-          cnt_d:  parseInt(row[17])||0,
-          pct_sd: +(parseFloat(row[19])||0).toFixed(1),
-          cnt_sd: parseInt(row[20])||0,
+          qn:Math.round(qn), text:String(row[22]||'').trim(), mean:+mean.toFixed(3),
+          pct_sa:+(parseFloat(row[4])||0).toFixed(1), cnt_sa:parseInt(row[5])||0,
+          pct_a: +(parseFloat(row[7])||0).toFixed(1), cnt_a: parseInt(row[8])||0,
+          pct_n: +(parseFloat(row[12])||0).toFixed(1), cnt_n: parseInt(row[13])||0,
+          pct_d: +(parseFloat(row[16])||0).toFixed(1), cnt_d: parseInt(row[17])||0,
+          pct_sd:+(parseFloat(row[19])||0).toFixed(1), cnt_sd:parseInt(row[20])||0,
         });
       }
     }
   }
-  if(current && current.questions.length > 0) sections.push(current);
+  if(current&&current.questions.length>0) sections.push(current);
 
-  // Calculate section means
   sections.forEach(function(s){
-    var qm = s.questions.map(function(q){return q.mean;});
-    s.sec_mean = qm.length ? +(qm.reduce(function(a,b){return a+b;},0)/qm.length).toFixed(3) : 0;
-    s.enrolled_num   = s.enrolled;
-    s.not_responded  = Math.max(0, s.enrolled - s.n);
-    s.participation_pct = s.enrolled > 0 ? Math.round(s.n/s.enrolled*100) : 0;
+    var qm=s.questions.map(function(q){return q.mean;});
+    s.sec_mean=qm.length?+(qm.reduce(function(a,b){return a+b;},0)/qm.length).toFixed(3):0;
+    s.enrolled_num=s.enrolled;
+    s.not_responded=Math.max(0,s.enrolled-s.n);
+    s.participation_pct=s.enrolled>0?Math.round(s.n/s.enrolled*100):0;
   });
-
-  return sections.filter(function(s){return s.questions.length > 0;});
+  return sections.filter(function(s){return s.questions.length>0;});
 }
 
 
