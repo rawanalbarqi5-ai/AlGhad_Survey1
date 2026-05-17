@@ -931,6 +931,47 @@ async function buildWordFromResult(result, cfg){
   });
 
 
+  // ── COURSE SUMMARY (multi-course mode) ──────────────────────────────
+  if(cfg.courseResults && Object.keys(cfg.courseResults).length > 1){
+    const courseNames=Object.keys(cfg.courseResults);
+    const nCourses=courseNames.length;
+    const colW=Math.max(700,Math.floor((CW-2800)/(nCourses+1)));
+    const lastW=Math.max(400,CW-2800-colW*nCourses);
+    const crC=[2800,...Array(nCourses).fill(colW),lastW];
+
+    children.push(
+      new Paragraph({pageBreakBefore:true,children:[]}),
+      mP('Course Comparison | مقارنة بين المقررات',{bold:true,size:26,color:DARK,before:0,after:80}),
+      new Table({width:{size:CW,type:WidthType.DXA},columnWidths:crC,rows:[
+        new TableRow({children:[mH(['التفاصيل'],crC[0]),...courseNames.map((name,ci)=>mH([name.slice(0,20)],crC[ci+1],MID)),mH(['الإجمالي'],crC[nCourses+1])]}),
+        new TableRow({children:[mC('المستجيبين',crC[0],PALE,{bold:true,align:AlignmentType.RIGHT}),...courseNames.map((name,ci)=>mC(cfg.courseResults[name].n||0,crC[ci+1],PALE)),mC(n,crC[nCourses+1],PALE,{bold:true})]}),
+        new TableRow({children:[mC('إناث',crC[0],WHITE,{bold:true,align:AlignmentType.RIGHT}),...courseNames.map((name,ci)=>mC(cfg.courseResults[name].nG||'—',crC[ci+1],WHITE)),mC(nF||'—',crC[nCourses+1],WHITE,{bold:true})]}),
+        new TableRow({children:[mC('ذكور',crC[0],PALE,{bold:true,align:AlignmentType.RIGHT}),...courseNames.map((name,ci)=>mC(cfg.courseResults[name].nB||'—',crC[ci+1],PALE)),mC(nM||'—',crC[nCourses+1],PALE,{bold:true})]}),
+        new TableRow({children:[mC('المتوسط',crC[0],WHITE,{bold:true,align:AlignmentType.RIGHT}),...courseNames.map((name,ci)=>{const cl=clf(cfg.courseResults[name].mean||0);return mC((cfg.courseResults[name].mean||0).toFixed(2),crC[ci+1],cl.bg,{bold:true,color:cl.c});}),mC(overall,crC[nCourses+1],clf(overall).bg,{bold:true,color:clf(overall).c,size:18})]}),
+      ]}),sp(100,60),
+    );
+
+    // Q x Course
+    const allQs=secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
+    const qCW2=Math.max(700,Math.floor((CW-2800)/(nCourses+1)));
+    const qCC=[2800,...Array(nCourses).fill(qCW2),Math.max(400,CW-2800-qCW2*nCourses)];
+    children.push(
+      mP('مقارنة كل سؤال عبر المقررات | Q x Course Analysis',{bold:true,size:22,color:DARK,before:60,after:80}),
+      new Table({width:{size:CW,type:WidthType.DXA},columnWidths:qCC,rows:[
+        new TableRow({children:[mH(['السؤال'],qCC[0]),...courseNames.map((nm,ci)=>mH([nm.slice(0,18)],qCC[ci+1],MID)),mH(['الإجمالي'],qCC[nCourses+1])]}),
+        ...allQs.map((q,qi)=>{
+          const bg=qi%2===0?PALE:WHITE; const oCl=clf(q.cM||0);
+          return new TableRow({children:[
+            mC('Q'+q.qn+' — '+(q.lbl||'').slice(0,40),qCC[0],bg,{align:AlignmentType.RIGHT,size:13}),
+            ...courseNames.map((nm,ci)=>{const qm=(cfg.courseResults[nm].qMeans||[])[qi];const qcl=clf(qm||0);return mC(qm!=null?parseFloat(qm).toFixed(2):'—',qCC[ci+1],qcl.bg,{color:qcl.c,size:14});}),
+            mC(q.cM,qCC[nCourses+1],oCl.bg,{bold:true,color:oCl.c}),
+          ]});
+        }),
+        new TableRow({children:[mC('المتوسط العام',qCC[0],DARK,{bold:true,color:WHITE}),...courseNames.map((nm,ci)=>{const cl=clf(cfg.courseResults[nm].mean||0);return mC((cfg.courseResults[nm].mean||0).toFixed(2),qCC[ci+1],cl.bg,{bold:true,color:cl.c});}),mC(overall,qCC[nCourses+1],clf(overall).bg,{bold:true,color:clf(overall).c,size:18})]}),
+      ]}),sp(200,80),
+    );
+  }
+
   // ── ENHANCEMENT PLANS ─────────────────────────────────────────────────────
   children.push(
     new Paragraph({pageBreakBefore:true,children:[]}),
