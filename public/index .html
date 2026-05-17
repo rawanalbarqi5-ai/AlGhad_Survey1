@@ -8043,23 +8043,46 @@ function parseCourseXLS(raw){
     var row=rows[i];
     if(!row||row.length<3) continue;
 
-    // Section header: col11 = 'المحاضر:'
-    if(String(row[11]||'').trim().indexOf('المحاضر')>=0){
+    // Section header: search for 'المحاضر:' in any column
+    var mahCol=-1;
+    for(var cc=0;cc<row.length;cc++){if(String(row[cc]||'').trim()==='المحاضر:'){mahCol=cc;break;}}
+    if(mahCol>=0){
       if(current&&current.questions.length>0) sections.push(current);
+      // Find lecturer name (2 cols before المحاضر:)
+      var lecCol=mahCol-9; // usually col2 when mahCol=11
+      // Find enrolled and sec info by searching row
+      var enrolled=0,secNum='',dept='',loc='';
+      for(var cc2=0;cc2<row.length-1;cc2++){
+        var v=String(row[cc2]||'').trim();
+        if(v==='المسجلين :') enrolled=parseInt(row[cc2+2]||row[cc2-2]||0)||0;
+        if(v==='الشعبة :'||v==='الشعبة:') secNum=String(row[cc2+2]||row[cc2-3]||'').trim();
+        if(v==='القسم :') dept=String(row[cc2+2]||'').trim();
+        if(v==='المقر :') loc=String(row[cc2+2]||'').trim();
+      }
       current={
-        lecturer: String(row[2]||'').trim(),
-        sec_num:  String(row[15]||'').trim(),
-        enrolled: parseInt(row[23])||0,
-        dept:     String(row[27]||'').trim(),
-        loc:      String(row[32]||'').trim(),
+        lecturer: String(row[2]||row[lecCol>0?lecCol:2]||'').trim(),
+        sec_num:  secNum||String(row[15]||'').trim(),
+        enrolled: enrolled||parseInt(row[23])||0,
+        dept:     dept||String(row[27]||'').trim(),
+        loc:      loc||String(row[32]||'').trim(),
         course:'', semester:'', n:0, questions:[],
       };
     }
-    // Evaluators row: col25='المقيميين'
-    if(current&&current.n===0&&String(row[25]||'').indexOf('المقيميين')>=0){
-      current.n       = parseInt(row[23])||0;
-      current.course  = String(row[27]||'').trim();
-      current.semester= String(row[32]||'').trim();
+    // Evaluators row: search for 'المقيميين' in any column
+    if(current&&current.n===0){
+      var mqCol=-1;
+      for(var cc3=0;cc3<row.length;cc3++){if(String(row[cc3]||'').indexOf('المقيميين')>=0){mqCol=cc3;break;}}
+      if(mqCol>=0){
+        // n is usually 2 before المقيميين
+        current.n=parseInt(row[mqCol-2]||row[23]||0)||0;
+        // course is usually 2 after المقرر :
+        for(var cc4=0;cc4<row.length-1;cc4++){
+          var v2=String(row[cc4]||'').trim();
+          if(v2==='المقرر :') current.course=String(row[cc4+2]||row[cc4-2]||'').trim();
+          if(v2==='الفصل :') current.semester=String(row[cc4+2]||'').trim();
+        }
+        if(!current.course) current.course=String(row[27]||'').trim();
+      }
     }
     // Q row: col38=Q#, col2=mean, col22=text
     if(current){
