@@ -411,9 +411,25 @@ function initCfg(name){
   checkNext();
 }
 
+function goStep2(){
+  if(AMODE==='multi'){combineAndGo();return;}
+  go(2);
+}
+
 function checkNext(){
-  var ok=(AMODE==='single'&&RAW)||(AMODE==='multi'&&SEC_FILES.length>=2&&SEC_FILES.every(function(s){return s.ok;}));
-  document.getElementById('nextBtn').disabled=!ok;
+  var ok=false;
+  if(AMODE==='single') ok=!!RAW;
+  if(AMODE==='multi'){
+    // Check if any course has files
+    ok=COURSES.length>0&&COURSES.some(function(co){
+      if(co.xls_mode) return co.xls_boys.ok||co.xls_girls.ok;
+      return co.sections&&co.sections.some(function(s){return s.boys&&s.boys.ok;});
+    });
+  }
+  var nb=document.getElementById('nextBtn');
+  if(nb) nb.disabled=!ok;
+  var cb=document.getElementById('combineBtn');
+  if(cb) cb.disabled=!ok;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -582,10 +598,12 @@ function renderCourses(){
   // Enable/disable combine button
   var hasData=COURSES.some(function(co){
     if(co.xls_mode) return co.xls_boys.ok||co.xls_girls.ok;
-    return co.sections.some(function(s){return s.boys.ok;});
+    return co.sections&&co.sections.some(function(s){return s.boys&&s.boys.ok;});
   });
   var btn=document.getElementById('combineBtn');
   if(btn) btn.disabled=!hasData;
+  var nb=document.getElementById('nextBtn');
+  if(nb&&AMODE==='multi') nb.disabled=!hasData;
   checkNext();
 }
 
@@ -908,8 +926,19 @@ function initCfg(name){
 }
 
 function checkNext(){
-  var ok=(AMODE==='single'&&RAW)||(AMODE==='multi'&&SEC_FILES.length>=2&&SEC_FILES.every(function(s){return s.ok;}));
-  document.getElementById('nextBtn').disabled=!ok;
+  var ok=false;
+  if(AMODE==='single') ok=!!RAW;
+  if(AMODE==='multi'){
+    // Check if any course has files
+    ok=COURSES.length>0&&COURSES.some(function(co){
+      if(co.xls_mode) return co.xls_boys.ok||co.xls_girls.ok;
+      return co.sections&&co.sections.some(function(s){return s.boys&&s.boys.ok;});
+    });
+  }
+  var nb=document.getElementById('nextBtn');
+  if(nb) nb.disabled=!ok;
+  var cb=document.getElementById('combineBtn');
+  if(cb) cb.disabled=!ok;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1078,10 +1107,12 @@ function renderCourses(){
   // Enable/disable combine button
   var hasData=COURSES.some(function(co){
     if(co.xls_mode) return co.xls_boys.ok||co.xls_girls.ok;
-    return co.sections.some(function(s){return s.boys.ok;});
+    return co.sections&&co.sections.some(function(s){return s.boys&&s.boys.ok;});
   });
   var btn=document.getElementById('combineBtn');
   if(btn) btn.disabled=!hasData;
+  var nb=document.getElementById('nextBtn');
+  if(nb&&AMODE==='multi') nb.disabled=!hasData;
   checkNext();
 }
 
