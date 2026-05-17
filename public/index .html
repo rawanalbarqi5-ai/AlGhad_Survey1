@@ -7877,7 +7877,7 @@ function swTab(name){
 // ════════════════════════════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════════════════════════════
-function showE(id,m){var e=document.getElementById(id);if(e){e.style.display='block';e.textContent='⚠️ '+m;}}
+function showE(id,m){console.log('showE:',id,m);var e=document.getElementById(id);if(e){e.style.display='block';e.textContent='⚠️ '+m;}}
 function hideE(id){var e=document.getElementById(id);if(e)e.style.display='none';}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 var clf=function(m){
@@ -8296,6 +8296,7 @@ function renderSF(){renderCourses();}
 
 
 function combineFromParsedSections(xlsFiles){
+  console.log('combineFromParsedSections called, xlsFiles=', xlsFiles.length);
   // Group by course name
   var courseMap={};
   xlsFiles.forEach(function(f){
@@ -8377,6 +8378,7 @@ function combineFromParsedSections(xlsFiles){
 }
 
 function combineAndGo(){
+  console.log('combineAndGo called, REPORT_TYPE=', REPORT_TYPE, 'COURSES=', COURSES.length);
   if(REPORT_TYPE==='instructor'){
     if(INSTRUCTOR_RAW) combineInstructorAndGo();
     else showE('e1','ارفعي ملف استبانة المحاضرين أولاً');
