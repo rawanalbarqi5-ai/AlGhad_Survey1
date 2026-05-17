@@ -8041,60 +8041,81 @@ function parseCourseXLS(raw){
 
   for(var i=0;i<rows.length;i++){
     var row=rows[i];
-    if(!row||row.length<3) continue;
+    if(!row||!row.length) continue;
+    var rowStr=row.join('\t');
 
-    // Section header: search for 'المحاضر:' in any column
-    var mahCol=-1;
-    for(var cc=0;cc<row.length;cc++){if(String(row[cc]||'').trim()==='المحاضر:'){mahCol=cc;break;}}
-    if(mahCol>=0){
+    // Detect section header: row contains 'المحاضر:' AND has lecturer name
+    var isSectionHeader=false;
+    var mahIdx=-1;
+    for(var c=0;c<row.length;c++){
+      if(String(row[c]||'').trim()==='المحاضر:'){mahIdx=c;isSectionHeader=true;break;}
+    }
+
+    if(isSectionHeader){
       if(current&&current.questions.length>0) sections.push(current);
-      // Find lecturer name (2 cols before المحاضر:)
-      var lecCol=mahCol-9; // usually col2 when mahCol=11
-      // Find enrolled and sec info by searching row
-      var enrolled=0,secNum='',dept='',loc='';
-      for(var cc2=0;cc2<row.length-1;cc2++){
-        var v=String(row[cc2]||'').trim();
-        if(v==='المسجلين :') enrolled=parseInt(row[cc2+2]||row[cc2-2]||0)||0;
-        if(v==='الشعبة :'||v==='الشعبة:') secNum=String(row[cc2+2]||row[cc2-3]||'').trim();
-        if(v==='القسم :') dept=String(row[cc2+2]||'').trim();
-        if(v==='المقر :') loc=String(row[cc2+2]||'').trim();
-      }
-      current={
-        lecturer: String(row[2]||row[lecCol>0?lecCol:2]||'').trim(),
-        sec_num:  secNum||String(row[15]||'').trim(),
-        enrolled: enrolled||parseInt(row[23])||0,
-        dept:     dept||String(row[27]||'').trim(),
-        loc:      loc||String(row[32]||'').trim(),
-        course:'', semester:'', n:0, questions:[],
-      };
-    }
-    // Evaluators row: search for 'المقيميين' in any column
-    if(current&&current.n===0){
-      var mqCol=-1;
-      for(var cc3=0;cc3<row.length;cc3++){if(String(row[cc3]||'').indexOf('المقيميين')>=0){mqCol=cc3;break;}}
-      if(mqCol>=0){
-        // n is usually 2 before المقيميين
-        current.n=parseInt(row[mqCol-2]||row[23]||0)||0;
-        // course is usually 2 after المقرر :
-        for(var cc4=0;cc4<row.length-1;cc4++){
-          var v2=String(row[cc4]||'').trim();
-          if(v2==='المقرر :') current.course=String(row[cc4+2]||row[cc4-2]||'').trim();
-          if(v2==='الفصل :') current.semester=String(row[cc4+2]||'').trim();
+      // Find values by searching entire row
+      var lecturer='',secNum='',enrolled=0,dept='',loc='';
+      // Lecturer is usually 2 cols before المحاضر: OR col2
+      lecturer=String(row[mahIdx>2?mahIdx-9:2]||row[2]||'').trim();
+      if(!lecturer||lecturer==='المحاضر:'){
+        // Search nearby columns
+        for(var c2=0;c2<mahIdx;c2++){
+          var v=String(row[c2]||'').trim();
+          if(v&&v.length>3&&v!=='المحاضر:'&&isNaN(v)){lecturer=v;break;}
         }
-        if(!current.course) current.course=String(row[27]||'').trim();
+      }
+      for(var c3=0;c3<row.length-1;c3++){
+        var kw=String(row[c3]||'').trim();
+        if(kw==='المسجلين :'||kw==='المسجلين:') enrolled=parseInt(row[c3-2]||row[c3+2]||0)||0;
+        if(kw==='الشعبة :'||kw==='الشعبة:') secNum=String(row[c3-3]||row[c3+2]||'').trim();
+        if(kw==='القسم :') dept=String(row[c3+2]||'').trim();
+        if(kw==='المقر :') loc=String(row[c3+2]||'').trim();
+      }
+      current={lecturer:lecturer,sec_num:secNum,enrolled:enrolled,dept:dept,loc:loc,
+        course:'',semester:'',n:0,questions:[]};
+    }
+
+    // Detect evaluators row: contains 'المقيميين'
+    if(current&&current.n===0&&rowStr.indexOf('المقيميين')>=0){
+      for(var c4=0;c4<row.length-1;c4++){
+        var kw2=String(row[c4]||'').trim();
+        if(kw2.indexOf('المقيميين')>=0){
+          current.n=parseInt(row[c4-2]||row[c4+2]||0)||0;
+        }
+        if(kw2==='المقرر :') current.course=String(row[c4+2]||'').trim();
+        if(kw2==='الفصل :') current.semester=String(row[c4+2]||'').trim();
       }
     }
-    // Q row: col38=Q#, col2=mean, col22=text
+
+    // Detect Q row: col38=Q# col2=mean col22=text (or search for numeric mean+Q#)
     if(current){
-      var qn=parseFloat(row[38]), mean=parseFloat(row[2]);
-      if(!isNaN(qn)&&!isNaN(mean)&&qn>=1&&qn<=50&&mean>0&&mean<=5){
+      var qn=-1,mean=-1,text='';
+      // Try fixed positions first
+      if(row.length>38){
+        var tryQn=parseFloat(row[38]);
+        var tryMean=parseFloat(row[2]);
+        if(!isNaN(tryQn)&&tryQn>=1&&tryQn<=50&&!isNaN(tryMean)&&tryMean>0&&tryMean<=5){
+          qn=tryQn; mean=tryMean; text=String(row[22]||'').trim();
+        }
+      }
+      // Fallback: search row for Q# pattern
+      if(qn<0){
+        for(var c5=row.length-1;c5>=0;c5--){
+          var v5=parseFloat(row[c5]);
+          if(!isNaN(v5)&&v5>=1&&v5<=50&&Number.isInteger(v5)){
+            var tryM=parseFloat(row[2]);
+            if(!isNaN(tryM)&&tryM>0&&tryM<=5){qn=v5;mean=tryM;text=String(row[22]||'').trim();break;}
+          }
+        }
+      }
+      if(qn>=1&&mean>0){
         current.questions.push({
-          qn:Math.round(qn), text:String(row[22]||'').trim(), mean:+mean.toFixed(3),
-          pct_sa:+(parseFloat(row[4])||0).toFixed(1), cnt_sa:parseInt(row[5])||0,
-          pct_a: +(parseFloat(row[7])||0).toFixed(1), cnt_a: parseInt(row[8])||0,
-          pct_n: +(parseFloat(row[12])||0).toFixed(1), cnt_n: parseInt(row[13])||0,
-          pct_d: +(parseFloat(row[16])||0).toFixed(1), cnt_d: parseInt(row[17])||0,
-          pct_sd:+(parseFloat(row[19])||0).toFixed(1), cnt_sd:parseInt(row[20])||0,
+          qn:Math.round(qn),text:text,mean:+mean.toFixed(3),
+          pct_sa:+(parseFloat(row[4])||0).toFixed(1),cnt_sa:parseInt(row[5])||0,
+          pct_a: +(parseFloat(row[7])||0).toFixed(1),cnt_a: parseInt(row[8])||0,
+          pct_n: +(parseFloat(row[12])||0).toFixed(1),cnt_n: parseInt(row[13])||0,
+          pct_d: +(parseFloat(row[16])||0).toFixed(1),cnt_d: parseInt(row[17])||0,
+          pct_sd:+(parseFloat(row[19])||0).toFixed(1),cnt_sd:parseInt(row[20])||0,
         });
       }
     }
@@ -8109,7 +8130,8 @@ function parseCourseXLS(raw){
     s.participation_pct=s.enrolled>0?Math.round(s.n/s.enrolled*100):0;
   });
   return sections.filter(function(s){return s.questions.length>0;});
-} // parsed sections from instructor XLS
+}
+
 
 function loadInstructorFile(inp){
   var f=inp.files[0]; if(!f)return;
@@ -8296,86 +8318,109 @@ function renderSF(){renderCourses();}
 
 
 function combineFromParsedSections(xlsFiles){
-  console.log('combineFromParsedSections called, xlsFiles=', xlsFiles.length);
-  // Group by course name
-  var courseMap={};
+  console.log('combineFromParsedSections: files=', xlsFiles.length);
+
+  // All sections from all files
+  var allParsed=[]; // {sec, gender, courseName}
   xlsFiles.forEach(function(f){
-    var cn=f.courseName;
-    if(!courseMap[cn]) courseMap[cn]=[];
-    // Add gender tag to each section
-    var sec=Object.assign({},f.parsedSec,{gender:f.gender||'combined'});
-    courseMap[cn].push(sec);
+    var gender=f.gender||'combined';
+    f.parsedSec && allParsed.push({sec:f.parsedSec, gender:gender, courseName:f.courseName||f.parsedSec.course});
   });
 
-  var nQ=xlsFiles[0].parsedSec.questions.length;
-  var qTexts=xlsFiles[0].parsedSec.questions.map(function(q){return q.text;});
-  var qH=qTexts;
+  if(!allParsed.length){showE('e1','لم يتم قراءة أي شعبة من الملفات — تأكدي أن الملف تقرير XLS من النظام');return;}
 
-  // Build courseResults
+  var nQ=allParsed[0].sec.questions.length;
+  var qTexts=allParsed[0].sec.questions.map(function(q){return q.text;});
+
+  // Group by COURSE NAME from within the XLS (sec.course)
+  // Override courseName with the actual course in the section if available
+  var courseMap={};
+  allParsed.forEach(function(item){
+    // Use the course from the parsed section if available
+    var cn=item.sec.course||item.courseName||'مقرر غير محدد';
+    if(!courseMap[cn]) courseMap[cn]={boys:[],girls:[],combined:[]};
+    courseMap[cn][item.gender]=courseMap[cn][item.gender]||[];
+    courseMap[cn][item.gender].push(item.sec);
+  });
+
+  // Build courseResults: simple average per Q across sections of each course
   var courseResults={};
   Object.keys(courseMap).forEach(function(cn){
-    var secs=courseMap[cn];
-    var ns=secs.length||1;
+    var boysS=courseMap[cn].boys||[];
+    var girlsS=courseMap[cn].girls||[];
+    var combS=courseMap[cn].combined||[];
+    var allS=boysS.concat(girlsS).concat(combS);
+    var ns=allS.length||1;
+    var nB=boysS.reduce(function(a,s){return a+s.n;},0);
+    var nG=girlsS.reduce(function(a,s){return a+s.n;},0);
+    var nC=combS.reduce(function(a,s){return a+s.n;},0);
+    var n=nB+nG+nC;
     var qMeans=Array.from({length:nQ},function(_,qi){
-      return +(secs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3);
+      return +(allS.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3);
     });
-    var mean=+(qMeans.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3);
-    courseResults[cn]={n:secs.reduce(function(a,s){return a+s.n;},0),nB:0,nG:0,qMeans:qMeans,mean:mean,sectionCount:ns};
+    var mean=+(qMeans.reduce(function(a,b){return a+b;},0)/Math.max(nQ,1)).toFixed(3);
+    courseResults[cn]={n:n,nB:nB,nG:nG,qMeans:qMeans,mean:mean,
+      enrolled:allS.reduce(function(a,s){return a+s.enrolled;},0)};
   });
 
-  var totalN=Object.values(courseResults).reduce(function(a,c){return a+c.n;},0);
   var nCourses=Object.keys(courseResults).length||1;
+  var totalN=Object.values(courseResults).reduce(function(a,c){return a+c.n;},0);
+  var totalEnrolled=Object.values(courseResults).reduce(function(a,c){return a+(c.enrolled||0);},0);
 
-  // Overall Q means
-  var preQ=Array.from({length:nQ},function(_,qi){
-    return +(Object.values(courseResults).reduce(function(a,c){return a+(c.qMeans[qi]||0);},0)/nCourses).toFixed(3);
-  });
-  var overallMean=+(preQ.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3);
+  // Overall Q means: simple average across all sections
+  var allSecs=allParsed.map(function(f){return f.sec;});
+  var ns2=allSecs.length||1;
+  var hasBoth=allParsed.some(function(f){return f.gender==='boys';})&&
+              allParsed.some(function(f){return f.gender==='girls';});
 
-  // Build precomputedQ - separate boys/girls if both present
-  var allSecs=xlsFiles.map(function(f){return f.parsedSec;});
-  var boysSecs=xlsFiles.filter(function(f){return f.gender==='boys';}).map(function(f){return f.parsedSec;});
-  var girlsSecs=xlsFiles.filter(function(f){return f.gender==='girls';}).map(function(f){return f.parsedSec;});
-  var hasBoth=boysSecs.length>0&&girlsSecs.length>0;
+  var boysSecs=allParsed.filter(function(f){return f.gender==='boys';}).map(function(f){return f.sec;});
+  var girlsSecs=allParsed.filter(function(f){return f.gender==='girls';}).map(function(f){return f.sec;});
 
   var avgQ=function(secs,qi,field){
     var ns=secs.length||1;
     return +(secs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi][field]:0);},0)/ns).toFixed(3);
   };
 
-  var nCFG=Object.keys(courseResults).length;
-  CFG.nF=girlsSecs.reduce(function(a,s){return a+s.n;},0);
-  CFG.nM=boysSecs.reduce(function(a,s){return a+s.n;},0);
-  CFG.gmode=hasBoth?'col':'all_f';
-
   var precomputedQ=Array.from({length:nQ},function(_,qi){
     var cM=+avgQ(allSecs,qi,'mean');
     var fM=girlsSecs.length>0?+avgQ(girlsSecs,qi,'mean'):cM;
     var mM=boysSecs.length>0?+avgQ(boysSecs,qi,'mean'):cM;
-    var pctSA=+avgQ(allSecs,qi,'pct_sa');
-    var pctA= +avgQ(allSecs,qi,'pct_a');
-    var pctD= +avgQ(allSecs,qi,'pct_d');
-    var pctSD=+avgQ(allSecs,qi,'pct_sd');
-    var cD=[pctSA,pctA,0,pctD,pctSD];
+    var pSA=+avgQ(allSecs,qi,'pct_sa'), pA=+avgQ(allSecs,qi,'pct_a');
+    var pD=+avgQ(allSecs,qi,'pct_d'),   pSD=+avgQ(allSecs,qi,'pct_sd');
+    var cD=[pSA,pA,0,pD,pSD];
     return {qn:qi+1,lbl:qTexts[qi]||('Q'+(qi+1)),
-      fD:cD,mD:cD,cD:cD,
-      fM:fM,mM:mM,cM:cM,maxM:Math.max(fM,mM),minM:Math.min(fM,mM),
-      pos:Math.round(pctSA+pctA),neg:Math.round(pctD+pctSD),cl:clf5(cM)};
+      fD:cD,mD:cD,cD:cD,fM:fM,mM:mM,cM:cM,
+      maxM:Math.max(fM,mM),minM:Math.min(fM,mM),
+      pos:Math.round(pSA+pA),neg:Math.round(pD+pSD),cl:clf5(cM)};
   });
+
+  var overallMean=+(precomputedQ.reduce(function(a,q){return a+q.cM;},0)/Math.max(nQ,1)).toFixed(3);
 
   CFG.precomputedQ=precomputedQ;
   CFG.courseResults=courseResults;
-  CFG.nF=totalN; CFG.nM=0; CFG.qH=qH;
-  CFG.gmode='all_f'; CFG.isMulti=true;
+  CFG.nF=girlsSecs.reduce(function(a,s){return a+s.n;},0);
+  CFG.nM=boysSecs.reduce(function(a,s){return a+s.n;},0);
+  if(!CFG.nF&&!CFG.nM){CFG.nF=totalN;}
+  CFG.qH=qTexts;
+  CFG.gmode=hasBoth?'col':'all_f';
+  CFG.isMulti=true;
+  CFG.totalEnrolled=totalEnrolled;
+  CFG.secNames=Object.keys(courseResults);
+  CFG.nPerSec=Object.values(courseResults).map(function(c){return c.n;});
 
-  var hasBothGender=xlsFiles.some(function(f){return f.gender==='boys';})&&xlsFiles.some(function(f){return f.gender==='girls';});
-  document.getElementById('s3title').textContent='✅ '+nCourses+' مقرر (XLS) — '+totalN+' مستجيب'+(hasBothGender?' (بنين+بنات)':'');
-  document.getElementById('s3info').textContent=Object.entries(courseResults).map(function(e){return e[0]+': n='+e[1].n;}).join(' · ');
+  document.getElementById('s3title').textContent=
+    '✅ '+nCourses+' مقرر — '+totalN+' مستجيب'+(hasBoth?' (بنين+بنات)':'');
+  document.getElementById('s3info').textContent=
+    Object.entries(courseResults).slice(0,5).map(function(e){
+      return e[0]+': n='+e[1].n;
+    }).join(' · ')+(nCourses>5?' ...':'');
 
   var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس'];
   SECS=[{name:'Section 1',ar:ars[0],qs:[]}];
-  buildSecUI(); go(3);
+  buildSecUI();
+  go(3);
 }
+
 
 function combineAndGo(){
   console.log('combineAndGo called, REPORT_TYPE=', REPORT_TYPE, 'COURSES=', COURSES.length);
