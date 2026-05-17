@@ -145,31 +145,16 @@ td{border:1px solid #BDD7EE;padding:5px 7px;text-align:center}
             📚 تقييم مقرر</button>
           <button id="rt_instructor" onclick="setReportType('instructor')"
             style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:2px solid #BDD7EE;background:#fff;color:#1F4E79">
-            👩‍🏫 تقييم محاضر — ملفات XLS من النظام</button>
+            👩‍🏫 تقييم محاضر (ملف XLS من النظام)</button>
         </div>
       </div>
-      <!-- Course mode info (hidden for instructor) -->
-      <div id="courseMode_info" class="msg-info" style="margin-bottom:10px">
+      <div class="msg-info" style="margin-bottom:10px">
         أضيفي كل مقرر على حدة — لكل مقرر يمكنك رفع شعب متعددة
-      </div>
-      <!-- Instructor mode: single XLS file from system -->
-      <div id="instructorMode_info" style="display:none">
-        <div class="msg-info" style="margin-bottom:10px">
-          ارفعي ملف XLS الاستبانة المحاضر المُصدَّر من النظام — يقرأه ويقسّمه تلقائياً
-        </div>
-        <div class="file-group">
-          <h4>📂 ملف استبانة المحاضرين (XLS من النظام)</h4>
-          <label class="btn btn-sm" style="cursor:pointer">
-            📎 رفع الملف
-            <input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadInstructorFile(this)">
-          </label>
-          <span id="instructor_file_stat" class="file-stat fs-wait" style="display:block;margin-top:6px">⏳ لم يُرفع</span>
-        </div>
       </div>
       <div id="coursesList"></div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="addCourse()">＋ إضافة مقرر</button>
-        <button class="btn btn-sm btn-g" id="combineBtn" onclick="combineAndGo()">✔ دمج وتحليل</button>
+        <button class="btn btn-sm btn-g" id="combineBtn" onclick="combineAndGo()" disabled>✔ دمج وتحليل</button>
       </div>
     </div>
 
@@ -7883,28 +7868,19 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 var clf=function(m){
   // 1=موافق بشدة (أفضل) → 5=لا أوافق بشدة (أسوأ)
   if(m<=1.80)return{l:'ممتاز',    bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
-// مقياس تقييم المحاضر: 5=موافق بشدة (ممتاز) → 1=لا أوافق بشدة (ضعيف)
-var clf5=function(m){
-  if(m>=4.50)return{l:'ممتاز',    bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
-  if(m>=3.50)return{l:'جيد جداً', bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
-  if(m>=2.50)return{l:'جيد',      bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
-  if(m>=1.50)return{l:'مقبول',    bg:'#FFC7CE',c:'#C55A11',hx:'FFC7CE',hc:'C55A11'};
-  return      {l:'ضعيف',          bg:'#FF0000',c:'#ffffff', hx:'FF0000',hc:'ffffff'};
-};
-// مقياس تقييم المحاضر: 5=موافق بشدة (ممتاز) → 1=لا أوافق بشدة (ضعيف)
-var clf5=function(m){
-  if(m>=4.50)return{l:'ممتاز',    bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
-  if(m>=3.50)return{l:'جيد جداً', bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
-  if(m>=2.50)return{l:'جيد',      bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
-  if(m>=1.50)return{l:'مقبول',    bg:'#FFC7CE',c:'#C55A11',hx:'FFC7CE',hc:'C55A11'};
-  return      {l:'ضعيف',          bg:'#FF0000',c:'#ffffff', hx:'FF0000',hc:'ffffff'};
-};
   if(m<=2.60)return{l:'جيد جداً', bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
   if(m<=3.40)return{l:'جيد',      bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
   if(m<=4.20)return{l:'مقبول',    bg:'#FFC7CE',c:'#C55A11',hx:'FFC7CE',hc:'C55A11'};
   return      {l:'ضعيف',          bg:'#FF0000',c:'#ffffff', hx:'FF0000',hc:'ffffff'};
 };
-var clfAuto=function(m){ return (CFG&&CFG.isMulti)?clf5(m):clf(m); };
+var clf5=function(m){
+  if(m>=4.50)return{l:'ممتاز',    bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+  if(m>=3.50)return{l:'جيد جداً', bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+  if(m>=2.50)return{l:'جيد',      bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
+  if(m>=1.50)return{l:'مقبول',    bg:'#FFC7CE',c:'#C55A11',hx:'FFC7CE',hc:'C55A11'};
+  return      {l:'ضعيف',          bg:'#FF0000',c:'#ffffff', hx:'FF0000',hc:'ffffff'};
+};
+var clfAuto=function(m){return(CFG&&CFG.isMulti)?clf5(m):clf(m);};
 var mOf=function(d){return [1,2,3,4,5].reduce(function(s,r,i){return s+r*(d[i]/100);},0);};
 
 // ════════════════════════════════════════════════════════════════
@@ -7920,8 +7896,9 @@ function setMode(mode){
   if(mode==='multi'&&COURSES.length===0){
     COURSES=[
       {name:'المقرر الأول', xls_mode:false,
-        xls_files:[{raw:null,ok:false,fn:'',gender:'boys'},{raw:null,ok:false,fn:'',gender:'girls'}],
-        sections:[{label:'',boys:{raw:null,ok:false,fn:''},girls:{raw:null,ok:false,fn:''}}]},
+       xls_boys:{raw:null,ok:false,fn:''},
+       xls_girls:{raw:null,ok:false,fn:''},
+       sections:[{label:'',boys:{raw:null,ok:false,fn:''},girls:{raw:null,ok:false,fn:''}}]}
     ];
     renderCourses();
   } else if(mode==='multi'){
@@ -8029,200 +8006,173 @@ function previewData(){
 // ════════════════════════════════════════════════════════════════
 // ── COURSES STATE ────────────────────────────────────────────────────────────
 var COURSES = [];
-var INSTRUCTOR_RAW = null;
-var COURSE_XLS_RAWS = []; // array of raw XLS files from system for course survey
 
-// Parse course survey XLS from system (same format as instructor XLS)
-// Returns array of sections: [{course, sec_num, lecturer, enrolled, n, questions, sec_mean, ...}]
 function parseCourseXLS(raw){
-  var sections=[], current=null;
-  var rows=raw.rows;
-
+  var sections=[],current=null,rows=raw.rows;
   for(var i=0;i<rows.length;i++){
-    var row=rows[i];
-    if(!row||!row.length) continue;
-
-    // Find 'المحاضر:' in any column
+    var row=rows[i]; if(!row||!row.length) continue;
     var mahIdx=-1;
-    for(var c=0;c<row.length;c++){
-      if(String(row[c]||'').trim()==='المحاضر:'){mahIdx=c;break;}
-    }
-
+    for(var c=0;c<row.length;c++){if(String(row[c]||'').trim()==='المحاضر:'){mahIdx=c;break;}}
     if(mahIdx>=0){
       if(current&&current.questions.length>0) sections.push(current);
-      var enrolled=0, secNum='', dept='', loc='';
+      var enrolled=0,secNum='';
       for(var c2=0;c2<row.length-1;c2++){
         var kw=String(row[c2]||'').trim();
-        if(kw==='المسجلين :'||kw==='المسجلين:')
-          enrolled=parseInt(row[c2-2]||0)||parseInt(row[c2+2]||0)||0;
-        if(kw==='الشعبة :'||kw==='الشعبة:')
-          secNum=String(row[c2-3]||row[c2+2]||'').trim();
-        if(kw==='القسم :') dept=String(row[c2+2]||'').trim();
-        if(kw==='المقر :') loc=String(row[c2+2]||'').trim();
+        if(kw==='المسجلين :'||kw==='المسجلين:') enrolled=parseInt(row[c2-2]||0)||parseInt(row[c2+2]||0)||0;
+        if(kw==='الشعبة :'||kw==='الشعبة:') secNum=String(row[c2-3]||row[c2+2]||'').trim();
       }
-      current={
-        lecturer:String(row[2]||'').trim(),
-        sec_num:secNum, enrolled:enrolled, dept:dept, loc:loc,
-        course:'', semester:'', n:0, questions:[]
-      };
+      current={lecturer:String(row[2]||'').trim(),sec_num:secNum,enrolled:enrolled,course:'',semester:'',n:0,questions:[]};
     }
-
-    // Evaluators row: find المقيميين
     if(current&&current.n===0){
-      var hasEval=false;
       for(var c3=0;c3<row.length;c3++){
-        if(String(row[c3]||'').indexOf('المقيميين')>=0){hasEval=true;break;}
+        var kw3=String(row[c3]||'');
+        if(kw3.indexOf('المقيميين')>=0) current.n=parseInt(row[c3-2]||0)||0;
+        if(kw3.trim()==='المقرر :') current.course=String(row[c3-3]||row[c3+2]||'').trim();
+        if(kw3.trim()==='الفصل :') current.semester=String(row[c3-3]||row[c3+2]||'').trim();
       }
-      if(hasEval){
-        for(var c4=0;c4<row.length-1;c4++){
-          var kw4=String(row[c4]||'').trim();
-          // n = value 2 cols BEFORE 'المقيميين :'
-          if(kw4.indexOf('المقيميين')>=0)
-            current.n=parseInt(row[c4-2]||0)||parseInt(row[c4+2]||0)||0;
-          // course = col27 (value before 'المقرر :' which is at col30)
-          // So: find 'المقرر :' and take col at index-3
-          if(kw4==='المقرر :')
-            current.course=String(row[c4-3]||row[c4+2]||'').trim();
-          if(kw4==='الفصل :')
-            current.semester=String(row[c4-3]||row[c4+2]||'').trim();
-        }
-        // Fallback: col27 = course code
-        if(!current.course) current.course=String(row[27]||'').trim();
-        if(!current.n) current.n=parseInt(row[23]||0)||0;
-      }
+      if(!current.course) current.course=String(row[27]||'').trim();
+      if(!current.n) current.n=parseInt(row[23]||0)||0;
     }
-
-    // Q row: col38=Q#, col2=mean, col22=text
     if(current&&row.length>38){
-      var qn=parseFloat(row[38]), mean=parseFloat(row[2]);
+      var qn=parseFloat(row[38]),mean=parseFloat(row[2]);
       if(!isNaN(qn)&&qn>=1&&qn<=50&&!isNaN(mean)&&mean>0&&mean<=5){
-        current.questions.push({
-          qn:Math.round(qn), text:String(row[22]||'').trim(), mean:+mean.toFixed(3),
-          pct_sa:+(parseFloat(row[4])||0).toFixed(1), cnt_sa:parseInt(row[5])||0,
-          pct_a: +(parseFloat(row[7])||0).toFixed(1), cnt_a: parseInt(row[8])||0,
-          pct_n: +(parseFloat(row[12])||0).toFixed(1), cnt_n: parseInt(row[13])||0,
-          pct_d: +(parseFloat(row[16])||0).toFixed(1), cnt_d: parseInt(row[17])||0,
-          pct_sd:+(parseFloat(row[19])||0).toFixed(1), cnt_sd:parseInt(row[20])||0,
-        });
+        current.questions.push({qn:Math.round(qn),text:String(row[22]||'').trim(),mean:+mean.toFixed(3),
+          pct_sa:+(parseFloat(row[4])||0).toFixed(1),pct_a:+(parseFloat(row[7])||0).toFixed(1),
+          pct_d:+(parseFloat(row[16])||0).toFixed(1),pct_sd:+(parseFloat(row[19])||0).toFixed(1)});
       }
     }
   }
   if(current&&current.questions.length>0) sections.push(current);
-
   sections.forEach(function(s){
     var qm=s.questions.map(function(q){return q.mean;});
     s.sec_mean=qm.length?+(qm.reduce(function(a,b){return a+b;},0)/qm.length).toFixed(3):0;
-    s.enrolled_num=s.enrolled;
-    s.not_responded=Math.max(0,s.enrolled-s.n);
+    s.enrolled_num=s.enrolled; s.not_responded=Math.max(0,s.enrolled-s.n);
     s.participation_pct=s.enrolled>0?Math.round(s.n/s.enrolled*100):0;
   });
   return sections.filter(function(s){return s.questions.length>0;});
+} // [{name, files:[{raw,ok,fileName}]}]
+
+function addCourse(){
+  COURSES.push({name:'المقرر '+(COURSES.length+1), files:[{raw:null,ok:false,fileName:''}]});
+  renderCourses();
 }
 
+function renderCourses(){
+  var c=document.getElementById('coursesList'); if(!c) return;
+  c.innerHTML='';
+  COURSES.forEach(function(course,ci){
+    var d=document.createElement('div');
+    d.style.cssText='border:2px solid #BDD7EE;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafbff';
+    var h='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
+    h+='<input value="'+esc(course.name)+'" onchange="COURSES['+ci+'].name=this.value" style="padding:5px 10px;font-size:13px;border:2px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;direction:rtl;width:180px">';
+    if(COURSES.length>1) h+='<button onclick="COURSES.splice('+ci+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:15px">🗑</button>';
+    h+='</div>';
+    // Mode toggle
+    h+='<div style="display:flex;gap:6px;margin-bottom:10px">'
+     +'<button onclick="COURSES['+ci+'].xls_mode=false;renderCourses()" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;background:'+(course.xls_mode?'#fff':'linear-gradient(135deg,#1F4E79,#2E75B6)')+';color:'+(course.xls_mode?'#1F4E79':'#fff')+(course.xls_mode?';border:2px solid #BDD7EE':'')+'">'
+     +'📊 Excel عادي</button>'
+     +'<button onclick="COURSES['+ci+'].xls_mode=true;renderCourses()" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;background:'+(course.xls_mode?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff')+';color:'+(course.xls_mode?'#fff':'#1F4E79')+(course.xls_mode?'':';border:2px solid #BDD7EE')+'">'
+     +'📋 XLS من النظام</button>'
+     +'</div>';
 
-function combineFromParsedSections(xlsFiles){
-
-  // All sections from all files
-  var allParsed=[]; // {sec, gender, courseName}
-  xlsFiles.forEach(function(f){
-    var gender=f.gender||'combined';
-    f.parsedSec && allParsed.push({sec:f.parsedSec, gender:gender, courseName:f.courseName||f.parsedSec.course});
+    if(course.xls_mode){
+      // XLS mode: two file uploads (boys + girls)
+      h+='<div style="background:#FFF8E7;border-radius:8px;padding:10px;border-right:3px solid #F59E0B">';
+      h+='<div style="font-size:11px;color:#92400E;margin-bottom:8px;font-weight:700">ارفعي ملف XLS المصدَّر من النظام — يقرأ كل الشعب تلقائياً</div>';
+      // Boys
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+       +'<span style="font-size:11px;font-weight:700;color:#1F4E79;min-width:50px">👦 بنين</span>'
+       +'<label style="cursor:pointer"><span style="background:#1F4E79;color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع XLS'
+       +'<input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadXLSFile('+ci+',\'boys\',this)"></span></label>'
+       +'<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:'+(course.xls_boys.ok?'#E2EFDA':'#EBF3FB')+';color:'+(course.xls_boys.ok?'#375623':'#64748b')+'">'+(course.xls_boys.ok?'✅ '+course.xls_boys.fn:'⏳ لم يُرفع')+'</span>'
+       +'</div>';
+      // Girls
+      h+='<div style="display:flex;align-items:center;gap:8px">'
+       +'<span style="font-size:11px;font-weight:700;color:#9C0006;min-width:50px">👧 بنات</span>'
+       +'<label style="cursor:pointer"><span style="background:#9C0006;color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع XLS'
+       +'<input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadXLSFile('+ci+',\'girls\',this)"></span></label>'
+       +'<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:'+(course.xls_girls.ok?'#E2EFDA':'#EBF3FB')+';color:'+(course.xls_girls.ok?'#375623':'#64748b')+'">'+(course.xls_girls.ok?'✅ '+course.xls_girls.fn:'⏳ اختياري')+'</span>'
+       +'</div>';
+      h+='</div>';
+    } else {
+      // Normal mode: sections with boys/girls per section
+      course.sections.forEach(function(sec,si){
+        h+='<div style="background:#fff;border:1px solid #BDD7EE;border-radius:8px;padding:10px;margin-bottom:6px">';
+        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+         +'<span style="font-size:11px;font-weight:700;color:#2E75B6">شعبة '+(si+1)+'</span>'
+         +'<input value="'+esc(sec.label)+'" onchange="COURSES['+ci+'].sections['+si+'].label=this.value" placeholder="مثال: 22" style="padding:3px 8px;font-size:12px;border:1px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;width:80px">'
+         +(course.sections.length>1?'<button onclick="COURSES['+ci+'].sections.splice('+si+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006">✕</button>':'')
+         +'</div>';
+        // Boys
+        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+         +'<span style="font-size:11px;font-weight:700;color:#1F4E79;min-width:40px">👦</span>'
+         +'<label style="cursor:pointer"><span style="background:#1F4E79;color:#fff;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع'
+         +'<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadSectionFile('+ci+','+si+',\'boys\',this)"></span></label>'
+         +'<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:'+(sec.boys.ok?'#E2EFDA':'#EBF3FB')+';color:'+(sec.boys.ok?'#375623':'#64748b')+'">'+(sec.boys.ok?'✅ '+sec.boys.fn:'⏳')+'</span>'
+         +'</div>';
+        // Girls
+        h+='<div style="display:flex;align-items:center;gap:8px">'
+         +'<span style="font-size:11px;font-weight:700;color:#9C0006;min-width:40px">👧</span>'
+         +'<label style="cursor:pointer"><span style="background:#9C0006;color:#fff;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع'
+         +'<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadSectionFile('+ci+','+si+',\'girls\',this)"></span></label>'
+         +'<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:'+(sec.girls.ok?'#E2EFDA':'#EBF3FB')+';color:'+(sec.girls.ok?'#375623':'#64748b')+'">'+(sec.girls.ok?'✅ '+sec.girls.fn:'⏳ اختياري')+'</span>'
+         +'</div>';
+        h+='</div>';
+      });
+      h+='<button onclick="COURSES['+ci+'].sections.push({label:\'\',boys:{raw:null,ok:false,fn:\'\'},girls:{raw:null,ok:false,fn:\'\'}});renderCourses()" style="background:none;border:1px dashed #BDD7EE;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:11px;color:#2E75B6;font-family:inherit;margin-top:4px">＋ شعبة</button>';
+    }
+    d.innerHTML=h;
+    c.appendChild(d);
   });
-
-  if(!allParsed.length){showE('e1','لم يتم قراءة أي شعبة من الملفات — تأكدي أن الملف تقرير XLS من النظام');return;}
-
-  var nQ=allParsed[0].sec.questions.length;
-  var qTexts=allParsed[0].sec.questions.map(function(q){return q.text;});
-
-  // Group by COURSE NAME from within the XLS (sec.course)
-  // Override courseName with the actual course in the section if available
-  var courseMap={};
-  allParsed.forEach(function(item){
-    // Use the course from the parsed section if available
-    var cn=item.sec.course||item.courseName||'مقرر غير محدد';
-    if(!courseMap[cn]) courseMap[cn]={boys:[],girls:[],combined:[]};
-    courseMap[cn][item.gender]=courseMap[cn][item.gender]||[];
-    courseMap[cn][item.gender].push(item.sec);
+  // Enable/disable combine button
+  var hasData=COURSES.some(function(co){
+    if(co.xls_mode) return co.xls_boys.ok||co.xls_girls.ok;
+    return co.sections.some(function(s){return s.boys.ok;});
   });
+  var btn=document.getElementById('combineBtn');
+  if(btn) btn.disabled=!hasData;
+  checkNext();
+}
 
-  // Build courseResults: simple average per Q across sections of each course
-  var courseResults={};
-  Object.keys(courseMap).forEach(function(cn){
-    var boysS=courseMap[cn].boys||[];
-    var girlsS=courseMap[cn].girls||[];
-    var combS=courseMap[cn].combined||[];
-    var allS=boysS.concat(girlsS).concat(combS);
-    var ns=allS.length||1;
-    var nB=boysS.reduce(function(a,s){return a+s.n;},0);
-    var nG=girlsS.reduce(function(a,s){return a+s.n;},0);
-    var nC=combS.reduce(function(a,s){return a+s.n;},0);
-    var n=nB+nG+nC;
-    var qMeans=Array.from({length:nQ},function(_,qi){
-      return +(allS.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3);
-    });
-    var mean=+(qMeans.reduce(function(a,b){return a+b;},0)/Math.max(nQ,1)).toFixed(3);
-    courseResults[cn]={n:n,nB:nB,nG:nG,qMeans:qMeans,mean:mean,
-      enrolled:allS.reduce(function(a,s){return a+s.enrolled;},0)};
-  });
-
-  var nCourses=Object.keys(courseResults).length||1;
-  var totalN=Object.values(courseResults).reduce(function(a,c){return a+c.n;},0);
-  var totalEnrolled=Object.values(courseResults).reduce(function(a,c){return a+(c.enrolled||0);},0);
-
-  // Overall Q means: simple average across all sections
-  var allSecs=allParsed.map(function(f){return f.sec;});
-  var ns2=allSecs.length||1;
-  var hasBoth=allParsed.some(function(f){return f.gender==='boys';})&&
-              allParsed.some(function(f){return f.gender==='girls';});
-
-  var boysSecs=allParsed.filter(function(f){return f.gender==='boys';}).map(function(f){return f.sec;});
-  var girlsSecs=allParsed.filter(function(f){return f.gender==='girls';}).map(function(f){return f.sec;});
-
-  var avgQ=function(secs,qi,field){
-    var ns=secs.length||1;
-    return +(secs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi][field]:0);},0)/ns).toFixed(3);
+function loadXLSFile(ci,gender,inp){
+  var f=inp.files[0]; if(!f) return;
+  COURSES[ci]['xls_'+gender]={raw:null,ok:false,fn:f.name};
+  renderCourses();
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      COURSES[ci]['xls_'+gender]={raw:{headers:j[0].map(function(h){return String(h||'');}),rows:j.slice(1)},ok:true,fn:f.name};
+      renderCourses();
+    }catch(ex){COURSES[ci]['xls_'+gender].fn='❌ خطأ';renderCourses();}
   };
-
-  var precomputedQ=Array.from({length:nQ},function(_,qi){
-    var cM=+avgQ(allSecs,qi,'mean');
-    var fM=girlsSecs.length>0?+avgQ(girlsSecs,qi,'mean'):cM;
-    var mM=boysSecs.length>0?+avgQ(boysSecs,qi,'mean'):cM;
-    var pSA=+avgQ(allSecs,qi,'pct_sa'), pA=+avgQ(allSecs,qi,'pct_a');
-    var pD=+avgQ(allSecs,qi,'pct_d'),   pSD=+avgQ(allSecs,qi,'pct_sd');
-    var cD=[pSA,pA,0,pD,pSD];
-    return {qn:qi+1,lbl:qTexts[qi]||('Q'+(qi+1)),
-      fD:cD,mD:cD,cD:cD,fM:fM,mM:mM,cM:cM,
-      maxM:Math.max(fM,mM),minM:Math.min(fM,mM),
-      pos:Math.round(pSA+pA),neg:Math.round(pD+pSD),cl:clf5(cM)};
-  });
-
-  var overallMean=+(precomputedQ.reduce(function(a,q){return a+q.cM;},0)/Math.max(nQ,1)).toFixed(3);
-
-  CFG.precomputedQ=precomputedQ;
-  CFG.courseResults=courseResults;
-  CFG.nF=girlsSecs.reduce(function(a,s){return a+s.n;},0);
-  CFG.nM=boysSecs.reduce(function(a,s){return a+s.n;},0);
-  if(!CFG.nF&&!CFG.nM){CFG.nF=totalN;}
-  CFG.qH=qTexts;
-  CFG.gmode=hasBoth?'col':'all_f';
-  CFG.isMulti=true;
-  CFG.totalEnrolled=totalEnrolled;
-  CFG.secNames=Object.keys(courseResults);
-  CFG.nPerSec=Object.values(courseResults).map(function(c){return c.n;});
-
-  document.getElementById('s3title').textContent=
-    '✅ '+nCourses+' مقرر — '+totalN+' مستجيب'+(hasBoth?' (بنين+بنات)':'');
-  document.getElementById('s3info').textContent=
-    Object.entries(courseResults).slice(0,5).map(function(e){
-      return e[0]+': n='+e[1].n;
-    }).join(' · ')+(nCourses>5?' ...':'');
-
-  var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس'];
-  SECS=[{name:'Section 1',ar:ars[0],qs:[]}];
-  buildSecUI();
-  go(3);
+  r.readAsArrayBuffer(f);
 }
 
+function loadSectionFile(ci,si,gender,inp){
+  var f=inp.files[0]; if(!f) return;
+  COURSES[ci].sections[si][gender]={raw:null,ok:false,fn:f.name};
+  renderCourses();
+  var ext=f.name.split('.').pop().toLowerCase();
+  var r=new FileReader();
+  var done=function(raw){COURSES[ci].sections[si][gender]={raw:raw,ok:true,fn:f.name};renderCourses();};
+  if(ext==='csv'){
+    r.onload=function(e){try{done(parseCSV(e.target.result));}catch(ex){COURSES[ci].sections[si][gender].ok=false;renderCourses();}};
+    r.readAsText(f,'UTF-8');
+  } else {
+    r.onload=function(e){
+      try{
+        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        done({headers:j[0].map(function(h){return String(h||'').trim();}),rows:j.slice(1).filter(function(r){return r.some(function(v){return v!=='';});})});
+      }catch(ex){COURSES[ci].sections[si][gender].ok=false;renderCourses();}
+    };
+    r.readAsArrayBuffer(f);
+  }
+}
 
 function combineAndGo(){
   if(REPORT_TYPE==='instructor'){
@@ -8232,45 +8182,22 @@ function combineAndGo(){
   }
   hideE('e1');
 
-  // Build flat list: [{raw, courseName, gender, sectionLabel}]
-  var allFiles=[];
-  COURSES.forEach(function(course){
-    if(course.xls_mode){
-      // XLS from system: parse each file and add all sections as 'boys' (combined)
-      (course.xls_files||[]).filter(function(f){return f.ok;}).forEach(function(f){
-        var secs=parseCourseXLS(f.raw);
-        var fileGender=f.gender||'combined';
-        secs.forEach(function(sec){
-          allFiles.push({
-            raw:f.raw, courseName:course.name, gender:fileGender,
-            label:sec.sec_num, parsedSec:sec,
-            isXLS:true
-          });
-        });
-      });
-    } else {
-      course.sections.forEach(function(sec){
-        if(sec.boys.ok) allFiles.push({raw:sec.boys.raw, courseName:course.name, gender:'boys', label:sec.label});
-        if(sec.girls.ok) allFiles.push({raw:sec.girls.raw, courseName:course.name, gender:'girls', label:sec.label});
-      });
-    }
-  });
-
-  // For XLS files, build a special path
-  var xlsFiles=allFiles.filter(function(f){return f.isXLS;});
-  var normalFiles=allFiles.filter(function(f){return !f.isXLS;});
-  if(xlsFiles.length>0){
-    if(xlsFiles.filter(function(f){return f.parsedSec;}).length===0){
-      showE('e1','لم يتم قراءة أي شعبة — تأكدي أن الملف تقرير XLS من النظام (مو Excel عادي)');
-      return;
-    }
-    combineFromParsedSections(xlsFiles);
-    return;
+  // Check if any course is in XLS mode
+  var hasXLS=COURSES.some(function(co){return co.xls_mode;});
+  if(hasXLS){
+    combineXLSMode(); return;
   }
 
+  // Normal mode: boys/girls Excel files
+  var allFiles=[];
+  COURSES.forEach(function(course){
+    course.sections.forEach(function(sec){
+      if(sec.boys.ok) allFiles.push({raw:sec.boys.raw,courseName:course.name,gender:'boys',label:sec.label});
+      if(sec.girls.ok) allFiles.push({raw:sec.girls.raw,courseName:course.name,gender:'girls',label:sec.label});
+    });
+  });
   if(!allFiles.length){showE('e1','ارفعي ملفاً واحداً على الأقل');return;}
 
-  // Validate same Q count
   var qCounts=allFiles.map(function(f){return f.raw.headers.length;});
   if(new Set(qCounts).size>1){showE('e1','الملفات فيها عدد أعمدة مختلف: '+qCounts.join(', '));return;}
 
@@ -8284,719 +8211,466 @@ function combineAndGo(){
     });
   };
 
-  // Per course: merge all files (boys+girls, all sections)
+  // Build courseResults grouped by course name
   var courseResults={};
   COURSES.forEach(function(course){
     var cFiles=allFiles.filter(function(f){return f.courseName===course.name;});
     if(!cFiles.length) return;
-
-    // Separate boys/girls rows
-    var boysRows=cFiles.filter(function(f){return f.gender==='boys';}).reduce(function(a,f){return a.concat(f.raw.rows);}, []);
-    var girlsRows=cFiles.filter(function(f){return f.gender==='girls';}).reduce(function(a,f){return a.concat(f.raw.rows);}, []);
+    var boysRows=cFiles.filter(function(f){return f.gender==='boys';}).reduce(function(a,f){return a.concat(f.raw.rows);},[]);
+    var girlsRows=cFiles.filter(function(f){return f.gender==='girls';}).reduce(function(a,f){return a.concat(f.raw.rows);},[]);
     var allRows=boysRows.concat(girlsRows);
-    var nB=boysRows.length, nG=girlsRows.length, n=allRows.length;
-
-    // Auto-detect numeric columns
+    var n=allRows.length,nB=boysRows.length,nG=girlsRows.length;
     var qCI=Array.from({length:nQ},function(_,i){return i;}).filter(function(ci){
-      var samp=allRows.slice(0,Math.min(10,allRows.length));
+      var samp=allRows.slice(0,10);
       var vals=samp.map(function(r){return r[ci];}).filter(function(v){return String(v||'').trim();});
       var nums=vals.filter(function(v){return !isNaN(parseFloat(v))&&parseFloat(v)>=1&&parseFloat(v)<=5;});
       return vals.length>0&&nums.length/vals.length>=0.5;
     });
-
-    var qDists=qCI.map(function(ci){return compDist(allRows,ci);});
-    var qMeans=qDists.map(function(d){return +mOf(d).toFixed(3);});
+    var qMeans=qCI.map(function(ci){var d=compDist(allRows,ci);return +mOf(d).toFixed(3);});
     var mean=+(qMeans.reduce(function(a,b){return a+b;},0)/Math.max(qMeans.length,1)).toFixed(3);
-
-    // Boys/girls separate
-    var bDists=nB>0?qCI.map(function(ci){return compDist(boysRows,ci);}):null;
-    var gDists=nG>0?qCI.map(function(ci){return compDist(girlsRows,ci);}):null;
-
-    courseResults[course.name]={
-      n:n, nB:nB, nG:nG,
-      qMeans:qMeans, mean:mean,
-      qDists:qDists, bDists:bDists, gDists:gDists,
-      sectionCount:cFiles.length
-    };
+    courseResults[course.name]={n:n,nB:nB,nG:nG,qMeans:qMeans,mean:mean};
   });
 
   var totalN=Object.values(courseResults).reduce(function(a,c){return a+c.n;},0);
   var nCourses=Object.keys(courseResults).length||1;
-
-  // Overall Q means — simple average across courses
-  var preQ=Array.from({length:nQ},function(_,qi){
-    return +(Object.values(courseResults).reduce(function(a,c){return a+(c.qMeans[qi]||0);},0)/nCourses).toFixed(3);
-  });
-  var overallMean=+(preQ.reduce(function(a,b){return a+b;},0)/Math.max(nQ,1)).toFixed(3);
-
-  // Build precomputedQ for section builder
   var hasGender=Object.values(courseResults).some(function(c){return c.nB>0&&c.nG>0;});
+
   var allBoysRows=allFiles.filter(function(f){return f.gender==='boys';}).reduce(function(a,f){return a.concat(f.raw.rows);},[]);
   var allGirlsRows=allFiles.filter(function(f){return f.gender==='girls';}).reduce(function(a,f){return a.concat(f.raw.rows);},[]);
-  var allRows=allBoysRows.concat(allGirlsRows);
+  var allRows2=allBoysRows.concat(allGirlsRows);
 
   var precomputedQ=Array.from({length:nQ},function(_,qi){
-    var cD=compDist(allRows,qi);
+    var cD=compDist(allRows2,qi);
     var fD=allGirlsRows.length>0?compDist(allGirlsRows,qi):cD;
     var mD=allBoysRows.length>0?compDist(allBoysRows,qi):cD;
-    var cM=+mOf(cD).toFixed(3);
-    var fM=+mOf(fD).toFixed(3);
-    var mM=+mOf(mD).toFixed(3);
-    return {qn:qi+1,lbl:qH[qi],fD:fD,mD:mD,cD:cD,
-      fM:fM,mM:mM,cM:cM,maxM:Math.max(fM,mM),minM:Math.min(fM,mM),
-      pos:Math.round(cD[0]+cD[1]),neg:Math.round(cD[3]+cD[4]),cl:clf5(cM)};
+    var cM=+mOf(cD).toFixed(3),fM=+mOf(fD).toFixed(3),mM=+mOf(mD).toFixed(3);
+    return {qn:qi+1,lbl:qH[qi],fD:fD,mD:mD,cD:cD,fM:fM,mM:mM,cM:cM,
+      maxM:Math.max(fM,mM),minM:Math.min(fM,mM),
+      pos:Math.round(cD[0]+cD[1]),neg:Math.round(cD[3]+cD[4]),cl:clfAuto(cM)};
   });
 
   CFG.precomputedQ=precomputedQ;
   CFG.courseResults=courseResults;
-  CFG.nF=allGirlsRows.length;
-  CFG.nM=allBoysRows.length;
-  CFG.qH=qH;
-  CFG.gmode=hasGender?'col':'all_f';
-  CFG.isMulti=true;
-  CFG.secNames=Object.keys(courseResults);
-  CFG.nPerSec=Object.values(courseResults).map(function(c){return c.n;});
+  CFG.nF=allGirlsRows.length; CFG.nM=allBoysRows.length;
+  CFG.qH=qH; CFG.gmode=hasGender?'col':'all_f'; CFG.isMulti=true;
 
-  var summaryParts=Object.entries(courseResults).map(function(e){
-    var nm=e[0],c=e[1];
-    return nm+': n='+c.n+(c.nB&&c.nG?' (بنين:'+c.nB+' بنات:'+c.nG+')':'');
-  });
-  document.getElementById('s3title').textContent='✅ '+nCourses+' مقرر — '+totalN+' مستجيب'+(hasGender?' (بنين+بنات)':'');
-  document.getElementById('s3info').textContent=summaryParts.join(' · ');
+  document.getElementById('s3title').textContent='✅ '+nCourses+' مقرر — '+totalN+' مستجيب';
+  document.getElementById('s3info').textContent=Object.entries(courseResults).map(function(e){return e[0]+': n='+e[1].n;}).join(' · ');
 
   var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس'];
   SECS=[{name:'Section 1',ar:ars[0],qs:[]}];
   buildSecUI(); go(3);
 }
 
-function goStep2(){
-  if(AMODE==='multi'){combineAndGo();return;}
-  go(2);
-}
-
-// ════════════════════════════════════════════════════════════════
-// GENDER MODE
-// ════════════════════════════════════════════════════════════════
-function setGMode(m){
-  GMODE=m;
-  ['col','f','m'].forEach(function(k){
-    var b=document.getElementById('gm_'+k);
-    if(!b)return;
-    b.style.background=k===m.replace('all_','')&&m!=='col'||k==='col'&&m==='col'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff';
-    b.style.color=k===m.replace('all_','')&&m!=='col'||k==='col'&&m==='col'?'#fff':'#1F4E79';
-    b.style.border=k===m.replace('all_','')&&m!=='col'||k==='col'&&m==='col'?'none':'2px solid #BDD7EE';
+function combineXLSMode(){
+  // Parse all XLS files and combine
+  var allParsed=[];
+  COURSES.forEach(function(course){
+    if(!course.xls_mode) return;
+    if(course.xls_boys.ok){
+      var secs=parseCourseXLS(course.xls_boys.raw);
+      secs.forEach(function(s){allParsed.push({sec:s,gender:'boys',courseName:course.name});});
+    }
+    if(course.xls_girls.ok){
+      var secs2=parseCourseXLS(course.xls_girls.raw);
+      secs2.forEach(function(s){allParsed.push({sec:s,gender:'girls',courseName:course.name});});
+    }
   });
-  document.getElementById('gcolRow').style.display=m==='col'?'grid':'none';
-}
-// Fix gender buttons properly
-function setGMode(m){
-  GMODE=m;
-  var btns={col:'gm_col',all_f:'gm_f',all_m:'gm_m'};
-  Object.keys(btns).forEach(function(k){
-    var b=document.getElementById(btns[k]);if(!b)return;
-    var on=k===m;
-    b.style.background=on?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff';
-    b.style.color=on?'#fff':'#1F4E79';
-    b.style.border=on?'none':'2px solid #BDD7EE';
+
+  if(!allParsed.length){showE('e1','لم تتم قراءة أي شعبة — تأكدي أن الملف تقرير XLS من النظام');return;}
+
+  var nQ=allParsed[0].sec.questions.length;
+  var qTexts=allParsed[0].sec.questions.map(function(q){return q.text;});
+
+  // Group by course code from within the XLS
+  var courseMap={};
+  allParsed.forEach(function(item){
+    var cn=item.sec.course||item.courseName||'مقرر';
+    if(!courseMap[cn]) courseMap[cn]={boys:[],girls:[]};
+    courseMap[cn][item.gender].push(item.sec);
   });
-  document.getElementById('gcolRow').style.display=m==='col'?'grid':'none';
-}
-document.getElementById('fval').addEventListener('change',function(){
-  document.getElementById('fval_c').style.display=this.value==='custom'?'block':'none';
-});
 
-// ════════════════════════════════════════════════════════════════
-// STEP 3 → process single file
-// ════════════════════════════════════════════════════════════════
-function toStep3(){
-  hideE('e2');
-  var sr=Math.max(0,(parseInt(document.getElementById('startRow').value)||2)-2);
-  var fc=parseInt(document.getElementById('firstCol').value||'0');
-  var lc=parseInt(document.getElementById('lastCol').value||'0');
-  var gcolName=document.getElementById('gcol').value.trim();
-  var fvalSel=document.getElementById('fval').value;
-  var fvalCust=document.getElementById('fval_c').value.trim().toLowerCase();
-  var fval=fvalSel==='custom'?fvalCust:fvalSel.toLowerCase();
-
-  // Data rows
-  var dataRows=RAW.rows.slice(sr).filter(function(r){return r.some(function(v){return String(v||'').trim();});});
-  if(!dataRows.length){showE('e2','لا توجد بيانات في النطاق المحدد');return;}
-
-  // Gender split
-  var gIdx=-1,fRows=[],mRows=[];
-  if(GMODE==='col'){
-    gIdx=RAW.headers.findIndex(function(h){return h.toLowerCase()===gcolName.toLowerCase();});
-    if(gIdx<0){showE('e2','عمود "'+gcolName+'" غير موجود. الأعمدة: '+RAW.headers.join(', '));return;}
-    dataRows.forEach(function(row){
-      var g=String(row[gIdx]||'').toLowerCase().trim();
-      var isF=g===fval||g.startsWith(fval)||(fval==='female'&&(g==='female'||g==='f'))
-              ||(fval==='طالبات'&&(g==='طالبات'||g==='طالبه'))
-              ||(fval==='أنثى'&&(g==='أنثى'||g==='انثى'));
-      (isF?fRows:mRows).push(row);
+  var courseResults={};
+  Object.keys(courseMap).forEach(function(cn){
+    var all=[].concat(courseMap[cn].boys).concat(courseMap[cn].girls);
+    var ns=all.length||1;
+    var qMeans=Array.from({length:nQ},function(_,qi){
+      return +(all.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3);
     });
-  } else if(GMODE==='all_f'){fRows=dataRows.slice();}
-  else {mRows=dataRows.slice();}
-
-  // Question columns filter
-  var qCI=RAW.headers.map(function(_,i){return i;}).filter(function(i){return i!==gIdx;});
-  if(fc>0) qCI=qCI.filter(function(i){return i>=fc-1;});
-  if(lc>0) qCI=qCI.filter(function(i){return i<=lc-1;});
-
-  // Auto-remove non-numeric columns
-  var samp=(fRows.length?fRows:mRows).slice(0,Math.min(10,dataRows.length));
-  qCI=qCI.filter(function(ci){
-    var vals=samp.map(function(r){return r[ci];}).filter(function(v){return String(v||'').trim();});
-    if(!vals.length)return false;
-    var nums=vals.filter(function(v){return !isNaN(parseFloat(v))&&parseFloat(v)>=1&&parseFloat(v)<=5;});
-    return nums.length/vals.length>=0.5;
+    courseResults[cn]={
+      n:all.reduce(function(a,s){return a+s.n;},0),
+      nB:courseMap[cn].boys.reduce(function(a,s){return a+s.n;},0),
+      nG:courseMap[cn].girls.reduce(function(a,s){return a+s.n;},0),
+      qMeans:qMeans,
+      mean:+(qMeans.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3)
+    };
   });
-  if(!qCI.length){showE('e2','لم يتم العثور على أعمدة أسئلة رقمية (1-5). تحققي من إعدادات النطاق.');return;}
 
-  var qH=qCI.map(function(i){return RAW.headers[i];});
-  var remapRows=function(rows){return rows.map(function(row){return qCI.map(function(ci){return row[ci];});});};
-  fRows=remapRows(fRows); mRows=remapRows(mRows);
+  var totalN=Object.values(courseResults).reduce(function(a,c){return a+c.n;},0)||1;
+  var nCourses=Object.keys(courseResults).length;
+  var allSecs=allParsed.map(function(f){return f.sec;});
+  var boysSecs=allParsed.filter(function(f){return f.gender==='boys';}).map(function(f){return f.sec;});
+  var girlsSecs=allParsed.filter(function(f){return f.gender==='girls';}).map(function(f){return f.sec;});
+  var ns2=allSecs.length||1;
+  var hasBoth=boysSecs.length>0&&girlsSecs.length>0;
 
-  CFG={gcol:gcolName,gIdx:gIdx,gmode:GMODE,
-    cname:document.getElementById('cname').value,
-    sname:document.getElementById('sname').value,
-    obj:document.getElementById('obj').value,
-    semester:document.getElementById('semester').value,
-    qH:qH,fRows:fRows,mRows:mRows};
+  var precomputedQ=Array.from({length:nQ},function(_,qi){
+    var cM=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns2).toFixed(3);
+    var fM=girlsSecs.length?+(girlsSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/girlsSecs.length).toFixed(3):cM;
+    var mM=boysSecs.length?+(boysSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/boysSecs.length).toFixed(3):cM;
+    var pSA=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_sa:0);},0)/ns2).toFixed(1);
+    var pA= +(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_a:0);},0)/ns2).toFixed(1);
+    var pD= +(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_d:0);},0)/ns2).toFixed(1);
+    var pSD=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_sd:0);},0)/ns2).toFixed(1);
+    var cD=[pSA,pA,0,pD,pSD];
+    return {qn:qi+1,lbl:qTexts[qi]||('Q'+(qi+1)),fD:cD,mD:cD,cD:cD,
+      fM:fM,mM:mM,cM:cM,maxM:Math.max(fM,mM),minM:Math.min(fM,mM),
+      pos:Math.round(pSA+pA),neg:Math.round(pD+pSD),cl:clf5(cM)};
+  });
 
-  document.getElementById('s3title').textContent='✅ '+CFG.sname;
-  document.getElementById('s3info').textContent=(fRows.length+mRows.length)+' مستجيب · '+qH.length+' سؤال'+(GMODE==='col'?' · إناث: '+fRows.length+' ذكور: '+mRows.length:'');
-  var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس','المحور السادس','المحور السابع','المحور الثامن'];
+  CFG.precomputedQ=precomputedQ; CFG.courseResults=courseResults;
+  CFG.nF=girlsSecs.reduce(function(a,s){return a+s.n;},0);
+  CFG.nM=boysSecs.reduce(function(a,s){return a+s.n;},0);
+  if(!CFG.nF&&!CFG.nM) CFG.nF=totalN;
+  CFG.qH=qTexts; CFG.gmode=hasBoth?'col':'all_f'; CFG.isMulti=true;
+  CFG.courseResults=courseResults;
+
+  document.getElementById('s3title').textContent='✅ '+nCourses+' مقرر (XLS) — '+totalN+' مستجيب';
+  document.getElementById('s3info').textContent=Object.entries(courseResults).slice(0,5).map(function(e){return e[0]+': '+e[1].n;}).join(' · ');
+
+  var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس'];
   SECS=[{name:'Section 1',ar:ars[0],qs:[]}];
   buildSecUI(); go(3);
 }
 
-// ════════════════════════════════════════════════════════════════
-// SECTION BUILDER
-// ════════════════════════════════════════════════════════════════
-function addSection(){
-  var n=SECS.length;
-  var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس','المحور السادس','المحور السابع','المحور الثامن'];
-  SECS.push({name:'Section '+(n+1),ar:ars[n]||'محور '+(n+1),qs:[]});
-  buildSecUI();
+
+function go(n){
+  document.querySelectorAll('.step').forEach(function(s,i){s.classList.toggle('on',i+1===n);});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function swTab(name){
+  var N=['ov','dt','oa'];
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('on',N[i]===name);});
+  document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on');});
+  document.getElementById('p'+name).classList.add('on');
 }
 
-function buildSecUI(){
-  var qH=CFG.qH||[];
-  var sb=document.getElementById('secBuilder'); sb.innerHTML='';
-  SECS.forEach(function(sec,si){
-    var used=new Set(SECS.reduce(function(a,s,j){return j!==si?a.concat(s.qs):a;},[]))
-    var d=document.createElement('div'); d.className='sec-card';
-    var chips=qH.map(function(h,qi){
-      if(used.has(qi)&&!sec.qs.includes(qi))return '';
-      return '<span class="chip'+(sec.qs.includes(qi)?' on':'')+'" onclick="tQ('+si+','+qi+')" title="'+esc(h)+'">Q'+(qi+1)+'</span>';
-    }).join('');
-    d.innerHTML='<h4>'
-      +'<input value="'+esc(sec.name)+'" onchange="SECS['+si+'].name=this.value" style="padding:4px 8px;font-size:12px;border:2px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;max-width:150px">'
-      +'<input value="'+esc(sec.ar)+'" onchange="SECS['+si+'].ar=this.value" style="padding:4px 8px;font-size:12px;border:2px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;direction:rtl;max-width:160px">'
-      +(SECS.length>1?'<button onclick="SECS.splice('+si+',1);buildSecUI()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:15px">🗑</button>':'')
-      +'</h4>'
-      +'<div>'+chips+'</div>';
-    sb.appendChild(d);
+// ════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════
+function showE(id,m){var e=document.getElementById(id);if(e){e.style.display='block';e.textContent='⚠️ '+m;}}
+function hideE(id){var e=document.getElementById(id);if(e)e.style.display='none';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+var clf=function(m){
+  // 1=موافق بشدة (أفضل) → 5=لا أوافق بشدة (أسوأ)
+  if(m<=1.80)return{l:'ممتاز',    bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+  if(m<=2.60)return{l:'جيد جداً', bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+  if(m<=3.40)return{l:'جيد',      bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
+  if(m<=4.20)return{l:'مقبول',    bg:'#FFC7CE',c:'#C55A11',hx:'FFC7CE',hc:'C55A11'};
+  return      {l:'ضعيف',          bg:'#FF0000',c:'#ffffff', hx:'FF0000',hc:'ffffff'};
+};
+var clf5=function(m){
+  if(m>=4.50)return{l:'ممتاز',    bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+  if(m>=3.50)return{l:'جيد جداً', bg:'#E2EFDA',c:'#375623',hx:'E2EFDA',hc:'375623'};
+  if(m>=2.50)return{l:'جيد',      bg:'#FFEB9C',c:'#7F6000',hx:'FFEB9C',hc:'7F6000'};
+  if(m>=1.50)return{l:'مقبول',    bg:'#FFC7CE',c:'#C55A11',hx:'FFC7CE',hc:'C55A11'};
+  return      {l:'ضعيف',          bg:'#FF0000',c:'#ffffff', hx:'FF0000',hc:'ffffff'};
+};
+var clfAuto=function(m){return(CFG&&CFG.isMulti)?clf5(m):clf(m);};
+var mOf=function(d){return [1,2,3,4,5].reduce(function(s,r,i){return s+r*(d[i]/100);},0);};
+
+// ════════════════════════════════════════════════════════════════
+// MODE SWITCH
+// ════════════════════════════════════════════════════════════════
+function setMode(mode){
+  AMODE=mode;
+  document.querySelectorAll('.mode-btn').forEach(function(b,i){
+    b.classList.toggle('on',(i===0&&mode==='single')||(i===1&&mode==='multi'));
   });
-}
-
-function tQ(si,qi){
-  var idx=SECS[si].qs.indexOf(qi);
-  if(idx>=0)SECS[si].qs.splice(idx,1);else SECS[si].qs.push(qi);
-  buildSecUI();
-}
-
-// ════════════════════════════════════════════════════════════════
-// ANALYZE
-// ════════════════════════════════════════════════════════════════
-function doAnalyze(){
-  var qH=CFG.qH||[];
-  // If precomputed (multi mode)
-  if(CFG.precomputedQ){
-    var assigned=new Set(SECS.reduce(function(a,s){return a.concat(s.qs);},[]))
-    var unassigned=qH.map(function(_,i){return i;}).filter(function(i){return !assigned.has(i);});
-    var secs=SECS.filter(function(s){return s.qs.length;}).map(function(s){
-      return {name:s.name,ar:s.ar,qs:s.qs.map(function(qi){return CFG.precomputedQ[qi];})};
-    });
-    if(unassigned.length)secs.push({name:'General',ar:'أسئلة عامة',qs:unassigned.map(function(qi){return CFG.precomputedQ[qi];})});
-    if(!secs.length)secs=[{name:'All',ar:'جميع الأسئلة',qs:CFG.precomputedQ}];
-    secs=secs.map(function(s){
-      var sm=+(s.qs.reduce(function(a,q){return a+q.cM;},0)/s.qs.length).toFixed(3);
-      return Object.assign({},s,{mean:sm,fMean:sm,mMean:sm,cl:clfAuto(sm)});
-    });
-    var overall=+(secs.reduce(function(a,s){return a+s.mean;},0)/secs.length).toFixed(3);
-    RES={nF:CFG.nF,nM:0,n:CFG.nF,secs:secs,overall:overall};
-    buildUI(); go(4); return;
+  document.getElementById('md_single').style.display=mode==='single'?'block':'none';
+  document.getElementById('md_multi').style.display=mode==='multi'?'block':'none';
+  if(mode==='multi'&&COURSES.length===0){
+    COURSES=[
+      {name:'المقرر الأول', xls_mode:false,
+       xls_boys:{raw:null,ok:false,fn:''},
+       xls_girls:{raw:null,ok:false,fn:''},
+       sections:[{label:'',boys:{raw:null,ok:false,fn:''},girls:{raw:null,ok:false,fn:''}}]}
+    ];
+    renderCourses();
+  } else if(mode==='multi'){
+    renderCourses();
   }
-
-  var fRows=CFG.fRows||[],mRows=CFG.mRows||[];
-  var nF=fRows.length,nM=mRows.length,n=nF+nM;
-  if(!n){showE('e3','لا توجد بيانات');return;}
-
-  var calcQ=function(qi){
-    var D=function(rows){return [1,2,3,4,5].map(function(r){var c=rows.filter(function(row){return parseFloat(row[qi])===r;}).length;return rows.length?+((c/rows.length*100).toFixed(1)):0;});};
-    var fD=D(fRows),mD=D(mRows);
-    var cD=nF===0?mD:nM===0?fD:fD.map(function(v,j){return +((v+mD[j])/2).toFixed(1);});
-    var fM=nF>0?+mOf(fD).toFixed(3):null,mM2=nM>0?+mOf(mD).toFixed(3):null,cM=+mOf(cD).toFixed(3);
-    return {qn:qi+1,lbl:qH[qi],fD:fD,mD:mD,cD:cD,
-      fM:fM!==null?fM:cM,mM:mM2!==null?mM2:cM,cM:cM,
-      maxM:Math.max(fM!==null?fM:cM,mM2!==null?mM2:cM),
-      minM:Math.min(fM!==null?fM:cM,mM2!==null?mM2:cM),
-      pos:Math.round(cD[0]+cD[1]),neg:Math.round(cD[3]+cD[4]),cl:clf(cM)};
-  };
-
-  var assigned=new Set(SECS.reduce(function(a,s){return a.concat(s.qs);},[]))
-  var unassigned=qH.map(function(_,i){return i;}).filter(function(i){return !assigned.has(i);});
-  var secs=SECS.filter(function(s){return s.qs.length;}).map(function(s){
-    return {name:s.name,ar:s.ar,qs:s.qs.map(calcQ)};
-  });
-  if(unassigned.length)secs.push({name:'General',ar:'أسئلة عامة',qs:unassigned.map(calcQ)});
-  if(!secs.length)secs=[{name:'All',ar:'جميع الأسئلة',qs:qH.map(function(_,i){return calcQ(i);})}];
-  secs=secs.map(function(s){
-    var sm=+(s.qs.reduce(function(a,q){return a+q.cM;},0)/s.qs.length).toFixed(3);
-    var fm=+(s.qs.reduce(function(a,q){return a+q.fM;},0)/s.qs.length).toFixed(3);
-    var mm=+(s.qs.reduce(function(a,q){return a+q.mM;},0)/s.qs.length).toFixed(3);
-    return Object.assign({},s,{mean:sm,fMean:fm,mMean:mm,cl:clfAuto(sm)});
-  });
-  var overall=+(secs.reduce(function(a,s){return a+s.mean;},0)/secs.length).toFixed(3);
-  RES={nF:nF,nM:nM,n:n,secs:secs,overall:overall};
-  buildUI(); go(4);
+  checkNext();
 }
 
 // ════════════════════════════════════════════════════════════════
-// BUILD UI (results)
+// SINGLE FILE UPLOAD
 // ════════════════════════════════════════════════════════════════
-function buildUI(){
-  var nF=RES.nF,nM=RES.nM,n=RES.n,secs=RES.secs,overall=RES.overall;
-  var showG=CFG.gmode==='col';
-  var oCl=clfAuto(overall);
+// DZ events initialized after DOM ready (see initApp below)
 
-  // Stats bar
-  document.getElementById('st4').innerHTML=[
-    {v:n,l:'مشاركين'},{v:nF||'—',l:'إناث'},{v:nM||'—',l:'ذكور'},
-    {v:secs.length,l:'محاور'},{v:secs.reduce(function(a,s){return a+s.qs.length;},0),l:'سؤال'},
-    {v:overall,l:'المتوسط العام'}
-  ].map(function(x){return '<div class="stat"><div class="v">'+x.v+'</div><div class="l">'+x.l+'</div></div>';}).join('');
-
-  // Overview tab
-  var ov='<div class="tbl-w"><table><thead><tr><th>Section</th><th>المحور</th><th>Mean</th>'
-    +(showG?'<th>F.Mean</th><th>M.Mean</th><th>Gap</th>':'')+'<th>التصنيف</th></tr></thead><tbody>';
-  secs.forEach(function(s,i){
-    ov+='<tr class="'+(i%2?'':'even')+'"><td style="text-align:left">'+esc(s.name)+'</td>'
-      +'<td style="text-align:right;direction:rtl">'+esc(s.ar)+'</td>'
-      +'<td style="font-weight:700;color:'+s.cl.c+';background:'+s.cl.bg+'">'+s.mean+'</td>'
-      +(showG?'<td>'+s.fMean+'</td><td>'+s.mMean+'</td><td>'+Math.abs(s.fMean-s.mMean).toFixed(2)+'</td>':'')
-      +'<td style="background:'+s.cl.bg+'"><span class="tag" style="color:'+s.cl.c+'">'+s.cl.l+'</span></td></tr>';
-  });
-  ov+='</tbody></table></div>';
-  document.getElementById('pov').innerHTML=ov;
-
-  // Distribution tab
-  var dt='';
-  secs.forEach(function(sec){
-    dt+='<div style="font-weight:700;color:#2E75B6;font-size:13px;margin:12px 0 6px">'+esc(sec.name)+' | '+esc(sec.ar)+' — Mean: '+sec.mean+'</div>';
-    dt+='<div class="tbl-w"><table><thead><tr><th>Q#</th><th>Group</th><th>%1 موافق بشدة</th><th>%2 موافق</th><th>%3 حد ما</th><th>%4 لا أوافق</th><th>%5 لا أوافق بشدة</th><th>Mean</th></tr></thead><tbody>';
-    sec.qs.forEach(function(q,qi){
-      var bg=qi%2===0?'#EBF3FB':'#fff';
-      var rows=showG?[['Female',q.fD,q.fM,'#FCE4D6','#843C0C',true],['Male',q.mD,q.mM,'#DDEBF7','#1F4E79',false],['Combined',q.cD,q.cM,'#E2EFDA','#375623',false]]
-                    :[['Overall',q.cD,q.cM,'#E2EFDA','#375623',true]];
-      rows.forEach(function(row){
-        var rname=row[0],d=row[1],m=row[2],cb=row[3],tc=row[4],first=row[5];
-        dt+='<tr>';
-        if(first)dt+='<td rowspan="'+rows.length+'" style="font-weight:700;color:#1F4E79;background:'+bg+'">Q'+q.qn+'</td>';
-        dt+='<td style="font-weight:700;color:'+tc+';background:'+cb+'">'+rname+'</td>';
-        d.forEach(function(v){dt+='<td style="background:'+cb+'">'+v+'</td>';});
-        dt+='<td style="font-weight:700;color:'+tc+';background:'+cb+'">'+parseFloat(m).toFixed(2)+'</td></tr>';
-      });
-    });
-    dt+='</tbody></table></div>';
-  });
-  document.getElementById('pdt').innerHTML=dt;
-
-  // Overall analysis
-  var oa='<div class="tbl-w"><table><thead><tr><th>Q#</th><th>Sec.Q</th><th>Section</th><th>السؤال</th>'
-    +(showG?'<th>F.Mean</th><th>M.Mean</th><th>Max</th><th>Min</th>':'')
-    +'<th>Mean</th><th>Pos%</th><th>Neg%</th><th>التصنيف</th></tr></thead><tbody>';
-  secs.forEach(function(s){
-    oa+='<tr class="sec-hdr"><td colspan="'+(showG?12:8)+'">'+esc(s.name)+' | '+esc(s.ar)+'</td></tr>';
-    s.qs.forEach(function(q,si){
-      oa+='<tr class="'+(si%2?'':'even')+'"><td><b>Q'+q.qn+'</b></td><td>'+(si+1)+'</td><td>'+esc(s.name)+'</td>'
-        +'<td style="text-align:right;direction:rtl;max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(q.lbl)+'</td>'
-        +(showG?'<td>'+q.fM+'</td><td>'+q.mM+'</td><td>'+q.maxM+'</td><td>'+q.minM+'</td>':'')
-        +'<td style="font-weight:700;color:'+q.cl.c+';background:'+q.cl.bg+'">'+q.cM+'</td>'
-        +'<td style="color:#375623;font-weight:700">'+q.pos+'%</td>'
-        +'<td style="color:#9C0006;font-weight:700">'+q.neg+'%</td>'
-        +'<td style="background:'+q.cl.bg+'"><span class="tag" style="color:'+q.cl.c+'">'+q.cl.l+'</span></td></tr>';
-    });
-  });
-  oa+='</tbody></table></div>';
-  document.getElementById('poa').innerHTML=oa;
-}
-
-// ════════════════════════════════════════════════════════════════
-// ROSTER CHECK
-// ════════════════════════════════════════════════════════════════
-function checkRoster(){
-  var listEl=document.getElementById('rList');
-  var colEl=document.getElementById('rCol');
-  var resEl=document.getElementById('rResult');
-  var raw=(listEl.value||'').trim();
-  if(!raw){resEl.innerHTML='<div class="msg-err">ادخلي القائمة أولاً</div>';return;}
-  if(!RAW){resEl.innerHTML='<div class="msg-err">ارفعي الملف أولاً</div>';return;}
-  var roster=raw.split('\n').map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-  var colName=(colEl.value||'').trim().toLowerCase();
-  var colIdx=-1;
-  if(colName){RAW.headers.forEach(function(h,i){if(h.toLowerCase()===colName)colIdx=i;});}
-  if(colIdx<0){
-    RAW.headers.forEach(function(h,i){
-      var hl=h.toLowerCase();
-      if(colIdx<0&&(hl.indexOf('email')>=0||hl.indexOf('mail')>=0||hl.indexOf('name')>=0||hl.indexOf('id')===0||hl.indexOf('\u0627\u0633\u0645')>=0||hl.indexOf('\u0628\u0631\u064a\u062f')>=0))colIdx=i;
-    });
+function loadFile(inp){
+  var f=inp.files[0]; if(!f)return;
+  document.getElementById('fn').textContent='⏳ جاري القراءة: '+f.name;
+  hideE('e1');
+  var ext=f.name.split('.').pop().toLowerCase();
+  var r=new FileReader();
+  if(ext==='csv'){
+    r.onload=function(e){try{RAW=parseCSV(e.target.result);initCfg(f.name);}catch(ex){showE('e1',ex.message);}};
+    r.readAsText(f,'UTF-8');
+  } else {
+    r.onload=function(e){
+      try{
+        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        var hdrs=j[0].map(function(h){return String(h||'').trim();});
+        var rows=j.slice(1).filter(function(r){return r.some(function(v){return v!=='';});});
+        RAW={headers:hdrs,rows:rows};
+        initCfg(f.name);
+      }catch(ex){showE('e1','خطأ في قراءة الملف: '+ex.message);}
+    };
+    r.readAsArrayBuffer(f);
   }
-  if(colIdx<0){resEl.innerHTML='<div class="msg-info">لم يُعثر على عمود تعريف. الأعمدة المتاحة:<br>'+RAW.headers.join(' | ')+'</div>';return;}
-  var respondents=RAW.rows.map(function(row){return String(row[colIdx]||'').trim().toLowerCase();}).filter(Boolean);
-  var responded=[],notResponded=[];
-  roster.forEach(function(person){
-    var pl=person.toLowerCase();
-    var found=respondents.some(function(r){return r===pl||r.indexOf(pl)>=0||pl.indexOf(r)>=0;});
-    if(found)responded.push(person);else notResponded.push(person);
+}
+
+function parseCSV(txt){
+  var lines=txt.split('\n').filter(function(l){return l.trim();});
+  var hdrs=lines[0].split(',').map(function(h){return h.trim().replace(/^"|"$/g,'');});
+  var rows=lines.slice(1).map(function(l){return l.split(',').map(function(v){return v.trim().replace(/^"|"$/g,'');});});
+  return {headers:hdrs,rows:rows};
+}
+
+function initCfg(name){
+  document.getElementById('fn').textContent='✅ '+name;
+  document.getElementById('nextBtn').disabled=false;
+  // Auto-detect gender column
+  var g=RAW.headers.findIndex(function(h){return /^(gender|جنس|الجنس|sex|النوع)$/i.test(h.trim());});
+  if(g>=0){
+    document.getElementById('gcol').value=RAW.headers[g];
+    document.getElementById('gh').textContent='تم الكشف تلقائياً ✅';
+  }
+  checkNext();
+}
+
+function checkNext(){
+  var ok=(AMODE==='single'&&RAW)||(AMODE==='multi'&&SEC_FILES.length>=2&&SEC_FILES.every(function(s){return s.ok;}));
+  document.getElementById('nextBtn').disabled=!ok;
+}
+
+// ════════════════════════════════════════════════════════════════
+// PREVIEW
+// ════════════════════════════════════════════════════════════════
+function previewData(){
+  if(!RAW){showE('e1','ارفعي الملف أولاً');return;}
+  var sr=Math.max(0,(parseInt(document.getElementById('startRow').value)||2)-2);
+  var fc=parseInt(document.getElementById('firstCol').value||'0');
+  var lc=parseInt(document.getElementById('lastCol').value||'0');
+  var dataRows=RAW.rows.slice(sr).filter(function(r){return r.some(function(v){return String(v||'').trim();});});
+  var cols=RAW.headers.map(function(_,i){return i;});
+  if(fc>0) cols=cols.filter(function(i){return i>=fc-1;});
+  if(lc>0) cols=cols.filter(function(i){return i<=lc-1;});
+  var samp=dataRows.slice(0,5);
+  // Check numeric
+  var isNum=cols.map(function(ci){
+    var vals=samp.map(function(r){return r[ci];}).filter(function(v){return String(v||'').trim();});
+    var nums=vals.filter(function(v){return !isNaN(parseFloat(v))&&parseFloat(v)>=1&&parseFloat(v)<=5;});
+    return vals.length>0&&nums.length/vals.length>=0.5;
   });
-  var extra=respondents.filter(function(r){return !roster.some(function(p){var pl=p.toLowerCase();return r===pl||r.indexOf(pl)>=0||pl.indexOf(r)>=0;});});
-  var pct=roster.length?Math.round(responded.length/roster.length*100):0;
-  var pc=pct>=80?'#375623':pct>=60?'#7F6000':'#9C0006',pb=pct>=80?'#E2EFDA':pct>=60?'#FFEB9C':'#FFC7CE';
-  var out='<div class="stats">'
-    +'<div class="stat" style="border-top-color:#375623;background:#E2EFDA"><div class="v" style="color:#375623">'+responded.length+'</div><div class="l">استبانوا ✅</div></div>'
-    +'<div class="stat" style="border-top-color:#9C0006;background:#FFC7CE"><div class="v" style="color:#9C0006">'+notResponded.length+'</div><div class="l">لم يستبينوا ❌</div></div>'
-    +'<div class="stat"><div class="v">'+roster.length+'</div><div class="l">إجمالي القائمة</div></div>'
-    +'<div class="stat" style="border-top-color:'+pc+';background:'+pb+'"><div class="v" style="color:'+pc+'">'+pct+'%</div><div class="l">نسبة المشاركة</div></div>'
-    +'</div>';
-  if(notResponded.length)out+='<div style="background:#FFF0F0;border-radius:8px;padding:12px;margin-bottom:8px;border-right:4px solid #9C0006"><div style="font-weight:700;color:#9C0006;margin-bottom:6px">❌ لم يستبينوا ('+notResponded.length+')</div><div style="display:flex;flex-wrap:wrap;gap:4px">'+notResponded.map(function(p){return'<span style="background:#FFC7CE;color:#9C0006;padding:2px 10px;border-radius:20px;font-size:12px">'+esc(p)+'</span>';}).join('')+'</div></div>';
-  if(responded.length)out+='<div style="background:#F0FFF0;border-radius:8px;padding:12px;margin-bottom:8px;border-right:4px solid #375623"><div style="font-weight:700;color:#375623;margin-bottom:6px">✅ استبانوا ('+responded.length+')</div><div style="display:flex;flex-wrap:wrap;gap:4px">'+responded.map(function(p){return'<span style="background:#E2EFDA;color:#375623;padding:2px 10px;border-radius:20px;font-size:12px">'+esc(p)+'</span>';}).join('')+'</div></div>';
-  if(extra.length)out+='<div class="msg-info">ℹ️ '+extra.length+' مستجيب في الملف غير موجود في قائمتك</div>';
-  resEl.innerHTML=out;
+  var numCt=isNum.filter(Boolean).length;
+  var box=document.getElementById('previewBox');
+  box.style.display='block';
+  var tbl='<div style="padding:8px;background:#FFF8E7;font-size:11px;color:#92400E;font-weight:700">معاينة '+samp.length+' صفوف — ✅ رقمي: '+numCt+' عمود | ❌ نصي: '+(cols.length-numCt)+' عمود</div>';
+  tbl+='<div style="overflow-x:auto"><table><thead><tr>';
+  cols.forEach(function(ci,i){
+    var h=RAW.headers[ci]||('Col '+(ci+1));
+    tbl+='<th style="background:'+(isNum[i]?'#375623':'#9C0006')+'">'+esc(h.slice(0,12))+'<br><span style="font-weight:400;font-size:9px">'+(isNum[i]?'✅ رقمي':'❌ نصي')+'</span></th>';
+  });
+  tbl+='</tr></thead><tbody>';
+  samp.forEach(function(row,ri){
+    tbl+='<tr class="'+(ri%2?'':'even')+'">';
+    cols.forEach(function(ci,i){
+      tbl+='<td style="'+(isNum[i]?'color:#375623;font-weight:700':'color:#9C0006')+'">'+esc(String(row[ci]||''))+'</td>';
+    });
+    tbl+='</tr>';
+  });
+  tbl+='</tbody></table></div>';
+  box.innerHTML=tbl;
 }
 
 // ════════════════════════════════════════════════════════════════
-// GENERATE WORD
+// MULTI FILE
 // ════════════════════════════════════════════════════════════════
-async function genWord(){
-  if(!RES)return;
-  var btn=document.getElementById('dlBtn');
-  var prog=document.getElementById('dlProg'),bar=document.getElementById('dlBar');
-  var msg=document.getElementById('dlMsg');
-  btn.disabled=true; prog.style.display='block'; msg.innerHTML='';
-  var setP=function(p,t){bar.style.width=p+'%';if(t)msg.innerHTML='<div class="msg-info">⏳ '+t+'</div>';};
-  try{
-    setP(30,'إرسال البيانات للخادم...');
-    var resp=await fetch('/api/generate-word',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({result:RES,cfg:{
-      cname:CFG.cname,sname:CFG.sname,obj:CFG.obj,
-      semester:CFG.semester,gmode:CFG.gmode,
-      dept:CFG.dept||'',loc:CFG.loc||''
-    }})});
-    if(!resp.ok){var e=await resp.json().catch(function(){return {};});throw new Error(e.error||'Server error '+resp.status);}
-    setP(85,'استلام الملف...');
-    var blob=await resp.blob();
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;a.download=(CFG.sname||'Survey')+'_Analysis.docx';
-    a.style.display='none';document.body.appendChild(a);a.click();
-    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},2000);
-    setP(100,'');
-    msg.innerHTML='<div class="msg-ok">✅ تم تحميل التقرير بنجاح!</div>';
-  }catch(ex){
-    msg.innerHTML='<div class="msg-err">⚠️ '+ex.message+'</div>';
-    prog.style.display='none';
-  }
-  btn.disabled=false;
-}
+// ── COURSES STATE ────────────────────────────────────────────────────────────
+var COURSES = [];
 
-document.addEventListener('DOMContentLoaded', function(){
-  var DZ=document.getElementById('dropzone');
-  if(DZ){
-    DZ.addEventListener('dragover',function(e){e.preventDefault();DZ.classList.add('drag');});
-    DZ.addEventListener('dragleave',function(){DZ.classList.remove('drag');});
-    DZ.addEventListener('drop',function(e){e.preventDefault();DZ.classList.remove('drag');loadFile({files:e.dataTransfer.files});});
-  }
-});
-
-// ════════════════════════════════════════════════════════════════
-// REPORT TYPE (course / instructor)
-// ════════════════════════════════════════════════════════════════
-var REPORT_TYPE = 'course';
-
-function setReportType(t){
-  REPORT_TYPE = t;
-  var bc = document.getElementById('rt_course');
-  var bi = document.getElementById('rt_instructor');
-  if(bc){ bc.style.background = t==='course'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff'; bc.style.color=t==='course'?'#fff':'#1F4E79'; bc.style.border=t==='course'?'none':'2px solid #BDD7EE'; }
-  if(bi){ bi.style.background = t==='instructor'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff'; bi.style.color=t==='instructor'?'#fff':'#1F4E79'; bi.style.border=t==='instructor'?'none':'2px solid #BDD7EE'; }
-  // Show/hide UI sections
-  var ci = document.getElementById('courseMode_info');
-  var ii = document.getElementById('instructorMode_info');
-  var cl = document.getElementById('coursesList');
-  if(ci) ci.style.display = t==='course'?'block':'none';
-  if(ii) ii.style.display = t==='instructor'?'block':'none';
-  if(cl) cl.style.display = t==='course'?'block':'none';
-}
-
-// ════════════════════════════════════════════════════════════════
-// PARSE INSTRUCTOR XLS (النظام format: col2=mean, col22=text, col38=Q#)
-// ════════════════════════════════════════════════════════════════
-function parseInstructorXLS(raw){
-  var sections=[], current=null;
-  var rows=raw.rows;
-
+function parseCourseXLS(raw){
+  var sections=[],current=null,rows=raw.rows;
   for(var i=0;i<rows.length;i++){
-    var row=rows[i];
-    if(!row||!row.length) continue;
-
-    // Find 'المحاضر:' in any column
+    var row=rows[i]; if(!row||!row.length) continue;
     var mahIdx=-1;
-    for(var c=0;c<row.length;c++){
-      if(String(row[c]||'').trim()==='المحاضر:'){mahIdx=c;break;}
-    }
-
+    for(var c=0;c<row.length;c++){if(String(row[c]||'').trim()==='المحاضر:'){mahIdx=c;break;}}
     if(mahIdx>=0){
       if(current&&current.questions.length>0) sections.push(current);
-      var enrolled=0, secNum='', dept='', loc='';
+      var enrolled=0,secNum='';
       for(var c2=0;c2<row.length-1;c2++){
         var kw=String(row[c2]||'').trim();
-        if(kw==='المسجلين :'||kw==='المسجلين:')
-          enrolled=parseInt(row[c2-2]||0)||parseInt(row[c2+2]||0)||0;
-        if(kw==='الشعبة :'||kw==='الشعبة:')
-          secNum=String(row[c2-3]||row[c2+2]||'').trim();
-        if(kw==='القسم :') dept=String(row[c2+2]||'').trim();
-        if(kw==='المقر :') loc=String(row[c2+2]||'').trim();
+        if(kw==='المسجلين :'||kw==='المسجلين:') enrolled=parseInt(row[c2-2]||0)||parseInt(row[c2+2]||0)||0;
+        if(kw==='الشعبة :'||kw==='الشعبة:') secNum=String(row[c2-3]||row[c2+2]||'').trim();
       }
-      current={
-        lecturer:String(row[2]||'').trim(),
-        sec_num:secNum, enrolled:enrolled, dept:dept, loc:loc,
-        course:'', semester:'', n:0, questions:[]
-      };
+      current={lecturer:String(row[2]||'').trim(),sec_num:secNum,enrolled:enrolled,course:'',semester:'',n:0,questions:[]};
     }
-
-    // Evaluators row: find المقيميين
     if(current&&current.n===0){
-      var hasEval=false;
       for(var c3=0;c3<row.length;c3++){
-        if(String(row[c3]||'').indexOf('المقيميين')>=0){hasEval=true;break;}
+        var kw3=String(row[c3]||'');
+        if(kw3.indexOf('المقيميين')>=0) current.n=parseInt(row[c3-2]||0)||0;
+        if(kw3.trim()==='المقرر :') current.course=String(row[c3-3]||row[c3+2]||'').trim();
+        if(kw3.trim()==='الفصل :') current.semester=String(row[c3-3]||row[c3+2]||'').trim();
       }
-      if(hasEval){
-        for(var c4=0;c4<row.length-1;c4++){
-          var kw4=String(row[c4]||'').trim();
-          // n = value 2 cols BEFORE 'المقيميين :'
-          if(kw4.indexOf('المقيميين')>=0)
-            current.n=parseInt(row[c4-2]||0)||parseInt(row[c4+2]||0)||0;
-          // course = col27 (value before 'المقرر :' which is at col30)
-          // So: find 'المقرر :' and take col at index-3
-          if(kw4==='المقرر :')
-            current.course=String(row[c4-3]||row[c4+2]||'').trim();
-          if(kw4==='الفصل :')
-            current.semester=String(row[c4-3]||row[c4+2]||'').trim();
-        }
-        // Fallback: col27 = course code
-        if(!current.course) current.course=String(row[27]||'').trim();
-        if(!current.n) current.n=parseInt(row[23]||0)||0;
-      }
+      if(!current.course) current.course=String(row[27]||'').trim();
+      if(!current.n) current.n=parseInt(row[23]||0)||0;
     }
-
-    // Q row: col38=Q#, col2=mean, col22=text
     if(current&&row.length>38){
-      var qn=parseFloat(row[38]), mean=parseFloat(row[2]);
+      var qn=parseFloat(row[38]),mean=parseFloat(row[2]);
       if(!isNaN(qn)&&qn>=1&&qn<=50&&!isNaN(mean)&&mean>0&&mean<=5){
-        current.questions.push({
-          qn:Math.round(qn), text:String(row[22]||'').trim(), mean:+mean.toFixed(3),
-          pct_sa:+(parseFloat(row[4])||0).toFixed(1), cnt_sa:parseInt(row[5])||0,
-          pct_a: +(parseFloat(row[7])||0).toFixed(1), cnt_a: parseInt(row[8])||0,
-          pct_n: +(parseFloat(row[12])||0).toFixed(1), cnt_n: parseInt(row[13])||0,
-          pct_d: +(parseFloat(row[16])||0).toFixed(1), cnt_d: parseInt(row[17])||0,
-          pct_sd:+(parseFloat(row[19])||0).toFixed(1), cnt_sd:parseInt(row[20])||0,
-        });
+        current.questions.push({qn:Math.round(qn),text:String(row[22]||'').trim(),mean:+mean.toFixed(3),
+          pct_sa:+(parseFloat(row[4])||0).toFixed(1),pct_a:+(parseFloat(row[7])||0).toFixed(1),
+          pct_d:+(parseFloat(row[16])||0).toFixed(1),pct_sd:+(parseFloat(row[19])||0).toFixed(1)});
       }
     }
   }
   if(current&&current.questions.length>0) sections.push(current);
-
   sections.forEach(function(s){
     var qm=s.questions.map(function(q){return q.mean;});
     s.sec_mean=qm.length?+(qm.reduce(function(a,b){return a+b;},0)/qm.length).toFixed(3):0;
-    s.enrolled_num=s.enrolled;
-    s.not_responded=Math.max(0,s.enrolled-s.n);
+    s.enrolled_num=s.enrolled; s.not_responded=Math.max(0,s.enrolled-s.n);
     s.participation_pct=s.enrolled>0?Math.round(s.n/s.enrolled*100):0;
   });
   return sections.filter(function(s){return s.questions.length>0;});
+} // [{name, files:[{raw,ok,fileName}]}]
+
+function addCourse(){
+  COURSES.push({name:'المقرر '+(COURSES.length+1), files:[{raw:null,ok:false,fileName:''}]});
+  renderCourses();
 }
 
+function renderCourses(){
+  var c=document.getElementById('coursesList'); if(!c) return;
+  c.innerHTML='';
+  COURSES.forEach(function(course,ci){
+    var d=document.createElement('div');
+    d.style.cssText='border:2px solid #BDD7EE;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafbff';
+    var h='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
+    h+='<input value="'+esc(course.name)+'" onchange="COURSES['+ci+'].name=this.value" style="padding:5px 10px;font-size:13px;border:2px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;direction:rtl;width:180px">';
+    if(COURSES.length>1) h+='<button onclick="COURSES.splice('+ci+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:15px">🗑</button>';
+    h+='</div>';
+    // Mode toggle
+    h+='<div style="display:flex;gap:6px;margin-bottom:10px">'
+     +'<button onclick="COURSES['+ci+'].xls_mode=false;renderCourses()" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;background:'+(course.xls_mode?'#fff':'linear-gradient(135deg,#1F4E79,#2E75B6)')+';color:'+(course.xls_mode?'#1F4E79':'#fff')+(course.xls_mode?';border:2px solid #BDD7EE':'')+'">'
+     +'📊 Excel عادي</button>'
+     +'<button onclick="COURSES['+ci+'].xls_mode=true;renderCourses()" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;background:'+(course.xls_mode?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff')+';color:'+(course.xls_mode?'#fff':'#1F4E79')+(course.xls_mode?'':';border:2px solid #BDD7EE')+'">'
+     +'📋 XLS من النظام</button>'
+     +'</div>';
 
-function combineInstructorAndGo(){
-  // Parse instructor XLS (from INSTRUCTOR_RAW or legacy SEC_FILES)
-  var rawFiles = [];
-  if(INSTRUCTOR_RAW){
-    rawFiles = [INSTRUCTOR_RAW];
+    if(course.xls_mode){
+      // XLS mode: two file uploads (boys + girls)
+      h+='<div style="background:#FFF8E7;border-radius:8px;padding:10px;border-right:3px solid #F59E0B">';
+      h+='<div style="font-size:11px;color:#92400E;margin-bottom:8px;font-weight:700">ارفعي ملف XLS المصدَّر من النظام — يقرأ كل الشعب تلقائياً</div>';
+      // Boys
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+       +'<span style="font-size:11px;font-weight:700;color:#1F4E79;min-width:50px">👦 بنين</span>'
+       +'<label style="cursor:pointer"><span style="background:#1F4E79;color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع XLS'
+       +'<input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadXLSFile('+ci+',\'boys\',this)"></span></label>'
+       +'<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:'+(course.xls_boys.ok?'#E2EFDA':'#EBF3FB')+';color:'+(course.xls_boys.ok?'#375623':'#64748b')+'">'+(course.xls_boys.ok?'✅ '+course.xls_boys.fn:'⏳ لم يُرفع')+'</span>'
+       +'</div>';
+      // Girls
+      h+='<div style="display:flex;align-items:center;gap:8px">'
+       +'<span style="font-size:11px;font-weight:700;color:#9C0006;min-width:50px">👧 بنات</span>'
+       +'<label style="cursor:pointer"><span style="background:#9C0006;color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع XLS'
+       +'<input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadXLSFile('+ci+',\'girls\',this)"></span></label>'
+       +'<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:'+(course.xls_girls.ok?'#E2EFDA':'#EBF3FB')+';color:'+(course.xls_girls.ok?'#375623':'#64748b')+'">'+(course.xls_girls.ok?'✅ '+course.xls_girls.fn:'⏳ اختياري')+'</span>'
+       +'</div>';
+      h+='</div>';
+    } else {
+      // Normal mode: sections with boys/girls per section
+      course.sections.forEach(function(sec,si){
+        h+='<div style="background:#fff;border:1px solid #BDD7EE;border-radius:8px;padding:10px;margin-bottom:6px">';
+        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+         +'<span style="font-size:11px;font-weight:700;color:#2E75B6">شعبة '+(si+1)+'</span>'
+         +'<input value="'+esc(sec.label)+'" onchange="COURSES['+ci+'].sections['+si+'].label=this.value" placeholder="مثال: 22" style="padding:3px 8px;font-size:12px;border:1px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;width:80px">'
+         +(course.sections.length>1?'<button onclick="COURSES['+ci+'].sections.splice('+si+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006">✕</button>':'')
+         +'</div>';
+        // Boys
+        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+         +'<span style="font-size:11px;font-weight:700;color:#1F4E79;min-width:40px">👦</span>'
+         +'<label style="cursor:pointer"><span style="background:#1F4E79;color:#fff;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع'
+         +'<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadSectionFile('+ci+','+si+',\'boys\',this)"></span></label>'
+         +'<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:'+(sec.boys.ok?'#E2EFDA':'#EBF3FB')+';color:'+(sec.boys.ok?'#375623':'#64748b')+'">'+(sec.boys.ok?'✅ '+sec.boys.fn:'⏳')+'</span>'
+         +'</div>';
+        // Girls
+        h+='<div style="display:flex;align-items:center;gap:8px">'
+         +'<span style="font-size:11px;font-weight:700;color:#9C0006;min-width:40px">👧</span>'
+         +'<label style="cursor:pointer"><span style="background:#9C0006;color:#fff;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع'
+         +'<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadSectionFile('+ci+','+si+',\'girls\',this)"></span></label>'
+         +'<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:'+(sec.girls.ok?'#E2EFDA':'#EBF3FB')+';color:'+(sec.girls.ok?'#375623':'#64748b')+'">'+(sec.girls.ok?'✅ '+sec.girls.fn:'⏳ اختياري')+'</span>'
+         +'</div>';
+        h+='</div>';
+      });
+      h+='<button onclick="COURSES['+ci+'].sections.push({label:\'\',boys:{raw:null,ok:false,fn:\'\'},girls:{raw:null,ok:false,fn:\'\'}});renderCourses()" style="background:none;border:1px dashed #BDD7EE;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:11px;color:#2E75B6;font-family:inherit;margin-top:4px">＋ شعبة</button>';
+    }
+    d.innerHTML=h;
+    c.appendChild(d);
+  });
+  // Enable/disable combine button
+  var hasData=COURSES.some(function(co){
+    if(co.xls_mode) return co.xls_boys.ok||co.xls_girls.ok;
+    return co.sections.some(function(s){return s.boys.ok;});
+  });
+  var btn=document.getElementById('combineBtn');
+  if(btn) btn.disabled=!hasData;
+  checkNext();
+}
+
+function loadXLSFile(ci,gender,inp){
+  var f=inp.files[0]; if(!f) return;
+  COURSES[ci]['xls_'+gender]={raw:null,ok:false,fn:f.name};
+  renderCourses();
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      COURSES[ci]['xls_'+gender]={raw:{headers:j[0].map(function(h){return String(h||'');}),rows:j.slice(1)},ok:true,fn:f.name};
+      renderCourses();
+    }catch(ex){COURSES[ci]['xls_'+gender].fn='❌ خطأ';renderCourses();}
+  };
+  r.readAsArrayBuffer(f);
+}
+
+function loadSectionFile(ci,si,gender,inp){
+  var f=inp.files[0]; if(!f) return;
+  COURSES[ci].sections[si][gender]={raw:null,ok:false,fn:f.name};
+  renderCourses();
+  var ext=f.name.split('.').pop().toLowerCase();
+  var r=new FileReader();
+  var done=function(raw){COURSES[ci].sections[si][gender]={raw:raw,ok:true,fn:f.name};renderCourses();};
+  if(ext==='csv'){
+    r.onload=function(e){try{done(parseCSV(e.target.result));}catch(ex){COURSES[ci].sections[si][gender].ok=false;renderCourses();}};
+    r.readAsText(f,'UTF-8');
   } else {
-    rawFiles = SEC_FILES.filter(function(sf){return sf.ok && sf.raw;}).map(function(sf){return sf.raw;});
+    r.onload=function(e){
+      try{
+        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        done({headers:j[0].map(function(h){return String(h||'').trim();}),rows:j.slice(1).filter(function(r){return r.some(function(v){return v!=='';});})});
+      }catch(ex){COURSES[ci].sections[si][gender].ok=false;renderCourses();}
+    };
+    r.readAsArrayBuffer(f);
   }
-  if(!rawFiles.length){showE('e1','ارفعي الملف أولاً');return;}
-
-  var allSecs = [];
-  rawFiles.forEach(function(raw){
-    var parsed = parseInstructorXLS(raw);
-    allSecs = allSecs.concat(parsed);
-  });
-
-  if(!allSecs.length){showE('e1','لم يتم العثور على شعب في الملف — تأكدي من أنه ملف XLS استبانة المحاضرين');return;}
-
-  var nQ = allSecs[0].questions.length;
-  var qTexts = allSecs[0].questions.map(function(q){return q.text;});
-  var totalN = allSecs.reduce(function(a,s){return a+s.n;},0);
-
-  // Group by lecturer
-  var lecMap = {};
-  allSecs.forEach(function(s){
-    if(!lecMap[s.lecturer]) lecMap[s.lecturer] = [];
-    lecMap[s.lecturer].push(s);
-  });
-
-  var lecturers = Object.keys(lecMap).map(function(name){
-    var secs = lecMap[name];
-    var tn = secs.reduce(function(a,s){return a+s.n;},0);
-    var ns = secs.length || 1;
-    var qMeans = Array.from({length:nQ},function(_,qi){
-      // Simple average: sum of section means ÷ number of sections
-      return +(secs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3);
-    });
-    var mean = qMeans.length ? +(qMeans.reduce(function(a,b){return a+b;},0)/qMeans.length).toFixed(3) : 0;
-    return {name:name, secs:secs, n:tn, mean:mean, qMeans:qMeans,
-      courses:[...new Set(secs.map(function(s){return s.course;}))]};
-  }).sort(function(a,b){return b.mean-a.mean;});
-
-  CFG.instructorMode = true;
-  CFG.allSecs = allSecs;
-  CFG.lecturers = lecturers;
-  CFG.qTexts = qTexts;
-  CFG.nQ = nQ;
-  CFG.sname = document.getElementById('sname').value || 'تقرير استبانة تقييم المحاضرين';
-  CFG.cname = document.getElementById('cname').value;
-  CFG.semester = document.getElementById('semester').value;
-
-  var totalEnrolled = allSecs.reduce(function(a,s){return a+s.enrolled_num;},0);
-  var totalNot = allSecs.reduce(function(a,s){return a+s.not_responded;},0);
-  var grandMean = totalN>0?+(allSecs.reduce(function(a,s){return a+s.sec_mean*s.n;},0)/totalN).toFixed(3):0;
-
-  RES = {instructorMode:true, allSecs:allSecs, lecturers:lecturers,
-    qTexts:qTexts, totalN:totalN, totalEnrolled:totalEnrolled,
-    totalNot:totalNot, grandMean:grandMean};
-
-  buildInstructorUI(allSecs, lecturers, qTexts, totalN);
-  go(4);
 }
 
-// ════════════════════════════════════════════════════════════════
-// INSTRUCTOR UI
-// ════════════════════════════════════════════════════════════════
-function buildInstructorUI(allSecs, lecturers, qTexts, totalN){
-  var totalEnrolled = allSecs.reduce(function(a,s){return a+s.enrolled;},0);
-  var totalNot = allSecs.reduce(function(a,s){return a+s.not_responded;},0);
-  var pct = totalEnrolled>0?Math.round(totalN/totalEnrolled*100):0;
-  var grandMean = totalN>0?+(allSecs.reduce(function(a,s){return a+s.sec_mean*s.n;},0)/totalN).toFixed(3):0;
-  var cl = clf5(grandMean);
 
-  // Stats
-  document.getElementById('st4').innerHTML=[
-    {v:totalEnrolled,l:'المسجلون'},{v:totalN,l:'المقيّمون'},
-    {v:totalNot,l:'لم يستبينوا'},{v:pct+'%',l:'نسبة المشاركة'},
-    {v:allSecs.length,l:'الشعب'},{v:lecturers.length,l:'المحاضرون'},
-    {v:grandMean,l:'المتوسط العام'}
-  ].map(function(x){return '<div class="stat"><div class="v">'+x.v+'</div><div class="l">'+x.l+'</div></div>';}).join('');
-
-  // Tab 1: All sections participation
-  var t1 = '<div class="tbl-w"><table><thead><tr>'
-    +'<th>#</th><th>الشعبة</th><th>المقرر</th><th>المحاضر</th>'
-    +'<th>المسجلون</th><th>المقيّمون</th><th>لم يستبينوا</th><th>المشاركة%</th><th>المتوسط</th>'
-    +'</tr></thead><tbody>';
-  allSecs.forEach(function(s,i){
-    var scl=clf5(s.sec_mean); var pp=s.participation_pct||0;
-    t1+='<tr class="'+(i%2?'':'even')+'">'
-      +'<td>'+(i+1)+'</td>'
-      +'<td style="font-size:11px">'+esc(s.sec_num)+'</td>'
-      +'<td style="font-weight:700;color:#1F4E79">'+esc(s.course)+'</td>'
-      +'<td style="text-align:right;font-size:11px">'+esc(s.lecturer)+'</td>'
-      +'<td>'+s.enrolled+'</td>'
-      +'<td style="color:#375623;font-weight:700">'+s.n+'</td>'
-      +'<td style="color:'+(s.not_responded>0?'#9C0006':'#375623')+';font-weight:700">'+s.not_responded+'</td>'
-      +'<td><span class="tag" style="background:'+(pp>=80?'#E2EFDA':pp>=60?'#FFEB9C':'#FFC7CE')+';color:'+(pp>=80?'#375623':pp>=60?'#7F6000':'#9C0006')+'">'+pp+'%</span></td>'
-      +'<td style="font-weight:700;color:'+scl.c+';background:'+scl.bg+'">'+s.sec_mean.toFixed(2)+'</td>'
-      +'</tr>';
-  });
-  // Total row
-  t1+='<tr style="background:#1F4E79">'
-    +'<td colspan="4" style="color:#fff;font-weight:700;text-align:center">الإجمالي</td>'
-    +'<td style="color:#fff;font-weight:700">'+totalEnrolled+'</td>'
-    +'<td style="color:#90EE90;font-weight:700">'+totalN+'</td>'
-    +'<td style="color:'+(totalNot>0?'#FFB3B3':'#90EE90')+';font-weight:700">'+totalNot+'</td>'
-    +'<td><span class="tag" style="background:'+(pct>=80?'#E2EFDA':pct>=60?'#FFEB9C':'#FFC7CE')+';color:'+(pct>=80?'#375623':pct>=60?'#7F6000':'#9C0006')+'">'+pct+'%</span></td>'
-    +'<td style="color:'+cl.c+';background:'+cl.bg+';font-weight:700">'+grandMean+'</td>'
-    +'</tr>';
-  t1+='</tbody></table></div>';
-  document.getElementById('pov').innerHTML=t1;
-
-  // Tab 2: Lecturer summary
-  var nQ = qTexts.length;
-  var t2 = '<div class="tbl-w"><table><thead><tr>'
-    +'<th>#</th><th>المحاضر</th><th>المقررات</th><th>الشعب</th><th>المقيّمون</th>'
-    +Array.from({length:nQ},function(_,i){return '<th>Q'+(i+1)+'</th>';}).join('')
-    +'<th>المتوسط الموزون</th><th>التصنيف</th>'
-    +'</tr></thead><tbody>';
-  lecturers.forEach(function(lec,i){
-    var lcl=clf5(lec.mean);
-    t2+='<tr class="'+(i%2?'':'even')+'">'
-      +'<td>'+(i+1)+'</td>'
-      +'<td style="text-align:right;font-size:11px">'+esc(lec.name)+'</td>'
-      +'<td style="font-size:10px">'+lec.courses.join(' | ')+'</td>'
-      +'<td>'+lec.secs.length+'</td>'
-      +'<td style="font-weight:700">'+lec.n+'</td>'
-      +lec.qMeans.map(function(qm){var qcl=clf5(qm);return '<td style="font-size:11px;color:'+qcl.c+';background:'+qcl.bg+'">'+qm.toFixed(2)+'</td>';}).join('')
-      +'<td style="font-weight:700;font-size:14px;color:'+lcl.c+';background:'+lcl.bg+'">'+lec.mean.toFixed(3)+'</td>'
-      +'<td style="background:'+lcl.bg+'"><span class="tag" style="color:'+lcl.c+'">'+lcl.l+'</span></td>'
-      +'</tr>';
-  });
-  t2+='</tbody></table></div>';
-  document.getElementById('pdt').innerHTML=t2;
-
-  // Tab 3: Q × Course cross table
-  var courses = [...new Set(allSecs.map(function(s){return s.course;}))];
-  var t3 = '<div class="tbl-w"><table><thead><tr><th>السؤال</th>';
-  courses.forEach(function(c){ t3+='<th>'+esc(c)+'</th>'; });
-  t3+='<th>الإجمالي</th></tr></thead><tbody>';
-
-  var courseQMeans = {};
-  courses.forEach(function(code){
-    var cs = allSecs.filter(function(s){return s.course===code;});
-    var tn = cs.reduce(function(a,s){return a+s.n;},0);
-    courseQMeans[code] = Array.from({length:nQ},function(_,qi){
-      return tn?+(cs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0)*s.n;},0)/tn).toFixed(2):0;
-    });
-  });
-
-  Array.from({length:nQ},function(_,qi){
-    var oMean = +(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0)*s.n;},0)/totalN).toFixed(2);
-    var oCl = clf5(oMean);
-    t3+='<tr class="'+(qi%2?'':'even')+'">';
-    t3+='<td style="text-align:right;font-size:11px;max-width:200px;direction:rtl">Q'+(qi+1)+' — '+esc((qTexts[qi]||'').slice(0,40))+'</td>';
-    courses.forEach(function(code){
-      var qm=courseQMeans[code][qi]; var qcl=clf5(qm);
-      t3+='<td style="color:'+qcl.c+';background:'+qcl.bg+';font-weight:700">'+qm.toFixed(2)+'</td>';
-    });
-    t3+='<td style="font-weight:700;color:'+oCl.c+';background:'+oCl.bg+'">'+oMean+'</td>';
-    t3+='</tr>';
-  });
-  t3+='</tbody></table></div>';
-  document.getElementById('poa').innerHTML=t3;
-
-  // Store for Word download
-  RES = { instructorMode:true, allSecs:allSecs, lecturers:lecturers,
-    qTexts:qTexts, totalN:totalN, totalEnrolled:totalEnrolled,
-    totalNot:totalNot, grandMean:grandMean };
-}
 </script>
 </body>
 </html>
