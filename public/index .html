@@ -8038,73 +8038,95 @@ function parseCourseXLS(raw){
   var sections=[];
   var current=null;
   var rows=raw.rows;
+  console.log('parseCourseXLS: total rows=', rows.length, 'headers=', raw.headers.length);
+
+  // Debug: show first few rows
+  for(var dbg=0;dbg<Math.min(8,rows.length);dbg++){
+    var r=rows[dbg];
+    var nonEmpty=[];
+    for(var ci=0;ci<(r?r.length:0);ci++){
+      if(r[ci]!==''&&r[ci]!==undefined&&r[ci]!==0) nonEmpty.push(ci+':'+JSON.stringify(r[ci]).slice(0,20));
+    }
+    if(nonEmpty.length) console.log('Row'+dbg+':', nonEmpty.slice(0,6).join(' | '));
+  }
 
   for(var i=0;i<rows.length;i++){
     var row=rows[i];
     if(!row||!row.length) continue;
-    var rowStr=row.join('\t');
 
-    // Detect section header: row contains 'المحاضر:' AND has lecturer name
-    var isSectionHeader=false;
+    // APPROACH: search entire row for 'المحاضر:' string
+    var isSectionHdr=false;
     var mahIdx=-1;
     for(var c=0;c<row.length;c++){
-      if(String(row[c]||'').trim()==='المحاضر:'){mahIdx=c;isSectionHeader=true;break;}
+      var cell=String(row[c]||'');
+      if(cell.trim()==='المحاضر:'){mahIdx=c;isSectionHdr=true;break;}
     }
 
-    if(isSectionHeader){
+    if(isSectionHdr){
       if(current&&current.questions.length>0) sections.push(current);
-      // Find values by searching entire row
       var lecturer='',secNum='',enrolled=0,dept='',loc='';
-      // Lecturer is usually 2 cols before المحاضر: OR col2
-      lecturer=String(row[mahIdx>2?mahIdx-9:2]||row[2]||'').trim();
+      // Search whole row for keywords
+      for(var c2=0;c2<row.length-1;c2++){
+        var kw=String(row[c2]||'').trim();
+        if(kw==='المسجلين :'||kw==='المسجلين:'){
+          enrolled=parseInt(row[c2-2]||0)||parseInt(row[c2+2]||0)||0;
+        }
+        if(kw==='الشعبة :'||kw==='الشعبة:'){
+          secNum=String(row[c2-3]||row[c2+2]||'').trim();
+        }
+        if(kw==='القسم :') dept=String(row[c2+2]||'').trim();
+        if(kw==='المقر :') loc=String(row[c2+2]||'').trim();
+      }
+      // Lecturer: col before المحاضر: or col2
+      lecturer=String(row[mahIdx>0?mahIdx-9:2]||row[2]||'').trim();
       if(!lecturer||lecturer==='المحاضر:'){
-        // Search nearby columns
-        for(var c2=0;c2<mahIdx;c2++){
-          var v=String(row[c2]||'').trim();
-          if(v&&v.length>3&&v!=='المحاضر:'&&isNaN(v)){lecturer=v;break;}
+        for(var cx=0;cx<row.length;cx++){
+          var vx=String(row[cx]||'').trim();
+          if(vx.length>3&&!vx.includes(':')){lecturer=vx;break;}
         }
       }
-      for(var c3=0;c3<row.length-1;c3++){
-        var kw=String(row[c3]||'').trim();
-        if(kw==='المسجلين :'||kw==='المسجلين:') enrolled=parseInt(row[c3-2]||row[c3+2]||0)||0;
-        if(kw==='الشعبة :'||kw==='الشعبة:') secNum=String(row[c3-3]||row[c3+2]||'').trim();
-        if(kw==='القسم :') dept=String(row[c3+2]||'').trim();
-        if(kw==='المقر :') loc=String(row[c3+2]||'').trim();
-      }
+      console.log('Section found: lecturer=',lecturer,'sec=',secNum,'enrolled=',enrolled);
       current={lecturer:lecturer,sec_num:secNum,enrolled:enrolled,dept:dept,loc:loc,
         course:'',semester:'',n:0,questions:[]};
     }
 
-    // Detect evaluators row: contains 'المقيميين'
-    if(current&&current.n===0&&rowStr.indexOf('المقيميين')>=0){
-      for(var c4=0;c4<row.length-1;c4++){
-        var kw2=String(row[c4]||'').trim();
-        if(kw2.indexOf('المقيميين')>=0){
-          current.n=parseInt(row[c4-2]||row[c4+2]||0)||0;
+    // Evaluators row
+    if(current&&current.n===0){
+      for(var c3=0;c3<row.length;c3++){
+        var kw3=String(row[c3]||'');
+        if(kw3.indexOf('المقيميين')>=0){
+          current.n=parseInt(row[c3-2]||0)||parseInt(row[c3+2]||0)||0;
         }
-        if(kw2==='المقرر :') current.course=String(row[c4+2]||'').trim();
-        if(kw2==='الفصل :') current.semester=String(row[c4+2]||'').trim();
+        if(String(row[c3]||'').trim()==='المقرر :'){
+          current.course=String(row[c3+2]||'').trim();
+        }
+        if(String(row[c3]||'').trim()==='الفصل :'){
+          current.semester=String(row[c3+2]||'').trim();
+        }
       }
     }
 
-    // Detect Q row: col38=Q# col2=mean col22=text (or search for numeric mean+Q#)
+    // Q row: look for Q# in col38 AND mean in col2
+    // Also try: any row where last non-empty value is integer 1-24
     if(current){
       var qn=-1,mean=-1,text='';
-      // Try fixed positions first
+      // Primary: col38=Q#, col2=mean
       if(row.length>38){
-        var tryQn=parseFloat(row[38]);
-        var tryMean=parseFloat(row[2]);
-        if(!isNaN(tryQn)&&tryQn>=1&&tryQn<=50&&!isNaN(tryMean)&&tryMean>0&&tryMean<=5){
-          qn=tryQn; mean=tryMean; text=String(row[22]||'').trim();
+        var v38=parseFloat(row[38]);
+        var v2=parseFloat(row[2]);
+        if(!isNaN(v38)&&v38>=1&&v38<=50&&!isNaN(v2)&&v2>0&&v2<=5){
+          qn=v38; mean=v2; text=String(row[22]||'').trim();
         }
       }
-      // Fallback: search row for Q# pattern
+      // Secondary: scan last few columns for integer 1-24
       if(qn<0){
-        for(var c5=row.length-1;c5>=0;c5--){
-          var v5=parseFloat(row[c5]);
-          if(!isNaN(v5)&&v5>=1&&v5<=50&&Number.isInteger(v5)){
-            var tryM=parseFloat(row[2]);
-            if(!isNaN(tryM)&&tryM>0&&tryM<=5){qn=v5;mean=tryM;text=String(row[22]||'').trim();break;}
+        for(var cl=row.length-1;cl>=Math.max(0,row.length-5);cl--){
+          var vl=parseFloat(row[cl]);
+          if(!isNaN(vl)&&vl>=1&&vl<=50&&Number.isInteger(vl)){
+            var v2b=parseFloat(row[2]);
+            if(!isNaN(v2b)&&v2b>0&&v2b<=5){
+              qn=vl; mean=v2b; text=String(row[22]||'').trim(); break;
+            }
           }
         }
       }
@@ -8121,6 +8143,7 @@ function parseCourseXLS(raw){
     }
   }
   if(current&&current.questions.length>0) sections.push(current);
+  console.log('parseCourseXLS result: sections=', sections.length);
 
   sections.forEach(function(s){
     var qm=s.questions.map(function(q){return q.mean;});
@@ -8131,190 +8154,6 @@ function parseCourseXLS(raw){
   });
   return sections.filter(function(s){return s.questions.length>0;});
 }
-
-
-function loadInstructorFile(inp){
-  var f=inp.files[0]; if(!f)return;
-  var st=document.getElementById('instructor_file_stat');
-  st.className='file-stat fs-wait'; st.textContent='⏳ جاري القراءة...';
-  var r=new FileReader();
-  r.onload=function(e){
-    try{
-      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      INSTRUCTOR_RAW={headers:j[0].map(function(h){return String(h||'').trim();}),rows:j.slice(1)};
-      st.className='file-stat fs-ok';
-      st.textContent='✅ '+f.name+' — جاهز للتحليل';
-      // enable combine button
-      var btn=document.getElementById('combineBtn');
-      if(btn){btn.disabled=false;}
-    }catch(ex){
-      st.className='file-stat fs-err'; st.textContent='❌ خطأ: '+ex.message;
-    }
-  };
-  r.readAsArrayBuffer(f);
-} // [{name, files:[{raw,ok,fileName}]}]
-
-function addCourse(){
-  COURSES.push({name:'المقرر '+(COURSES.length+1),
-    xls_mode: false,
-    xls_files: [
-      {raw:null,ok:false,fn:'',gender:'boys'},
-      {raw:null,ok:false,fn:'',gender:'girls'}
-    ],
-    sections:[{label:'',boys:{raw:null,ok:false,fn:''},girls:{raw:null,ok:false,fn:''}}]
-  });
-  renderCourses();
-}
-
-function renderCourses(){
-  var c=document.getElementById('coursesList'); if(!c) return;
-  c.innerHTML='';
-  COURSES.forEach(function(course,ci){
-    var d=document.createElement('div');
-    d.style.cssText='border:2px solid #BDD7EE;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafbff';
-
-    var html='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
-      +'<span style="font-size:11px;font-weight:700;color:#64748b">اسم المقرر</span>'
-      +'<input value="'+esc(course.name)+'" onchange="COURSES['+ci+'].name=this.value" '
-      +'style="padding:5px 10px;font-size:13px;border:2px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;direction:rtl;width:180px">'
-      +(COURSES.length>1?'<button onclick="COURSES.splice('+ci+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:15px;margin-right:auto">🗑 حذف</button>':'')
-      +'</div>';
-
-    // XLS mode toggle
-    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
-      +'<span style="font-size:11px;font-weight:700;color:#64748b">نوع الملف:</span>'
-      +'<button onclick="COURSES['+ci+'].xls_mode=false;renderCourses()" '
-      +'style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;'+(course.xls_mode?'background:#fff;color:#1F4E79;border:2px solid #BDD7EE':'background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff')+'">'
-      +'📊 Excel عادي</button>'
-      +'<button onclick="COURSES['+ci+'].xls_mode=true;renderCourses()" '
-      +'style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;'+(course.xls_mode?'background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff':'background:#fff;color:#1F4E79;border:2px solid #BDD7EE')+'">'
-      +'📋 XLS من النظام</button>'
-      +'</div>';
-
-    if(course.xls_mode){
-      html+='<div style="background:#FFF8E7;border-radius:8px;padding:10px;margin-bottom:8px;border-right:3px solid #F59E0B">';
-      html+='<div style="font-size:11px;color:#92400E;margin-bottom:8px;font-weight:700">📋 ارفعي ملفات XLS من النظام</div>';
-      var gInfo=[{g:'boys',label:'👦 بنين',bg:'#1F4E79'},{g:'girls',label:'👧 بنات',bg:'#9C0006'}];
-      (course.xls_files||[]).forEach(function(f,fi){
-        var gi=gInfo[fi]||gInfo[0];
-        html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">';
-        html+='<span style="font-size:11px;font-weight:700;color:'+gi.bg+';min-width:55px">'+gi.label+'</span>';
-        html+='<label style="cursor:pointer"><span style="background:'+gi.bg+';color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع ملف XLS';
-        html+='<input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadCourseXLS('+ci+','+fi+',this)"></span></label>';
-        html+='<span id="xf_'+ci+'_'+fi+'" style="font-size:11px;padding:3px 8px;border-radius:20px;background:'+(f.ok?'#E2EFDA':'#EBF3FB')+';color:'+(f.ok?'#375623':'#64748b')+'">'+(f.ok?'✅ '+f.fn:'⏳ لم يُرفع')+'</span>';
-        html+='</div>';
-      });
-      html+='</div>';
-    } else {
-    // Normal Excel: Sections
-    course.sections.forEach(function(sec,si){
-      html+='<div style="background:#fff;border:1px solid #BDD7EE;border-radius:8px;padding:10px;margin-bottom:8px">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
-        +'<span style="font-size:11px;font-weight:700;color:#2E75B6">الشعبة '+(si+1)+'</span>'
-        +'<input value="'+esc(sec.label)+'" onchange="COURSES['+ci+'].sections['+si+'].label=this.value" '
-        +'placeholder="مثال: شعبة 22" '
-        +'style="padding:4px 8px;font-size:12px;border:1px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;direction:rtl;width:130px">'
-        +(course.sections.length>1?'<button onclick="COURSES['+ci+'].sections.splice('+si+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:13px">✕</button>':'')
-        +'</div>'
-        // Boys file
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding-right:10px">'
-        +'<span style="font-size:11px;color:#1F4E79;font-weight:700;min-width:40px">👦 بنين</span>'
-        +'<label style="cursor:pointer"><span style="background:#1F4E79;color:#fff;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع'
-        +'<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadSectionFile('+ci+','+si+',\'boys\',this)"></span></label>'
-        +'<span id="sf_'+ci+'_'+si+'_boys" style="font-size:11px;padding:2px 8px;border-radius:20px;background:'+(sec.boys.ok?'#E2EFDA':'#EBF3FB')+';color:'+(sec.boys.ok?'#375623':'#64748b')+'">'+(sec.boys.ok?'✅ '+sec.boys.fn:'⏳ لم يُرفع')+'</span>'
-        +'</div>'
-        // Girls file
-        +'<div style="display:flex;align-items:center;gap:8px;padding-right:10px">'
-        +'<span style="font-size:11px;color:#9C0006;font-weight:700;min-width:40px">👧 بنات</span>'
-        +'<label style="cursor:pointer"><span style="background:#9C0006;color:#fff;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">📎 رفع'
-        +'<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadSectionFile('+ci+','+si+',\'girls\',this)"></span></label>'
-        +'<span id="sf_'+ci+'_'+si+'_girls" style="font-size:11px;padding:2px 8px;border-radius:20px;background:'+(sec.girls.ok?'#E2EFDA':'#EBF3FB')+';color:'+(sec.girls.ok?'#375623':'#64748b')+'">'+(sec.girls.ok?'✅ '+sec.girls.fn:'⏳ اختياري')+'</span>'
-        +'</div>'
-        +'</div>';
-    });
-
-    } // end else (normal mode)
-    // Add section button (only in normal mode)
-    if(!course.xls_mode)
-    html+='<button onclick="COURSES['+ci+'].sections.push({label:\'\',boys:{raw:null,ok:false,fn:\'\'},girls:{raw:null,ok:false,fn:\'\'}});renderCourses()" '
-        +'style="background:none;border:1px dashed #BDD7EE;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:11px;color:#2E75B6;font-family:inherit;margin-top:2px">＋ إضافة شعبة</button>';
-
-    d.innerHTML=html;
-    c.appendChild(d);
-  });
-
-  var hasData=COURSES.length>0&&COURSES.some(function(co){
-    if(co.xls_mode) return (co.xls_files||[]).some(function(f){return f.ok;});
-    return co.sections.some(function(s){return s.boys.ok;});
-  });
-  var btn=document.getElementById('combineBtn');
-  if(btn) btn.disabled=!hasData;
-  checkNext();
-}
-
-function loadSectionFile(ci,si,gender,inp){
-  var f=inp.files[0]; if(!f) return;
-  COURSES[ci].sections[si][gender].fn=f.name;
-  COURSES[ci].sections[si][gender].ok=false;
-  renderCourses();
-  var ext=f.name.split('.').pop().toLowerCase();
-  var r=new FileReader();
-  var done=function(raw){
-    COURSES[ci].sections[si][gender].raw=raw;
-    COURSES[ci].sections[si][gender].ok=true;
-    renderCourses();
-  };
-  if(ext==='csv'){
-    r.onload=function(e){try{done(parseCSV(e.target.result));}catch(ex){COURSES[ci].sections[si][gender].ok=false;renderCourses();}};
-    r.readAsText(f,'UTF-8');
-  } else {
-    r.onload=function(e){
-      try{
-        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-        var ws=wb.Sheets[wb.SheetNames[0]];
-        var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        done({headers:j[0].map(function(h){return String(h||'').trim();}),rows:j.slice(1).filter(function(r){return r.some(function(v){return v!=='';});})});
-      }catch(ex){COURSES[ci].sections[si][gender].ok=false;renderCourses();}
-    };
-    r.readAsArrayBuffer(f);
-  }
-}
-
-function loadCourseXLS(ci,fi,inp){
-  var f=inp.files[0]; if(!f) return;
-  var gender=COURSES[ci].xls_files[fi]?COURSES[ci].xls_files[fi].gender:'boys';
-  COURSES[ci].xls_files[fi]={raw:null,ok:false,fn:f.name,gender:gender};
-  renderCourses();
-  var r=new FileReader();
-  r.onload=function(e){
-    try{
-      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      COURSES[ci].xls_files[fi].raw={
-        headers:j[0].map(function(h){return String(h||'').trim();}),
-        rows:j.slice(1)
-      };
-      COURSES[ci].xls_files[fi].ok=true;
-      renderCourses();
-    }catch(ex){
-      COURSES[ci].xls_files[fi].ok=false;
-      COURSES[ci].xls_files[fi].fn='❌ خطأ في القراءة';
-      renderCourses();
-    }
-  };
-  r.readAsArrayBuffer(f);
-}
-
-// Legacy compat
-function addSF(){addCourse();}
-function renderSF(){renderCourses();}
-
-
-function addSF(){addCourse();}
-function renderSF(){renderCourses();}
 
 
 function combineFromParsedSections(xlsFiles){
