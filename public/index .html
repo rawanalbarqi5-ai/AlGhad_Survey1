@@ -8201,6 +8201,7 @@ function renderCourses(){
   });
 
   var hasData=COURSES.length>0&&COURSES.some(function(co){
+    if(co.xls_mode) return (co.xls_files||[]).some(function(f){return f.ok;});
     return co.sections.some(function(s){return s.boys.ok;});
   });
   var btn=document.getElementById('combineBtn');
@@ -8388,8 +8389,11 @@ function combineAndGo(){
   // For XLS files, build a special path
   var xlsFiles=allFiles.filter(function(f){return f.isXLS;});
   var normalFiles=allFiles.filter(function(f){return !f.isXLS;});
-  if(xlsFiles.length>0&&normalFiles.length===0){
-    // All XLS mode - use parsedSec data directly
+  if(xlsFiles.length>0){
+    if(xlsFiles.filter(function(f){return f.parsedSec;}).length===0){
+      showE('e1','لم يتم قراءة أي شعبة — تأكدي أن الملف تقرير XLS من النظام (مو Excel عادي)');
+      return;
+    }
     combineFromParsedSections(xlsFiles);
     return;
   }
