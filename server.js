@@ -25,15 +25,38 @@ app.use(express.static(path.join(__dirname,'public'), {
 }));
 app.use(express.static(__dirname));
 app.get('/', (req,res) => {
-  const p1 = path.join(__dirname,'public','index.html');
   res.set('Cache-Control','no-store, no-cache, must-revalidate');
   res.set('Pragma','no-cache');
   res.set('Expires','0');
-  res.set('Surrogate-Control','no-store');
-  if(fs.existsSync(p1)) return res.sendFile(p1);
-  const p2 = path.join(__dirname,'index.html');
-  if(fs.existsSync(p2)) return res.sendFile(p2);
-  res.send('Server running');
+
+  // Try multiple possible paths
+  const paths = [
+    path.join(__dirname,'public','index.html'),
+    path.join(__dirname,'index.html'),
+    path.join(process.cwd(),'public','index.html'),
+    path.join(process.cwd(),'index.html'),
+    '/app/public/index.html',
+    '/app/index.html',
+  ];
+
+  for(const p of paths){
+    if(fs.existsSync(p)){
+      console.log('Serving from:', p);
+      return res.sendFile(p);
+    }
+  }
+
+  // Debug: show what exists
+  const debug = {
+    __dirname,
+    cwd: process.cwd(),
+    paths_tried: paths,
+    cwd_contents: fs.existsSync(process.cwd()) ? fs.readdirSync(process.cwd()) : 'N/A',
+    public_exists: fs.existsSync(path.join(__dirname,'public')),
+    public_contents: fs.existsSync(path.join(__dirname,'public')) ? fs.readdirSync(path.join(__dirname,'public')) : 'N/A',
+  };
+  console.error('index.html not found:', JSON.stringify(debug, null, 2));
+  res.status(500).json({error: 'index.html not found', debug});
 });
 
 // ── Colors & helpers ──────────────────────────────────────────────────────────
