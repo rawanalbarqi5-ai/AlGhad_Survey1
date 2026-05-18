@@ -1049,17 +1049,37 @@ function _finalizeParsed(allParsed,nQ,qTexts){
   // Build courseResults
   var courseResults={};
   Object.keys(groupMap).forEach(function(cn){
-    var all=[].concat(groupMap[cn].boys).concat(groupMap[cn].girls);
+    var boys=groupMap[cn].boys||[];
+    var girls=groupMap[cn].girls||[];
+    var all=boys.concat(girls);
     var ns=all.length||1;
+    var nsB=boys.length||1;
+    var nsG=girls.length||1;
+    // Weighted mean by number of respondents per section
+    var totalNAll=all.reduce(function(a,s){return a+s.n;},0)||1;
+    var totalNB=boys.reduce(function(a,s){return a+s.n;},0)||1;
+    var totalNG=girls.reduce(function(a,s){return a+s.n;},0)||1;
     var qMeans=Array.from({length:nQ},function(_,qi){
-      return+(all.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3);
+      return+(all.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean*s.n:0);},0)/totalNAll).toFixed(3);
     });
+    var qMeansF=girls.length>0?Array.from({length:nQ},function(_,qi){
+      return+(girls.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean*s.n:0);},0)/totalNG).toFixed(3);
+    }):null;
+    var qMeansM=boys.length>0?Array.from({length:nQ},function(_,qi){
+      return+(boys.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean*s.n:0);},0)/totalNB).toFixed(3);
+    }):null;
+    var meanF=qMeansF?+(qMeansF.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3):null;
+    var meanM=qMeansM?+(qMeansM.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3):null;
     courseResults[cn]={
       n:all.reduce(function(a,s){return a+s.n;},0),
-      nB:groupMap[cn].boys.reduce(function(a,s){return a+s.n;},0),
-      nG:groupMap[cn].girls.reduce(function(a,s){return a+s.n;},0),
+      nB:boys.reduce(function(a,s){return a+s.n;},0),
+      nG:girls.reduce(function(a,s){return a+s.n;},0),
       qMeans:qMeans,
+      qMeansF:qMeansF,
+      qMeansM:qMeansM,
       mean:+(qMeans.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3),
+      meanF:meanF,
+      meanM:meanM,
       sectionCount:all.length
     };
   });
@@ -1073,10 +1093,13 @@ function _finalizeParsed(allParsed,nQ,qTexts){
   var nC=Object.keys(courseResults).length;
   var typeLabel=REPORT_TYPE==='instructor'?'محاضر':'مقرر';
 
+  var totalNAll2=allSecs.reduce(function(a,s){return a+s.n;},0)||1;
+  var totalNB2=bS.reduce(function(a,s){return a+s.n;},0)||1;
+  var totalNG2=gS.reduce(function(a,s){return a+s.n;},0)||1;
   var precomputedQ=Array.from({length:nQ},function(_,qi){
-    var cM=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns2).toFixed(3);
-    var fM=gS.length?+(gS.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/gS.length).toFixed(3):cM;
-    var mM=bS.length?+(bS.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/bS.length).toFixed(3):cM;
+    var cM=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean*s.n:0);},0)/totalNAll2).toFixed(3);
+    var fM=gS.length?+(gS.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean*s.n:0);},0)/totalNG2).toFixed(3):cM;
+    var mM=bS.length?+(bS.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean*s.n:0);},0)/totalNB2).toFixed(3):cM;
     var pSA=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_sa:0);},0)/ns2).toFixed(1);
     var pA=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_a:0);},0)/ns2).toFixed(1);
     var pD=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_d:0);},0)/ns2).toFixed(1);
