@@ -639,7 +639,7 @@ function doAnalyze(){
     var overall=+(secs.reduce(function(a,s){return a+s.mean;},0)/secs.length).toFixed(3);
     RES={nF:CFG.nF,nM:CFG.nM||0,n:(CFG.nF||0)+(CFG.nM||0),secs:secs,overall:overall};
     console.log('calling buildUI, RES.secs='+RES.secs.length);
-    buildUI();go(4);return;}catch(ex){showE('e3','خطأ: '+ex.message);console.error(ex.stack);console.error(ex);return;}
+    buildUI();go(4);return;}catch(ex){alert('خطأ doAnalyze: '+ex.message);console.error(ex.stack);console.error(ex);return;}
   }
 
   var fRows=CFG.fRows||[],mRows=CFG.mRows||[];
@@ -1085,6 +1085,12 @@ function _finalizeParsed(allParsed,nQ,qTexts){
   CFG.isMulti=true;
   CFG.courseResults=courseResults;
   CFG.reportType=REPORT_TYPE;
+  // Set display names from form (step 2) or defaults
+  CFG.sname=CFG.sname||(document.getElementById('sname')?document.getElementById('sname').value:'') ||
+    (REPORT_TYPE==='instructor'?'تقرير استبانة تقييم المحاضرين':'تقرير استبانة تقييم المقررات');
+  CFG.cname=CFG.cname||(document.getElementById('cname')?document.getElementById('cname').value:'')||'كليات الغد للعلوم الطبية التطبيقية – جدة';
+  CFG.semester=CFG.semester||(document.getElementById('semester')?document.getElementById('semester').value:'')||'';
+  CFG.obj=CFG.obj||(document.getElementById('obj')?document.getElementById('obj').value:'')||'';
 
   document.getElementById('s3title').textContent='✅ '+nC+' '+typeLabel+' — '+totalN+' مستجيب'+(hasBoth?' (بنين+بنات)':'');
   document.getElementById('s3info').textContent=Object.entries(courseResults).slice(0,5).map(function(e){return e[0]+': '+e[1].n;}).join(' · ')+(nC>5?'...':'');
@@ -1096,7 +1102,7 @@ function _finalizeParsed(allParsed,nQ,qTexts){
   console.log('CFG.nF='+CFG.nF+' CFG.nM='+CFG.nM);
   doAnalyze();
   }catch(ex){
-    showE('e1','خطأ في التحليل: '+ex.message);
+    alert('خطأ في التحليل: '+ex.message+'\n\n'+ex.stack);
     console.error(ex);
   }
 }
