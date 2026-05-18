@@ -623,6 +623,7 @@ function tQ(si,qi){
 // ── ANALYZE ───────────────────────────────────────────────────────────────────
 function doAnalyze(){
   var qH=CFG.qH||[];
+  console.log('doAnalyze: precomputed='+!!CFG.precomputedQ+' qH='+((CFG.qH||[]).length));
   if(CFG.precomputedQ){try{
     var assigned=new Set(SECS.reduce(function(a,s){return a.concat(s.qs);},[]))
     var unassigned=qH.map(function(_,i){return i;}).filter(function(i){return !assigned.has(i);});
@@ -637,7 +638,8 @@ function doAnalyze(){
     });
     var overall=+(secs.reduce(function(a,s){return a+s.mean;},0)/secs.length).toFixed(3);
     RES={nF:CFG.nF,nM:CFG.nM||0,n:(CFG.nF||0)+(CFG.nM||0),secs:secs,overall:overall};
-    buildUI();go(4);return;}catch(ex){showE('e3','خطأ: '+ex.message);console.error(ex);return;}
+    console.log('calling buildUI, RES.secs='+RES.secs.length);
+    buildUI();go(4);return;}catch(ex){showE('e3','خطأ: '+ex.message);console.error(ex.stack);console.error(ex);return;}
   }
 
   var fRows=CFG.fRows||[],mRows=CFG.mRows||[];
@@ -1021,6 +1023,7 @@ function combineXLSMode(){
 
 function _finalizeParsed(allParsed,nQ,qTexts){
   try{
+  console.log('_finalizeParsed start: allParsed='+allParsed.length+' nQ='+nQ);
   // Group by course name or instructor name
   var groupMap={};
   allParsed.forEach(function(item){
@@ -1089,6 +1092,8 @@ function _finalizeParsed(allParsed,nQ,qTexts){
   var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس'];
   // All Qs assigned to one section - go directly to results
   SECS=[{name:'All',ar:'جميع الأسئلة',qs:Array.from({length:nQ},function(_,i){return i;})}];
+  console.log('SECS set, CFG.precomputedQ length='+( CFG.precomputedQ?CFG.precomputedQ.length:'null'));
+  console.log('CFG.nF='+CFG.nF+' CFG.nM='+CFG.nM);
   doAnalyze();
   }catch(ex){
     showE('e1','خطأ في التحليل: '+ex.message);
