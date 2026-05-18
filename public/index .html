@@ -623,7 +623,7 @@ function tQ(si,qi){
 // ── ANALYZE ───────────────────────────────────────────────────────────────────
 function doAnalyze(){
   var qH=CFG.qH||[];
-  if(CFG.precomputedQ){
+  if(CFG.precomputedQ){try{
     var assigned=new Set(SECS.reduce(function(a,s){return a.concat(s.qs);},[]))
     var unassigned=qH.map(function(_,i){return i;}).filter(function(i){return !assigned.has(i);});
     var secs=SECS.filter(function(s){return s.qs.length;}).map(function(s){
@@ -637,7 +637,7 @@ function doAnalyze(){
     });
     var overall=+(secs.reduce(function(a,s){return a+s.mean;},0)/secs.length).toFixed(3);
     RES={nF:CFG.nF,nM:CFG.nM||0,n:(CFG.nF||0)+(CFG.nM||0),secs:secs,overall:overall};
-    buildUI();go(4);return;
+    buildUI();go(4);return;}catch(ex){showE('e3','خطأ: '+ex.message);console.error(ex);return;}
   }
 
   var fRows=CFG.fRows||[],mRows=CFG.mRows||[];
@@ -1020,6 +1020,7 @@ function combineXLSMode(){
 }
 
 function _finalizeParsed(allParsed,nQ,qTexts){
+  try{
   // Group by course name or instructor name
   var groupMap={};
   allParsed.forEach(function(item){
@@ -1086,8 +1087,13 @@ function _finalizeParsed(allParsed,nQ,qTexts){
   document.getElementById('s3info').textContent=Object.entries(courseResults).slice(0,5).map(function(e){return e[0]+': '+e[1].n;}).join(' · ')+(nC>5?'...':'');
 
   var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس'];
-  SECS=[{name:'Section 1',ar:ars[0],qs:[]}];
-  buildSecUI(); go(3);
+  // All Qs assigned to one section - go directly to results
+  SECS=[{name:'All',ar:'جميع الأسئلة',qs:Array.from({length:nQ},function(_,i){return i;})}];
+  doAnalyze();
+  }catch(ex){
+    showE('e1','خطأ في التحليل: '+ex.message);
+    console.error(ex);
+  }
 }
 
 
