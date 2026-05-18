@@ -29,13 +29,16 @@ app.get('/', (req,res) => {
   res.set('Pragma','no-cache');
   res.set('Expires','0');
 
-  // Try multiple possible paths
+  // Try multiple possible paths (including space variant)
   const paths = [
     path.join(__dirname,'public','index.html'),
+    path.join(__dirname,'public','index .html'),
     path.join(__dirname,'index.html'),
     path.join(process.cwd(),'public','index.html'),
+    path.join(process.cwd(),'public','index .html'),
     path.join(process.cwd(),'index.html'),
     '/app/public/index.html',
+    '/app/public/index .html',
     '/app/index.html',
   ];
 
@@ -43,6 +46,19 @@ app.get('/', (req,res) => {
     if(fs.existsSync(p)){
       console.log('Serving from:', p);
       return res.sendFile(p);
+    }
+  }
+
+  // Scan public dir for any HTML file
+  const pubDir = path.join(__dirname,'public');
+  if(fs.existsSync(pubDir)){
+    const files = fs.readdirSync(pubDir);
+    for(const f of files){
+      if(f.toLowerCase().includes('index') || f.endsWith('.html')){
+        const fp = path.join(pubDir, f);
+        console.log('Found HTML file:', fp);
+        return res.sendFile(fp);
+      }
     }
   }
 
