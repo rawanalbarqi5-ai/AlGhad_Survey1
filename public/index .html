@@ -139,36 +139,66 @@ td{border:1px solid #BDD7EE;padding:5px 7px;text-align:center}
 
     <!-- Multi mode -->
     <div id="md_multi" style="display:none">
-      <!-- Report type selector -->
-      <div style="margin-bottom:12px">
-        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:5px">نوع الاستبيان</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button id="rt_course" onclick="setReportType('course')"
-            style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:none;background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff">
-            📚 تقييم مقرر</button>
-          <button id="rt_instructor" onclick="setReportType('instructor')"
-            style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:2px solid #BDD7EE;background:#fff;color:#1F4E79">
-            👩‍🏫 تقييم محاضر (ملف XLS من النظام)</button>
+      <!-- Report type -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button id="rt_course" onclick="setReportType('course')"
+          style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:none;background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff">
+          📚 تقييم مقرر</button>
+        <button id="rt_instructor" onclick="setReportType('instructor')"
+          style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:none;background:#fff;color:#1F4E79;border:2px solid #BDD7EE">
+          👩‍🏫 تقييم محاضر</button>
+      </div>
+
+      <!-- Upload mode toggle -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button id="um_xls" onclick="setUploadMode('xls')"
+          style="padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff">
+          📋 ملف XLS من النظام</button>
+        <button id="um_manual" onclick="setUploadMode('manual')"
+          style="padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:none;background:#fff;color:#1F4E79;border:2px solid #BDD7EE">
+          📊 شعب مفرقة (Excel)</button>
+      </div>
+
+      <!-- XLS mode: just boys + girls file -->
+      <div id="xls_upload_area">
+        <div style="background:#FFF8E7;border-radius:10px;padding:14px;border-right:3px solid #F59E0B">
+          <div id="xls_mode_hint" style="font-size:12px;color:#92400E;margin-bottom:10px;font-weight:700">
+            ارفعي ملف XLS من النظام — يقرأ كل المقررات وكل الشعب تلقائياً
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:700;color:#1F4E79;min-width:55px">👦 بنين</span>
+            <label style="cursor:pointer">
+              <span style="background:#1F4E79;color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700">📎 رفع XLS
+                <input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadGlobalXLS('boys',this)">
+              </span>
+            </label>
+            <span id="xls_boys_stat" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#EBF3FB;color:#64748b">⏳ لم يُرفع</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:700;color:#9C0006;min-width:55px">👧 بنات</span>
+            <label style="cursor:pointer">
+              <span style="background:#9C0006;color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700">📎 رفع XLS
+                <input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadGlobalXLS('girls',this)">
+              </span>
+            </label>
+            <span id="xls_girls_stat" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#EBF3FB;color:#64748b">⏳ اختياري</span>
+          </div>
         </div>
       </div>
-      <div class="msg-info" style="margin-bottom:10px">
-        أضيفي كل مقرر على حدة — لكل مقرر يمكنك رفع شعب متعددة
+
+      <!-- Manual mode: course/instructor cards -->
+      <div id="manual_upload_area" style="display:none">
+        <div id="multiHint" class="msg-info" style="margin-bottom:8px">أضيفي كل مقرر على حدة — ارفعي شعب بنين وبنات لكل مقرر</div>
+        <div id="coursesList"></div>
+        <button class="btn btn-sm" onclick="addCourse()" style="margin-top:6px">＋ إضافة</button>
       </div>
-      <div id="coursesList"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="addCourse()">＋ إضافة مقرر</button>
-        <button class="btn btn-sm btn-g" id="combineBtn" onclick="combineAndGo()" disabled>✔ دمج وتحليل</button>
+
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-g" id="combineBtn" onclick="combineAndGo()">✔ دمج وتحليل</button>
       </div>
     </div>
 
-    <div id="e1" class="msg-err" style="display:none"></div>
-    <div style="margin-top:12px">
-      <button class="btn btn-g" id="nextBtn" onclick="goStep2()" disabled>التالي: الإعدادات ←</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ STEP 2: CONFIG ══════════════════════════════════════════════ -->
+    <!-- ══ STEP 2: CONFIG ══════════════════════════════════════════════ -->
 <div id="s2" class="step">
   <div class="card">
     <div style="font-weight:700;color:#1F4E79;font-size:15px;margin-bottom:14px">⚙️ إعدادات التقرير</div>
@@ -303,6 +333,40 @@ var RAW=null, CFG={}, RES=null, SECS=[], GMODE='col', AMODE='single';
 var COURSES=[];
 var INSTRUCTOR_RAW=null;
 var REPORT_TYPE='course';
+var UPLOAD_MODE='xls'; // 'xls' or 'manual'
+var XLS_BOYS=null; // global XLS file for boys
+var XLS_GIRLS=null; // global XLS file for girls
+
+function setUploadMode(m){
+  UPLOAD_MODE=m;
+  var bx=document.getElementById('um_xls'),bm=document.getElementById('um_manual');
+  var ax=document.getElementById('xls_upload_area'),am=document.getElementById('manual_upload_area');
+  if(bx){bx.style.background=m==='xls'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff';bx.style.color=m==='xls'?'#fff':'#1F4E79';bx.style.border=m==='xls'?'none':'2px solid #BDD7EE';}
+  if(bm){bm.style.background=m==='manual'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff';bm.style.color=m==='manual'?'#fff':'#1F4E79';bm.style.border=m==='manual'?'none':'2px solid #BDD7EE';}
+  if(ax)ax.style.display=m==='xls'?'block':'none';
+  if(am)am.style.display=m==='manual'?'block':'none';
+}
+
+function loadGlobalXLS(gender,inp){
+  var f=inp.files[0]; if(!f)return;
+  var statId='xls_'+(gender==='boys'?'boys':'girls')+'_stat';
+  var st=document.getElementById(statId);
+  if(st){st.style.background='#EBF3FB';st.style.color='#64748b';st.textContent='⏳ جاري القراءة...';}
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      var raw={headers:j[0].map(function(h){return String(h||'').trim();}),rows:j.slice(1)};
+      if(gender==='boys') XLS_BOYS=raw; else XLS_GIRLS=raw;
+      if(st){st.style.background='#E2EFDA';st.style.color='#375623';st.textContent='✅ '+f.name;}
+    }catch(ex){
+      if(st){st.style.background='#FFC7CE';st.style.color='#9C0006';st.textContent='❌ خطأ في القراءة';}
+    }
+  };
+  r.readAsArrayBuffer(f);
+}
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 function go(n){document.querySelectorAll('.step').forEach(function(s,i){s.classList.toggle('on',i+1===n);});window.scrollTo({top:0,behavior:'smooth'});}
@@ -349,8 +413,13 @@ function setReportType(t){
   var bc=document.getElementById('rt_course'),bi=document.getElementById('rt_instructor');
   if(bc){bc.style.background=t==='course'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff';bc.style.color=t==='course'?'#fff':'#1F4E79';bc.style.border=t==='course'?'none':'2px solid #BDD7EE';}
   if(bi){bi.style.background=t==='instructor'?'linear-gradient(135deg,#1F4E79,#2E75B6)':'#fff';bi.style.color=t==='instructor'?'#fff':'#1F4E79';bi.style.border=t==='instructor'?'none':'2px solid #BDD7EE';}
-  var ii=document.getElementById('instructorMode_info');
-  if(ii)ii.style.display=t==='instructor'?'block':'none';
+  var hint=document.getElementById('multiHint');
+  var xlsHint=document.getElementById('xls_mode_hint');
+  var isInstr=t==='instructor';
+  if(hint)hint.textContent=isInstr?'أضيفي كل محاضر على حدة — ارفعي شعب بنين وبنات لكل محاضر':'أضيفي كل مقرر على حدة — ارفعي شعب بنين وبنات لكل مقرر';
+  if(xlsHint)xlsHint.textContent=isInstr?'ارفعي ملف XLS من النظام — يقرأ كل المحاضرين وكل الشعب تلقائياً':'ارفعي ملف XLS من النظام — يقرأ كل المقررات وكل الشعب تلقائياً';
+  if(COURSES.length===0) addCourse();
+  renderCourses();
 }
 
 // ── DRAG & DROP ───────────────────────────────────────────────────────────────
@@ -741,7 +810,9 @@ function parseCourseXLS(raw){
 
 // ── MULTI-COURSE: RENDER ──────────────────────────────────────────────────────
 function addCourse(){
-  COURSES.push({name:'المقرر '+(COURSES.length+1),xls_mode:false,
+  var isInstr=REPORT_TYPE==='instructor';
+  var prefix=isInstr?'محاضر ':'مقرر ';
+  COURSES.push({name:prefix+(COURSES.length+1),xls_mode:false,
     xls_boys:{raw:null,ok:false,fn:''},xls_girls:{raw:null,ok:false,fn:''},
     sections:[{label:'',boys:{raw:null,ok:false,fn:''},girls:{raw:null,ok:false,fn:''}}]});
   renderCourses();
@@ -752,8 +823,12 @@ function renderCourses(){
   COURSES.forEach(function(course,ci){
     var d=document.createElement('div');
     d.style.cssText='border:2px solid #BDD7EE;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafbff';
+    var isInstr=REPORT_TYPE==='instructor';
+    var lbl=isInstr?'👩‍🏫 المحاضر':'📚 المقرر';
+    var ph=isInstr?'اسم المحاضر':'اسم المقرر';
     var h='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
-      +'<input value="'+esc(course.name)+'" onchange="COURSES['+ci+'].name=this.value" style="padding:5px 10px;font-size:13px;border:2px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;direction:rtl;width:180px">';
+      +'<span style="font-size:11px;font-weight:700;color:#64748b">'+lbl+'</span>'
+      +'<input value="'+esc(course.name)+'" onchange="COURSES['+ci+'].name=this.value" placeholder="'+ph+'" style="padding:5px 10px;font-size:13px;border:2px solid #BDD7EE;border-radius:6px;color:#1F4E79;font-family:inherit;direction:rtl;width:180px">';
     if(COURSES.length>1)h+='<button onclick="COURSES.splice('+ci+',1);renderCourses()" style="background:none;border:none;cursor:pointer;color:#9C0006;font-size:15px">🗑</button>';
     h+='</div>';
     h+='<div style="display:flex;gap:6px;margin-bottom:10px">'
@@ -836,12 +911,15 @@ function loadSectionFile(ci,si,gender,inp){
 
 // ── COMBINE AND GO ────────────────────────────────────────────────────────────
 function combineAndGo(){
-  if(REPORT_TYPE==='instructor'){
-    if(INSTRUCTOR_RAW)combineInstructorAndGo();
-    else showE('e1','ارفعي ملف استبانة المحاضرين أولاً');
-    return;
-  }
   hideE('e1');
+
+  // XLS global mode (boys/girls in one file each)
+  if(UPLOAD_MODE==='xls'){
+    if(!XLS_BOYS&&!XLS_GIRLS){showE('e1','ارفعي ملف XLS واحد على الأقل');return;}
+    combineXLSGlobal(); return;
+  }
+
+  // Manual: XLS cards or Excel sections
   var hasXLS=COURSES.some(function(co){return co.xls_mode;});
   if(hasXLS){combineXLSMode();return;}
 
@@ -862,6 +940,7 @@ function combineAndGo(){
   var courseResults={};
   COURSES.forEach(function(course){
     var cFiles=allFiles.filter(function(f){return f.courseName===course.name;});if(!cFiles.length)return;
+    // For instructor mode, the course.name IS the instructor name
     var bR=cFiles.filter(function(f){return f.gender==='boys';}).reduce(function(a,f){return a.concat(f.raw.rows);},[]);
     var gR=cFiles.filter(function(f){return f.gender==='girls';}).reduce(function(a,f){return a.concat(f.raw.rows);},[]);
     var aR=bR.concat(gR);var n=aR.length;
@@ -884,40 +963,96 @@ function combineAndGo(){
 
   CFG.precomputedQ=precomputedQ;CFG.courseResults=courseResults;
   CFG.nF=gR2.length;CFG.nM=bR2.length;CFG.qH=qH;CFG.gmode=hasBoth?'col':'all_f';CFG.isMulti=true;
-  document.getElementById('s3title').textContent='✅ '+Object.keys(courseResults).length+' مقرر — '+totalN+' مستجيب';
+  var typeLabel2=REPORT_TYPE==='instructor'?'محاضر':'مقرر';
+  document.getElementById('s3title').textContent='✅ '+Object.keys(courseResults).length+' '+typeLabel2+' — '+totalN+' مستجيب';
   document.getElementById('s3info').textContent=Object.entries(courseResults).map(function(e){return e[0]+': n='+e[1].n;}).join(' · ');
   var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس'];
   SECS=[{name:'Section 1',ar:ars[0],qs:[]}];buildSecUI();go(3);
 }
 
+function combineXLSGlobal(){
+  // Parse boys + girls global XLS files
+  var allParsed=[];
+  var parseFunc=REPORT_TYPE==='instructor'?parseInstructorXLS:parseCourseXLS;
+
+  if(XLS_BOYS){
+    var bs=parseFunc(XLS_BOYS);
+    bs.forEach(function(s){allParsed.push({sec:s,gender:'boys'});});
+  }
+  if(XLS_GIRLS){
+    var gs=parseFunc(XLS_GIRLS);
+    gs.forEach(function(s){allParsed.push({sec:s,gender:'girls'});});
+  }
+
+  if(!allParsed.length){showE('e1','لم تتم قراءة أي شعبة — تأكدي أن الملف تقرير XLS من النظام');return;}
+
+  var nQ=allParsed[0].sec.questions.length;
+  var qTexts=allParsed[0].sec.questions.map(function(q){return q.text;});
+
+  // Group by course OR instructor
+  var groupMap={};
+  allParsed.forEach(function(item){
+    var key=REPORT_TYPE==='instructor'?item.sec.lecturer:item.sec.course;
+    key=key||'غير محدد';
+    if(!groupMap[key])groupMap[key]={boys:[],girls:[]};
+    groupMap[key][item.gender].push(item.sec);
+  });
+
+  _finalizeParsed(allParsed,nQ,qTexts);
+}
+
 function combineXLSMode(){
+  // Parse all XLS files from COURSES (manual XLS mode)
   var allParsed=[];
   COURSES.forEach(function(course){
     if(!course.xls_mode)return;
-    if(course.xls_boys.ok){parseCourseXLS(course.xls_boys.raw).forEach(function(s){allParsed.push({sec:s,gender:'boys',courseName:course.name});});}
-    if(course.xls_girls.ok){parseCourseXLS(course.xls_girls.raw).forEach(function(s){allParsed.push({sec:s,gender:'girls',courseName:course.name});});}
+    var pf=REPORT_TYPE==='instructor'?parseInstructorXLS:parseCourseXLS;
+    if(course.xls_boys&&course.xls_boys.ok) pf(course.xls_boys.raw).forEach(function(s){allParsed.push({sec:s,gender:'boys',courseName:course.name});});
+    if(course.xls_girls&&course.xls_girls.ok) pf(course.xls_girls.raw).forEach(function(s){allParsed.push({sec:s,gender:'girls',courseName:course.name});});
   });
-  if(!allParsed.length){showE('e1','لم تتم قراءة أي شعبة — تأكدي أن الملف تقرير XLS من النظام');return;}
+  if(!allParsed.length){showE('e1','لم تتم قراءة أي شعبة');return;}
+  var nQ=allParsed[0].sec.questions.length;
+  var qTexts=allParsed[0].sec.questions.map(function(q){return q.text;});
+  _finalizeParsed(allParsed,nQ,qTexts);
+}
 
-  var nQ=allParsed[0].sec.questions.length,qTexts=allParsed[0].sec.questions.map(function(q){return q.text;});
-  var courseMap={};
+function _finalizeParsed(allParsed,nQ,qTexts){
+  // Group by course name or instructor name
+  var groupMap={};
   allParsed.forEach(function(item){
-    var cn=item.sec.course||item.courseName||'مقرر';
-    if(!courseMap[cn])courseMap[cn]={boys:[],girls:[]};
-    courseMap[cn][item.gender].push(item.sec);
+    var key=REPORT_TYPE==='instructor'
+      ?(item.sec.lecturer||item.courseName||'محاضر')
+      :(item.sec.course||item.courseName||'مقرر');
+    if(!groupMap[key])groupMap[key]={boys:[],girls:[]};
+    groupMap[key][item.gender].push(item.sec);
   });
+
+  // Build courseResults
   var courseResults={};
-  Object.keys(courseMap).forEach(function(cn){
-    var all=[].concat(courseMap[cn].boys).concat(courseMap[cn].girls);var ns=all.length||1;
-    var qMeans=Array.from({length:nQ},function(_,qi){return+(all.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3);});
-    courseResults[cn]={n:all.reduce(function(a,s){return a+s.n;},0),nB:courseMap[cn].boys.reduce(function(a,s){return a+s.n;},0),nG:courseMap[cn].girls.reduce(function(a,s){return a+s.n;},0),qMeans:qMeans,mean:+(qMeans.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3)};
+  Object.keys(groupMap).forEach(function(cn){
+    var all=[].concat(groupMap[cn].boys).concat(groupMap[cn].girls);
+    var ns=all.length||1;
+    var qMeans=Array.from({length:nQ},function(_,qi){
+      return+(all.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3);
+    });
+    courseResults[cn]={
+      n:all.reduce(function(a,s){return a+s.n;},0),
+      nB:groupMap[cn].boys.reduce(function(a,s){return a+s.n;},0),
+      nG:groupMap[cn].girls.reduce(function(a,s){return a+s.n;},0),
+      qMeans:qMeans,
+      mean:+(qMeans.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3),
+      sectionCount:all.length
+    };
   });
 
   var allSecs=allParsed.map(function(f){return f.sec;});
   var bS=allParsed.filter(function(f){return f.gender==='boys';}).map(function(f){return f.sec;});
   var gS=allParsed.filter(function(f){return f.gender==='girls';}).map(function(f){return f.sec;});
-  var ns2=allSecs.length||1;var hasBoth=bS.length>0&&gS.length>0;
+  var ns2=allSecs.length||1;
+  var hasBoth=bS.length>0&&gS.length>0;
   var totalN=Object.values(courseResults).reduce(function(a,c){return a+c.n;},0)||1;
+  var nC=Object.keys(courseResults).length;
+  var typeLabel=REPORT_TYPE==='instructor'?'محاضر':'مقرر';
 
   var precomputedQ=Array.from({length:nQ},function(_,qi){
     var cM=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns2).toFixed(3);
@@ -928,175 +1063,30 @@ function combineXLSMode(){
     var pD=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_d:0);},0)/ns2).toFixed(1);
     var pSD=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].pct_sd:0);},0)/ns2).toFixed(1);
     var cD=[pSA,pA,0,pD,pSD];
-    return{qn:qi+1,lbl:qTexts[qi]||'Q'+(qi+1),fD:cD,mD:cD,cD:cD,fM:fM,mM:mM,cM:cM,maxM:Math.max(fM,mM),minM:Math.min(fM,mM),pos:Math.round(pSA+pA),neg:Math.round(pD+pSD),cl:clf5(cM)};
+    return{qn:qi+1,lbl:qTexts[qi]||'Q'+(qi+1),fD:cD,mD:cD,cD:cD,
+      fM:fM,mM:mM,cM:cM,maxM:Math.max(fM,mM),minM:Math.min(fM,mM),
+      pos:Math.round(pSA+pA),neg:Math.round(pD+pSD),cl:clf5(cM)};
   });
 
-  CFG.precomputedQ=precomputedQ;CFG.courseResults=courseResults;
-  CFG.nF=gS.reduce(function(a,s){return a+s.n;},0);CFG.nM=bS.reduce(function(a,s){return a+s.n;},0);
-  if(!CFG.nF&&!CFG.nM)CFG.nF=totalN;
-  CFG.qH=qTexts;CFG.gmode=hasBoth?'col':'all_f';CFG.isMulti=true;CFG.courseResults=courseResults;
-  document.getElementById('s3title').textContent='✅ '+Object.keys(courseResults).length+' مقرر (XLS) — '+totalN+' مستجيب';
-  document.getElementById('s3info').textContent=Object.entries(courseResults).slice(0,5).map(function(e){return e[0]+': '+e[1].n;}).join(' · ');
+  CFG.precomputedQ=precomputedQ;
+  CFG.courseResults=courseResults;
+  CFG.nF=gS.reduce(function(a,s){return a+s.n;},0);
+  CFG.nM=bS.reduce(function(a,s){return a+s.n;},0);
+  if(!CFG.nF&&!CFG.nM) CFG.nF=totalN;
+  CFG.qH=qTexts;
+  CFG.gmode=hasBoth?'col':'all_f';
+  CFG.isMulti=true;
+  CFG.courseResults=courseResults;
+  CFG.reportType=REPORT_TYPE;
+
+  document.getElementById('s3title').textContent='✅ '+nC+' '+typeLabel+' — '+totalN+' مستجيب'+(hasBoth?' (بنين+بنات)':'');
+  document.getElementById('s3info').textContent=Object.entries(courseResults).slice(0,5).map(function(e){return e[0]+': '+e[1].n;}).join(' · ')+(nC>5?'...':'');
+
   var ars=['المحور الأول','المحور الثاني','المحور الثالث','المحور الرابع','المحور الخامس'];
-  SECS=[{name:'Section 1',ar:ars[0],qs:[]}];buildSecUI();go(3);
+  SECS=[{name:'Section 1',ar:ars[0],qs:[]}];
+  buildSecUI(); go(3);
 }
 
-// ── INSTRUCTOR MODE ───────────────────────────────────────────────────────────
-function loadInstructorFile(inp){
-  var f=inp.files[0];if(!f)return;
-  var st=document.getElementById('instructor_file_stat');
-  if(st){st.textContent='⏳ جاري القراءة...';}
-  var r=new FileReader();
-  r.onload=function(e){
-    try{
-      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var j=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      INSTRUCTOR_RAW={headers:j[0].map(function(h){return String(h||'').trim();}),rows:j.slice(1)};
-      if(st)st.textContent='✅ '+f.name;
-      var btn=document.getElementById('combineBtn');if(btn)btn.disabled=false;
-    }catch(ex){if(st)st.textContent='❌ خطأ';}
-  };
-  r.readAsArrayBuffer(f);
-}
-
-function parseInstructorXLS(raw){
-  var sections=[],current=null,rows=raw.rows;
-  for(var i=0;i<rows.length;i++){
-    var row=rows[i];if(!row||!row.length)continue;
-    var mahIdx=-1;
-    for(var c=0;c<row.length;c++){if(String(row[c]||'').trim()==='المحاضر:'){mahIdx=c;break;}}
-    if(mahIdx>=0){
-      if(current&&current.questions.length>0)sections.push(current);
-      var enrolled=0,secNum='',dept='',loc='';
-      for(var c2=0;c2<row.length-1;c2++){
-        var kw=String(row[c2]||'').trim();
-        if(kw==='المسجلين :'||kw==='المسجلين:')enrolled=parseInt(row[c2-2]||0)||parseInt(row[c2+2]||0)||0;
-        if(kw==='الشعبة :'||kw==='الشعبة:')secNum=String(row[c2-3]||row[c2+2]||'').trim();
-        if(kw==='القسم :')dept=String(row[c2+2]||'').trim();
-        if(kw==='المقر :')loc=String(row[c2+2]||'').trim();
-      }
-      current={lecturer:String(row[2]||'').trim(),sec_num:secNum,enrolled:enrolled,dept:dept,loc:loc,course:'',semester:'',n:0,questions:[]};
-    }
-    if(current&&current.n===0){
-      for(var c3=0;c3<row.length;c3++){
-        var kw3=String(row[c3]||'');
-        if(kw3.indexOf('المقيميين')>=0)current.n=parseInt(row[c3-2]||0)||0;
-        if(kw3.trim()==='المقرر :')current.course=String(row[c3-3]||row[c3+2]||'').trim();
-        if(kw3.trim()==='الفصل :')current.semester=String(row[c3-3]||row[c3+2]||'').trim();
-      }
-      if(!current.course)current.course=String(row[27]||'').trim();
-      if(!current.n)current.n=parseInt(row[23]||0)||0;
-    }
-    if(current&&row.length>38){
-      var qn=parseFloat(row[38]),mean=parseFloat(row[2]);
-      if(!isNaN(qn)&&qn>=1&&qn<=50&&!isNaN(mean)&&mean>0&&mean<=5){
-        current.questions.push({qn:Math.round(qn),text:String(row[22]||'').trim(),mean:+mean.toFixed(3),
-          pct_sa:+(parseFloat(row[4])||0).toFixed(1),cnt_sa:parseInt(row[5])||0,
-          pct_a:+(parseFloat(row[7])||0).toFixed(1),cnt_a:parseInt(row[8])||0,
-          pct_n:+(parseFloat(row[12])||0).toFixed(1),cnt_n:parseInt(row[13])||0,
-          pct_d:+(parseFloat(row[16])||0).toFixed(1),cnt_d:parseInt(row[17])||0,
-          pct_sd:+(parseFloat(row[19])||0).toFixed(1),cnt_sd:parseInt(row[20])||0});
-      }
-    }
-  }
-  if(current&&current.questions.length>0)sections.push(current);
-  sections.forEach(function(s){
-    var qm=s.questions.map(function(q){return q.mean;});
-    s.sec_mean=qm.length?+(qm.reduce(function(a,b){return a+b;},0)/qm.length).toFixed(3):0;
-    s.enrolled_num=s.enrolled;s.not_responded=Math.max(0,s.enrolled-s.n);
-    s.participation_pct=s.enrolled>0?Math.round(s.n/s.enrolled*100):0;
-  });
-  return sections.filter(function(s){return s.questions.length>0;});
-}
-
-function combineInstructorAndGo(){
-  var rawFiles=INSTRUCTOR_RAW?[INSTRUCTOR_RAW]:[];
-  if(!rawFiles.length){showE('e1','ارفعي ملف المحاضرين أولاً');return;}
-  var allSecs=[];
-  rawFiles.forEach(function(raw){allSecs=allSecs.concat(parseInstructorXLS(raw));});
-  if(!allSecs.length){showE('e1','لم يتم العثور على شعب في الملف');return;}
-
-  var nQ=allSecs[0].questions.length,qTexts=allSecs[0].questions.map(function(q){return q.text;});
-  var totalN=allSecs.reduce(function(a,s){return a+s.n;},0);
-  var lecMap={};
-  allSecs.forEach(function(s){
-    if(!lecMap[s.lecturer])lecMap[s.lecturer]=[];
-    lecMap[s.lecturer].push(s);
-  });
-  var lecturers=Object.keys(lecMap).map(function(name){
-    var secs=lecMap[name];var tn=secs.reduce(function(a,s){return a+s.n;},0);var ns=secs.length||1;
-    var qMeans=Array.from({length:nQ},function(_,qi){return tn?+(secs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns).toFixed(3):0;});
-    var mean=+(qMeans.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3);
-    return{name:name,secs:secs,n:tn,mean:mean,qMeans:qMeans,courses:[...new Set(secs.map(function(s){return s.course;}))]};
-  }).sort(function(a,b){return b.mean-a.mean;});
-
-  CFG.instructorMode=true;CFG.allSecs=allSecs;CFG.lecturers=lecturers;CFG.qTexts=qTexts;CFG.nQ=nQ;
-  CFG.sname=document.getElementById('sname').value||'تقرير استبانة تقييم المحاضرين';
-  CFG.cname=document.getElementById('cname').value;CFG.semester=document.getElementById('semester').value;
-
-  var totalEnrolled=allSecs.reduce(function(a,s){return a+(s.enrolled||0);},0);
-  var totalNot=allSecs.reduce(function(a,s){return a+s.not_responded;},0);
-  var grandMean=+(allSecs.reduce(function(a,s){return a+s.sec_mean;},0)/allSecs.length).toFixed(3);
-
-  RES={instructorMode:true,allSecs:allSecs,lecturers:lecturers,qTexts:qTexts,totalN:totalN,totalEnrolled:totalEnrolled,totalNot:totalNot,grandMean:grandMean};
-  buildInstructorUI(allSecs,lecturers,qTexts,totalN);
-  go(4);
-}
-
-function buildInstructorUI(allSecs,lecturers,qTexts,totalN){
-  var totalEnrolled=allSecs.reduce(function(a,s){return a+(s.enrolled||0);},0);
-  var pct=totalEnrolled>0?Math.round(totalN/totalEnrolled*100):0;
-  var grandMean=+(allSecs.reduce(function(a,s){return a+s.sec_mean;},0)/allSecs.length).toFixed(3);
-  var cl=clf5(grandMean);
-  document.getElementById('st4').innerHTML=[
-    {v:totalEnrolled,l:'المسجلون'},{v:totalN,l:'المقيّمون'},
-    {v:totalEnrolled-totalN,l:'لم يستبينوا'},{v:pct+'%',l:'المشاركة%'},
-    {v:allSecs.length,l:'الشعب'},{v:lecturers.length,l:'المحاضرون'},
-    {v:grandMean,l:'المتوسط'}
-  ].map(function(x){return'<div class="stat"><div class="v">'+x.v+'</div><div class="l">'+x.l+'</div></div>';}).join('');
-
-  var nQ=qTexts.length;
-  var t1='<div class="tbl-w"><table><thead><tr><th>#</th><th>الشعبة</th><th>المقرر</th><th>المحاضر</th><th>المسجلون</th><th>المقيّمون</th><th>المشاركة%</th><th>المتوسط</th></tr></thead><tbody>';
-  allSecs.forEach(function(s,i){var scl=clf5(s.sec_mean);var pp=s.participation_pct||0;
-    t1+='<tr class="'+(i%2?'':'even')+'"><td>'+(i+1)+'</td><td>'+esc(s.sec_num)+'</td><td style="font-weight:700;color:#1F4E79">'+esc(s.course)+'</td><td style="text-align:right">'+esc(s.lecturer)+'</td><td>'+s.enrolled+'</td><td style="font-weight:700">'+s.n+'</td>'
-      +'<td><span class="tag" style="background:'+(pp>=80?'#E2EFDA':pp>=60?'#FFEB9C':'#FFC7CE')+';color:'+(pp>=80?'#375623':pp>=60?'#7F6000':'#9C0006')+'">'+pp+'%</span></td>'
-      +'<td style="font-weight:700;color:'+scl.c+';background:'+scl.bg+'">'+s.sec_mean.toFixed(2)+'</td></tr>';
-  });
-  t1+='</tbody></table></div>';
-  document.getElementById('pov').innerHTML=t1;
-
-  var lqW=Math.max(600,Math.floor((15398-400-2800-600-600-1500)/Math.max(Math.min(nQ,12),1)));
-  var lqN=Math.min(nQ,12);
-  var t2='<div class="tbl-w"><table><thead><tr><th>#</th><th>المحاضر</th><th>الشعب</th><th>المقيّمون</th>'
-    +Array.from({length:lqN},function(_,i){return'<th>Q'+(i+1)+'</th>';}).join('')
-    +'<th>المتوسط</th><th>التصنيف</th></tr></thead><tbody>';
-  lecturers.forEach(function(lec,i){var lcl=clf5(lec.mean||0);
-    t2+='<tr class="'+(i%2?'':'even')+'"><td>'+(i+1)+'</td><td style="text-align:right">'+esc(lec.name)+'</td><td>'+(lec.secs||[]).length+'</td><td style="font-weight:700">'+lec.n+'</td>'
-      +(lec.qMeans||[]).slice(0,lqN).map(function(qm){var qcl=clf5(qm);return'<td style="font-size:11px;color:'+qcl.c+';background:'+qcl.bg+'">'+qm.toFixed(2)+'</td>';}).join('')
-      +'<td style="font-weight:700;font-size:14px;color:'+lcl.c+';background:'+lcl.bg+'">'+(lec.mean||0).toFixed(2)+'</td>'
-      +'<td style="background:'+lcl.bg+'"><span class="tag" style="color:'+lcl.c+'">'+lcl.l+'</span></td></tr>';
-  });
-  t2+='</tbody></table></div>';
-  document.getElementById('pdt').innerHTML=t2;
-
-  var courses=[...new Set(allSecs.map(function(s){return s.course;}))];
-  var courseQM={};
-  courses.forEach(function(code){var cs=allSecs.filter(function(s){return s.course===code;});var ns2=cs.length||1;courseQM[code]=Array.from({length:nQ},function(_,qi){return+(cs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/ns2).toFixed(2);});});
-  var nc=courses.length;var cqW=Math.max(600,Math.floor((15398-2800)/(nc+1)));
-  var t3='<div class="tbl-w"><table><thead><tr><th>السؤال</th>'+courses.map(function(c){return'<th>'+esc(c)+'</th>';}).join('')+'<th>الإجمالي</th></tr></thead><tbody>';
-  Array.from({length:nQ},function(_,qi){
-    var oM=+(allSecs.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean:0);},0)/allSecs.length).toFixed(2);
-    var oCl=clf5(oM);
-    t3+='<tr class="'+(qi%2?'':'even')+'"><td style="text-align:right;font-size:11px">Q'+(qi+1)+' — '+esc((qTexts[qi]||'').slice(0,35))+'</td>'
-      +courses.map(function(code){var qm=courseQM[code][qi];var qcl=clf5(qm);return'<td style="color:'+qcl.c+';background:'+qcl.bg+';font-weight:700">'+qm.toFixed(2)+'</td>';}).join('')
-      +'<td style="font-weight:700;color:'+oCl.c+';background:'+oCl.bg+'">'+oM+'</td></tr>';
-  });
-  t3+='</tbody></table></div>';
-  document.getElementById('poa').innerHTML=t3;
-
-  RES={instructorMode:true,allSecs:allSecs,lecturers:lecturers,qTexts:qTexts,totalN:totalN,totalEnrolled:totalEnrolled,totalNot:totalEnrolled-totalN,grandMean:grandMean};
-}
 
 // ── WORD DOWNLOAD ─────────────────────────────────────────────────────────────
 async function genWord(){
