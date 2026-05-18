@@ -361,6 +361,9 @@ function loadGlobalXLS(gender,inp){
       var raw={headers:j[0].map(function(h){return String(h||'').trim();}),rows:j.slice(1)};
       if(gender==='boys') XLS_BOYS=raw; else XLS_GIRLS=raw;
       if(st){st.style.background='#E2EFDA';st.style.color='#375623';st.textContent='✅ '+f.name;}
+      // Enable combine button
+      var btn=document.getElementById('combineBtn');
+      if(btn) btn.disabled=false;
     }catch(ex){
       if(st){st.style.background='#FFC7CE';st.style.color='#9C0006';st.textContent='❌ خطأ في القراءة';}
     }
