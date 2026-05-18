@@ -791,8 +791,8 @@ function parseCourseXLS(raw){
         if(kw3.trim()==='المقرر :')current.course=String(row[c3-3]||row[c3+2]||'').trim();
         if(kw3.trim()==='الفصل :')current.semester=String(row[c3-3]||row[c3+2]||'').trim();
       }
-      if(!current.course)current.course=String(row[27]||'').trim();
-      if(!current.n)current.n=parseInt(row[23]||0)||0;
+      // Only use row[27] as course if evaluators were found (n>0)
+      if(current.n>0&&!current.course)current.course=String(row[27]||'').trim();
     }
     if(current&&row.length>38){
       var qn=parseFloat(row[38]),mean=parseFloat(row[2]);
