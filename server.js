@@ -1120,207 +1120,280 @@ async function buildWordFromResult(result, cfg){
 
   } else {
     // ── SINGLE COURSE: original detailed report ───────────────────────
-    const ssC=showG?[1400,3000,1200,1200,1200,1200,CW-1400-3000-1200*4]:[1400,4500,1400,CW-1400-4500-1400];
-    const ssH=[mH(['Section'],ssC[0]),mH(['المحور'],ssC[1]),mH(['Mean'],ssC[2])];
-    if(showG)ssH.push(mH(['F.Mean'],ssC[3]),mH(['M.Mean'],ssC[4]),mH(['Gap'],ssC[5]));
-    ssH.push(mH(['Classification'],ssC[ssC.length-1]));
-    children.push(
-      mP('ملخص المحاور | Section Summary',{bold:true,size:22,color:DARK,before:0,after:80}),
-      new Table({width:{size:CW,type:WidthType.DXA},columnWidths:ssC,rows:[
-        new TableRow({children:ssH}),
-        ...secs.map((s,i)=>{
-          const cl=clf5(s.mean);const bg=i%2===0?PALE:WHITE;
-          const cells=[mC(s.name,ssC[0],bg,{align:AlignmentType.LEFT}),mC(s.ar,ssC[1],bg,{align:AlignmentType.RIGHT}),mC(s.mean,ssC[2],cl.bg,{bold:true,color:cl.c})];
-          if(showG)cells.push(mC(s.fMean,ssC[3],'FCE4D6',{color:'843C0C'}),mC(s.mMean,ssC[4],'DDEBF7',{color:DARK}),mC(Math.abs(s.fMean-s.mMean).toFixed(2),ssC[5],bg));
-          cells.push(mC(cl.l,ssC[ssC.length-1],cl.bg,{bold:true,color:cl.c}));
-          return new TableRow({children:cells});
-        }),
-      ]}),sp(200,80),
-    );
-    secs.forEach((sec,si)=>{
-      const cl=clf5(sec.mean);
-      const seenQns=new Set();
-      const sortedQs=(sec.qs||[]).filter(q=>{
-        if(!q||seenQns.has(q.qn)) return false;
-        seenQns.add(q.qn); return true;
-      }).sort((a,b)=>a.qn-b.qn);
-      if(!sortedQs.length) return;
+  // ══════════════════════════════════════════════════════════════════
+  // SINGLE COURSE: Full report like Field Training reference
+  // ══════════════════════════════════════════════════════════════════
 
-      if(si>0) children.push(new Paragraph({pageBreakBefore:true,children:[]}));
-      children.push(
-        mP(sec.name+' | '+sec.ar,{bold:true,size:24,color:MID,before:0,after:30}),
-        mP('Mean: '+sec.mean+' | '+cl.l+' | F: '+(sec.fMean||sec.mean)+' | M: '+(sec.mMean||sec.mean),{size:16,color:'444444',before:0,after:60}),
-      );
+  // ── 1. SECTION SUMMARY TABLE ─────────────────────────────────────
+  const ssC=showG
+    ?[1400,3000,1000,1000,1000,800,Math.max(400,CW-1400-3000-1000*3-800)]
+    :[1400,4500,1200,Math.max(400,CW-1400-4500-1200)];
+  const ssH=[mH(['Section'],ssC[0]),mH(['المحور'],ssC[1]),mH(['Mean'],ssC[2])];
+  if(showG) ssH.push(mH(['F.Mean'],ssC[3]),mH(['M.Mean'],ssC[4]),mH(['Gap'],ssC[5]));
+  ssH.push(mH(['Classification'],ssC[ssC.length-1]));
+  children.push(
+    mP('Section Summary Results | ملخص نتائج المحاور',{bold:true,size:22,color:DARK,before:0,after:80}),
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:ssC,rows:[
+      new TableRow({children:ssH}),
+      ...secs.map((s,i)=>{
+        const cl=clf5(s.mean); const bg=i%2===0?PALE:WHITE;
+        const cells=[
+          mC(s.name,ssC[0],bg,{align:AlignmentType.LEFT,size:13}),
+          mC(s.ar,ssC[1],bg,{align:AlignmentType.RIGHT,size:13,rtl:true}),
+          mC(s.mean,ssC[2],cl.bg,{bold:true,color:cl.c,size:16}),
+        ];
+        if(showG) cells.push(
+          mC(s.fMean||s.mean,ssC[3],'FCE4D6',{bold:true,color:'843C0C',size:14}),
+          mC(s.mMean||s.mean,ssC[4],'DDEBF7',{bold:true,color:'1F4E79',size:14}),
+          mC(Math.abs((s.fMean||s.mean)-(s.mMean||s.mean)).toFixed(2),ssC[5],bg,{size:12}),
+        );
+        cells.push(mC(cl.l,ssC[ssC.length-1],cl.bg,{bold:true,color:cl.c,size:13}));
+        return new TableRow({children:cells});
+      }),
+    ]}),sp(200,80),
+  );
 
-      // Table: Q# | Question | Group | %SA | %A | %N | %D | %SD | F.Mean | M.Mean | Mean | Pos% | Neg% | Class
-      const dC=[500,2600,700,600,600,600,600,600,700,700,700,600,600,Math.max(400,CW-500-2600-700-600*5-700*3-600*2)];
-      const dH=[
-        mH(['Q#'],dC[0]),
-        mH(['السؤال / Question'],dC[1]),
-        mH(['Group'],dC[2]),
-        mH(['%SA\n(1)'],dC[3],'2E7D32',10),
-        mH(['%A\n(2)'],dC[4],'388E3C',10),
-        mH(['%N\n(3)'],dC[5],'7F7F7F',10),
-        mH(['%D\n(4)'],dC[6],'C62828',10),
-        mH(['%SD\n(5)'],dC[7],'B71C1C',10),
-        mH(['F.Mean\n👧'],dC[8],'843C0C',10),
-        mH(['M.Mean\n👦'],dC[9],'1F4E79',10),
-        mH(['Mean'],dC[10]),
-        mH(['Pos%'],dC[11],'375623',10),
-        mH(['Neg%'],dC[12],'9C0006',10),
-        mH(['Class.'],dC[13]),
-      ];
-
-      children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:[
-        new TableRow({children:dH}),
-        ...sortedQs.flatMap((q,qi)=>{
-          const cD=q.cD||[0,0,0,0,0];
-          const fD=q.fD||cD; const mD=q.mD||cD;
-          const qcl=clf5(q.cM||0); const bg=qi%2===0?PALE:WHITE;
-          const posP=Math.round((cD[0]||0)+(cD[1]||0));
-          const negP=Math.round((cD[3]||0)+(cD[4]||0));
-
-          // 3 rows: Combined, Female, Male
-          const rows=[];
-
-          // Row 1: Combined
-          rows.push(new TableRow({children:[
-            // Q# - rowSpan:3
-            new TableCell({width:{size:Math.max(1,dC[0]),type:WidthType.DXA},
-              borders:allB(DARK),shading:{fill:PALE,type:ShadingType.CLEAR},margins:mg(),
-              rowSpan:3,verticalAlign:VerticalAlign.CENTER,
-              children:[new Paragraph({alignment:AlignmentType.CENTER,
-                children:[new TextRun({text:'Q'+q.qn,bold:true,color:DARK,size:15,font:'Arial'})]})]}),
-            // Question text - rowSpan:3
-            new TableCell({width:{size:Math.max(1,dC[1]),type:WidthType.DXA},
-              borders:allB(DARK),shading:{fill:PALE,type:ShadingType.CLEAR},margins:mg(),
-              rowSpan:3,verticalAlign:VerticalAlign.CENTER,
-              children:[
-                new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:10},
-                  children:[new TextRun({text:String(q.lbl||''),size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
-                new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
-                  children:[new TextRun({text:Q_EN[q.qn]||'',size:9,color:'666666',font:'Arial',italics:true})]}),
-              ]}),
-            // Group label
-            mC('Combined',dC[2],bg,{size:10}),
-            // Distribution %
-            mC((cD[0]||0)+'%',dC[3],'E8F5E9',{color:'2E7D32',size:11}),
-            mC((cD[1]||0)+'%',dC[4],'E8F5E9',{color:'388E3C',size:11}),
-            mC((cD[2]||0)+'%',dC[5],bg,{size:11}),
-            mC((cD[3]||0)+'%',dC[6],'FFF3E0',{color:'C62828',size:11}),
-            mC((cD[4]||0)+'%',dC[7],'FFEBEE',{color:'B71C1C',size:11}),
-            // Means
-            mC(q.fM??q.cM,dC[8],'FCE4D6',{color:'843C0C',bold:true,size:11}),
-            mC(q.mM??q.cM,dC[9],'DDEBF7',{color:'1F4E79',bold:true,size:11}),
-            mC((q.cM||0).toFixed?+(q.cM).toFixed(2):q.cM,dC[10],qcl.bg,{bold:true,color:qcl.c,size:13}),
-            mC(posP+'%',dC[11],posP>=80?GREEN2:posP>=60?AMBER2:WHITE,{bold:true,color:posP>=80?GREEN:posP>=60?AMBER:'333333',size:11}),
-            mC(negP+'%',dC[12],negP>20?RED2:WHITE,{bold:true,color:negP>20?RED:'333333',size:11}),
-            mC(qcl.l,dC[13],qcl.bg,{bold:true,color:qcl.c,size:10}),
-          ]}));
-
-          // Row 2: Female
-          rows.push(new TableRow({children:[
-            mC('F 👧',dC[2],'FCE4D6',{color:'843C0C',bold:true,size:10}),
-            mC((fD[0]||0)+'%',dC[3],'E8F5E9',{color:'2E7D32',size:10}),
-            mC((fD[1]||0)+'%',dC[4],'E8F5E9',{color:'388E3C',size:10}),
-            mC((fD[2]||0)+'%',dC[5],'FCE4D6',{size:10}),
-            mC((fD[3]||0)+'%',dC[6],'FFF3E0',{color:'C62828',size:10}),
-            mC((fD[4]||0)+'%',dC[7],'FFEBEE',{color:'B71C1C',size:10}),
-            mC(q.fM??q.cM,dC[8],'FCE4D6',{color:'843C0C',bold:true,size:11}),
-            mC('—',dC[9],'FCE4D6',{size:9}),
-            mC('—',dC[10],'FCE4D6',{size:9}),
-            mC('—',dC[11],'FCE4D6',{size:9}),
-            mC('—',dC[12],'FCE4D6',{size:9}),
-            mC('—',dC[13],'FCE4D6',{size:9}),
-          ]}));
-
-          // Row 3: Male
-          rows.push(new TableRow({children:[
-            mC('M 👦',dC[2],'DDEBF7',{color:'1F4E79',bold:true,size:10}),
-            mC((mD[0]||0)+'%',dC[3],'E8F5E9',{color:'2E7D32',size:10}),
-            mC((mD[1]||0)+'%',dC[4],'E8F5E9',{color:'388E3C',size:10}),
-            mC((mD[2]||0)+'%',dC[5],'DDEBF7',{size:10}),
-            mC((mD[3]||0)+'%',dC[6],'FFF3E0',{color:'C62828',size:10}),
-            mC((mD[4]||0)+'%',dC[7],'FFEBEE',{color:'B71C1C',size:10}),
-            mC('—',dC[8],'DDEBF7',{size:9}),
-            mC(q.mM??q.cM,dC[9],'DDEBF7',{color:'1F4E79',bold:true,size:11}),
-            mC('—',dC[10],'DDEBF7',{size:9}),
-            mC('—',dC[11],'DDEBF7',{size:9}),
-            mC('—',dC[12],'DDEBF7',{size:9}),
-            mC('—',dC[13],'DDEBF7',{size:9}),
-          ]}));
-
-          return rows;
-        }),
-      ]}),sp(80,40));
+  // ── 2. OVERALL ANALYSIS TABLE ────────────────────────────────────
+  children.push(
+    new Paragraph({pageBreakBefore:true,children:[]}),
+    mP('Overall Analysis | التحليل الإجمالي لجميع الأسئلة',{bold:true,size:22,color:DARK,before:0,after:20}),
+    mP('Pos% = %(1)SA + %(2)A  |  Neg% = %(4)D + %(5)SD  |  %(3)Neutral excluded',
+      {size:14,color:'2E75B6',italic:true,before:0,after:60}),
+  );
+  const oaC=[700,400,1200,900,900,700,700,900,700,700,Math.max(400,CW-700-400-1200-900*2-700*2-900-700*2)];
+  const oaRows=[];
+  const seenOA=new Set();
+  secs.forEach(s=>{
+    const sortedSQs=(s.qs||[]).filter(q=>{
+      if(!q||seenOA.has(q.qn)) return false;
+      seenOA.add(q.qn); return true;
+    }).sort((a,b)=>a.qn-b.qn);
+    if(!sortedSQs.length) return;
+    // Section header row
+    oaRows.push(new TableRow({children:[
+      new TableCell({columnSpan:11,width:{size:CW,type:WidthType.DXA},
+        borders:allB(MID),shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),
+        children:[new Paragraph({alignment:AlignmentType.LEFT,
+          children:[new TextRun({text:s.name+' | '+s.ar,bold:true,color:WHITE,size:17,font:'Arial'})]})]})
+    ]}));
+    sortedSQs.forEach((q,qi)=>{
+      const cl=clf5(q.cM||0); const bg=qi%2===0?PALE:WHITE;
+      const cD=q.cD||[0,0,0,0,0];
+      const posP=Math.round((cD[0]||0)+(cD[1]||0));
+      const negP=Math.round((cD[3]||0)+(cD[4]||0));
+      oaRows.push(new TableRow({children:[
+        mC('Q'+q.qn,oaC[0],bg,{bold:true,color:DARK,size:14}),
+        mC(qi+1,oaC[1],bg,{size:12}),
+        // Bilingual Q text
+        new TableCell({width:{size:Math.max(1,oaC[2]),type:WidthType.DXA},borders:allB(),
+          shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+          children:[
+            new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:6},
+              children:[new TextRun({text:String(q.lbl||''),size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
+            new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
+              children:[new TextRun({text:Q_EN[q.qn]||'',size:9,color:'666666',font:'Arial',italics:true})]}),
+          ]}),
+        mC(q.fM??q.cM,oaC[3],'FCE4D6',{color:'843C0C',bold:true,size:12}),
+        mC(q.mM??q.cM,oaC[4],'DDEBF7',{color:'1F4E79',bold:true,size:12}),
+        mC(q.maxM??q.cM,oaC[5],bg,{size:11}),
+        mC(q.minM??q.cM,oaC[6],bg,{size:11}),
+        mC(q.cM,oaC[7],cl.bg,{bold:true,color:cl.c,size:14}),
+        mC(posP+'%',oaC[8],posP>=80?GREEN2:posP>=60?AMBER2:WHITE,{bold:true,color:posP>=80?GREEN:posP>=60?AMBER:'333333',size:12}),
+        mC(negP+'%',oaC[9],negP>20?RED2:WHITE,{bold:true,color:negP>20?RED:'333333',size:12}),
+        mC(cl.l,oaC[10],cl.bg,{bold:true,color:cl.c,size:11}),
+      ]}));
     });
+  });
+  children.push(
+    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:oaC,rows:[
+      new TableRow({children:[
+        mH(['Q#'],oaC[0]),mH(['Sec.Q'],oaC[1]),mH(['السؤال / Question'],oaC[2]),
+        mH(['Female\nMean'],oaC[3],'843C0C'),mH(['Male\nMean'],oaC[4],'1F4E79'),
+        mH(['Max'],oaC[5]),mH(['Min'],oaC[6]),
+        mH(['Mean'],oaC[7]),mH(['Pos%'],oaC[8],'375623'),mH(['Neg%'],oaC[9],'9C0006'),
+        mH(['Classification'],oaC[10]),
+      ]}),
+      ...oaRows,
+    ]}),sp(200,80),
+    new Paragraph({pageBreakBefore:true,children:[]}),
+  );
+
+  // ── 3. PER-SECTION DETAIL: Mini summary + Distribution table ─────
+  secs.forEach((sec,si)=>{
+    const cl=clf5(sec.mean);
+    const seenQns=new Set();
+    const sortedQs=(sec.qs||[]).filter(q=>{
+      if(!q||seenQns.has(q.qn)) return false;
+      seenQns.add(q.qn); return true;
+    }).sort((a,b)=>a.qn-b.qn);
+    if(!sortedQs.length) return;
+
+    if(si>0) children.push(new Paragraph({pageBreakBefore:true,children:[]}));
+
+    // Separator + section title
+    children.push(
+      mP('─'.repeat(55)+' '+sec.name,{size:11,color:'AAAAAA',before:0,after:6}),
+      mP(sec.ar,{bold:true,size:20,color:MID,before:0,after:4,rtl:true}),
+      mP('Mean: '+sec.mean+' | F.Mean: '+(sec.fMean||sec.mean)+' | M.Mean: '+(sec.mMean||sec.mean)+' | Gap: '+Math.abs((sec.fMean||sec.mean)-(sec.mMean||sec.mean)).toFixed(2)+' | '+cl.l,
+        {size:15,color:'444444',before:0,after:8}),
+    );
+
+    // Mini section summary (1-row table)
+    const sSumC=[Math.round(CW*0.40),Math.round(CW*0.12),Math.round(CW*0.12),Math.round(CW*0.12),Math.max(300,CW-Math.round(CW*0.40)-Math.round(CW*0.12)*3)];
+    children.push(
+      new Table({width:{size:CW,type:WidthType.DXA},columnWidths:sSumC,rows:[
+        new TableRow({children:[
+          mH(['Section / المحور'],sSumC[0]),mH(['Mean'],sSumC[1]),
+          mH(['F.Mean'],sSumC[2],'843C0C'),mH(['M.Mean'],sSumC[3],'1F4E79'),
+          mH(['Classification'],sSumC[4]),
+        ]}),
+        new TableRow({children:[
+          new TableCell({width:{size:Math.max(1,sSumC[0]),type:WidthType.DXA},borders:allB(MID),
+            shading:{fill:PALE,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+            children:[
+              new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:3},
+                children:[new TextRun({text:sec.name,bold:true,size:14,color:DARK,font:'Arial'})]}),
+              new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:0},
+                children:[new TextRun({text:sec.ar,size:12,color:DARK,font:'Arial',rtl:true})]}),
+            ]}),
+          mC(sec.mean,sSumC[1],cl.bg,{bold:true,color:cl.c,size:16}),
+          mC(sec.fMean||sec.mean,sSumC[2],'FCE4D6',{bold:true,color:'843C0C',size:14}),
+          mC(sec.mMean||sec.mean,sSumC[3],'DDEBF7',{bold:true,color:'1F4E79',size:14}),
+          mC(cl.l,sSumC[4],cl.bg,{bold:true,color:cl.c,size:13}),
+        ]}),
+      ]}),sp(40,30),
+    );
+
+    // Distribution table: Global Q | Sec.Q | Group | %SD(5)|%D(4)|%N(3)|%A(2)|%SA(1) | Mean
+    const dC=[1600,400,700,700,700,700,700,700,Math.max(400,CW-1600-400-700*6)];
+    children.push(
+      new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:[
+        new TableRow({children:[
+          mH(['Global Q / السؤال'],dC[0]),mH(['Sec.\nQ'],dC[1]),mH(['Group'],dC[2]),
+          mH(['%\nStr.Disagree\n(5)'],dC[3],'9C0006',9),mH(['%\nDisagree\n(4)'],dC[4],'C55A11',9),
+          mH(['%\nNeutral\n(3)'],dC[5],'7F7F7F',9),mH(['%\nAgree\n(2)'],dC[6],'375623',9),
+          mH(['%\nStr.Agree\n(1)'],dC[7],'1a5216',9),mH(['Mean'],dC[8]),
+        ]}),
+        ...sortedQs.flatMap((q,qi)=>{
+          const cD=q.cD||[0,0,0,0,0]; // [%1SA,%2A,%3N,%4D,%5SD]
+          const fD=q.fD||cD; const mD=q.mD||cD;
+          const bg=qi%2===0?PALE:WHITE;
+          return [
+            // Q text header row (merged, spans Female+Male rowSpan:2)
+            new TableRow({children:[
+              new TableCell({width:{size:Math.max(1,dC[0]),type:WidthType.DXA},
+                borders:allB(DARK),shading:{fill:PALE,type:ShadingType.CLEAR},
+                margins:mg(),rowSpan:2,verticalAlign:VerticalAlign.CENTER,
+                children:[
+                  new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:6},
+                    children:[new TextRun({text:'Q'+q.qn+'. '+(q.lbl||''),bold:true,size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
+                  new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
+                    children:[new TextRun({text:Q_EN[q.qn]||'',size:9,color:'666666',font:'Arial',italics:true})]}),
+                ]}),
+              new TableCell({width:{size:Math.max(1,dC[1]),type:WidthType.DXA},
+                borders:allB(MID),shading:{fill:bg,type:ShadingType.CLEAR},
+                margins:mg(),rowSpan:2,verticalAlign:VerticalAlign.CENTER,
+                children:[new Paragraph({alignment:AlignmentType.CENTER,children:[
+                  new TextRun({text:String(qi+1),size:12,font:'Arial'})]})]
+              }),
+              // Female row
+              mC('Female\n👧',dC[2],'FCE4D6',{bold:true,color:'843C0C',size:10}),
+              mC((fD[4]||0)+'%',dC[3],'FFEBEE',{color:'9C0006',size:11}),
+              mC((fD[3]||0)+'%',dC[4],'FFF3E0',{color:'C55A11',size:11}),
+              mC((fD[2]||0)+'%',dC[5],bg,{size:11}),
+              mC((fD[1]||0)+'%',dC[6],'E8F5E9',{color:'375623',size:11}),
+              mC((fD[0]||0)+'%',dC[7],'E2EFDA',{color:'1a5216',size:11}),
+              mC(q.fM??q.cM,dC[8],'FCE4D6',{bold:true,color:'843C0C',size:13}),
+            ]}),
+            // Male row
+            new TableRow({children:[
+              mC('Male\n👦',dC[2],'DDEBF7',{bold:true,color:'1F4E79',size:10}),
+              mC((mD[4]||0)+'%',dC[3],'FFEBEE',{color:'9C0006',size:11}),
+              mC((mD[3]||0)+'%',dC[4],'FFF3E0',{color:'C55A11',size:11}),
+              mC((mD[2]||0)+'%',dC[5],bg,{size:11}),
+              mC((mD[1]||0)+'%',dC[6],'E8F5E9',{color:'375623',size:11}),
+              mC((mD[0]||0)+'%',dC[7],'E2EFDA',{color:'1a5216',size:11}),
+              mC(q.mM??q.cM,dC[8],'DDEBF7',{bold:true,color:'1F4E79',size:13}),
+            ]}),
+          ];
+        }),
+      ]}),sp(80,40),
+    );
+  });
   }
 
   // ── ENHANCEMENT PLANS ──────────────────────────────────────────────
   children.push(
     new Paragraph({pageBreakBefore:true,children:[]}),
-    mP('Enhancement Plans | خطة التحسين والتطوير',{bold:true,size:30,color:DARK,before:0,after:60}),
-    mP('مرتبة من الأضعف للأقوى — Priority: Low Mean First',{size:17,color:'555555',italic:true,before:0,after:100}),
+    mP('Enhancement Plans | خطة التحسين والتطوير',{bold:true,size:28,color:DARK,before:0,after:60}),
+    mP('مرتبة من الأضعف للأقوى — Sorted by Mean (Highest = Needs Most Attention)',
+      {size:16,color:'555555',italic:true,before:0,after:20}),
+    mP('Positive % = %(1) Strongly Agree + %(2) Agree  |  Negative % = %(4) Disagree + %(5) Strongly Disagree  |  Neutral %(3) is excluded from both',
+      {size:14,color:'2E75B6',italic:true,before:0,after:60}),
   );
-  // ── ENHANCEMENT PLANS ────────────────────────────────────────────────
-  // Use all Qs from all sections
-  const allEPQs = secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
 
-  const epItems=[];
-  allEPQs.forEach((q,qi)=>{
-    if(!q||q.cM===undefined) return;
-    const cD=q.cD||[0,0,0,0,0];
-    const posP=Math.round((cD[0]||0)+(cD[1]||0));
-    const negP=Math.round((cD[3]||0)+(cD[4]||0));
-    const cl=clf5(q.cM||0);
-    const pr=q.cM>=4.5?'🟢 Excellent':q.cM>=3.5?'🟢 Good':q.cM>=2.5?'🟡 Medium':'🔴 High';
-    const arText=String(q.lbl||'');
-    const enText=Q_EN[q.qn]||'';
-    const action=q.cM<2.5
-      ?`Immediate improvement plan required. Review delivery and support.`
-      :q.cM<3.5
-      ?`Monitor and enhance through training, peer feedback, and resources.`
-      :`Maintain current performance. Document as best practice.`;
-    const kpi=q.cM<3.5
-      ?`Target: Mean ≥${Math.min(5,+(q.cM+0.5).toFixed(1))} | Positive% ≥${Math.min(95,posP+15)}%`
-      :`Maintain: Mean ≥${+(q.cM).toFixed(2)} | Positive% ≥${posP}%`;
-    epItems.push({q,posP,negP,cl,pr,action,kpi,arText,enText});
-  });
-  epItems.sort((a,b)=>(a.q.cM||0)-(b.q.cM||0));
+  // Build EP items from all Qs (deduplicated, sorted by mean desc = weakest first)
+  const allEPQs=secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
+  const seenEP=new Set();
+  const epItems=allEPQs.filter(q=>{
+    if(!q||q.cM===undefined||seenEP.has(q.qn)) return false;
+    seenEP.add(q.qn); return true;
+  }).sort((a,b)=>(b.q&&b.q.cM?b.q.cM:b.cM||0)-(a.q&&a.q.cM?a.q.cM:a.cM||0));
 
-  // EP table: Priority | Q# | Survey Item (AR+EN) | Mean | Class | Pos% | Neg% | Action+KPI
-  const epC=[700,500,3000,700,1000,600,600,Math.max(400,CW-700-500-3000-700-1000-600-600)];
+  const epC=[700,500,2800,700,1000,600,600,Math.max(300,CW-700-500-2800-700-1000-600-600)];
   children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:epC,rows:[
     new TableRow({children:[
-      mH(['Priority'],epC[0]),
+      mH(['Priority\nالأولوية'],epC[0]),
       mH(['Q#'],epC[1]),
       mH(['Survey Item | السؤال'],epC[2]),
-      mH(['Mean'],epC[3]),
+      mH(['Mean\nالمتوسط'],epC[3]),
       mH(['Classification\nالتصنيف'],epC[4]),
-      mH(['Pos%\nموافق'],epC[5]),
-      mH(['Neg%\nلا أوافق'],epC[6]),
-      mH(['Recommended Action | KPI'],epC[7]),
+      mH(['Pos%\nموافق'],epC[5],'375623'),
+      mH(['Neg%\nلا أوافق'],epC[6],'9C0006'),
+      mH(['Recommended Action & KPI\nالإجراء المقترح'],epC[7]),
     ]}),
-    ...epItems.filter(item=>item&&item.q).map((item,i)=>{
+    ...epItems.map((q,i)=>{
+      const cD=q.cD||[0,0,0,0,0];
+      const posP=Math.round((cD[0]||0)+(cD[1]||0));
+      const negP=Math.round((cD[3]||0)+(cD[4]||0));
+      const cl=clf5(q.cM||0);
       const bg=i%2===0?PALE:WHITE;
+      const cMv=parseFloat(q.cM)||0;
+      const pr=cMv>=4.5?'🔴 Critical':cMv>=3.5?'🔴 High':cMv>=2.5?'🟡 Medium':cMv>=1.5?'🟢 Good':'🟢 Excellent';
+      const prBg=cMv>=3.5?RED2:cMv>=2.5?AMBER2:GREEN2;
+      const prC=cMv>=3.5?RED:cMv>=2.5?AMBER:GREEN;
+      const action=cMv>=4.5?'Immediate review & intervention required.':
+        cMv>=3.5?'Develop targeted improvement plan with clear milestones.':
+        cMv>=2.5?'Monitor closely and provide additional support/resources.':
+        'Maintain current practices. Document as best practice.';
+      const kpi=cMv>=3.5?`Reduce mean to ≤${(cMv-0.5).toFixed(1)} within one semester`:
+        `Maintain mean ≤${(cMv+0.2).toFixed(1)} | Positive% ≥${Math.min(95,posP+10)}%`;
       return new TableRow({children:[
-        mC(item.pr,epC[0],item.cl.bg,{bold:true,color:item.cl.c,size:12}),
-        mC('Q'+item.q.qn,epC[1],bg,{bold:true,color:DARK,size:14}),
+        mC(pr,epC[0],prBg,{bold:true,color:prC,size:11}),
+        mC('Q'+q.qn,epC[1],bg,{bold:true,color:DARK,size:13}),
+        // Bilingual Q text
         new TableCell({width:{size:Math.max(1,epC[2]),type:WidthType.DXA},borders:allB(),
           shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
           children:[
-            new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:10},
-              children:[new TextRun({text:item.arText,size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
+            new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:8},
+              children:[new TextRun({text:String(q.lbl||''),size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
             new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
-              children:[new TextRun({text:item.enText,size:10,color:'555555',font:'Arial',italics:true})]}),
+              children:[new TextRun({text:Q_EN[q.qn]||'',size:9,color:'666666',font:'Arial',italics:true})]}),
           ]}),
-        mC((item.q.cM||0).toFixed?+(item.q.cM).toFixed(2):item.q.cM,epC[3],item.cl.bg,{bold:true,color:item.cl.c,size:14}),
-        mC(item.cl.l,epC[4],item.cl.bg,{bold:true,color:item.cl.c,size:12}),
-        mC(item.posP+'%',epC[5],item.posP>=80?GREEN2:item.posP>=60?AMBER2:RED2,
-          {bold:true,color:item.posP>=80?GREEN:item.posP>=60?AMBER:RED,size:13}),
-        mC(item.negP+'%',epC[6],item.negP>20?RED2:item.negP>10?AMBER2:GREEN2,
-          {bold:true,color:item.negP>20?RED:item.negP>10?AMBER:GREEN,size:13}),
-        mC(item.action+'\n'+item.kpi,epC[7],bg,{align:AlignmentType.LEFT,size:11}),
+        mC(cMv.toFixed(2),epC[3],cl.bg,{bold:true,color:cl.c,size:14}),
+        mC(cl.l,epC[4],cl.bg,{bold:true,color:cl.c,size:11}),
+        mC(posP+'%',epC[5],posP>=80?GREEN2:posP>=60?AMBER2:WHITE,
+          {bold:true,color:posP>=80?GREEN:posP>=60?AMBER:'333333',size:12}),
+        mC(negP+'%',epC[6],negP>20?RED2:negP>10?AMBER2:WHITE,
+          {bold:true,color:negP>20?RED:negP>10?AMBER:'333333',size:12}),
+        new TableCell({width:{size:Math.max(1,epC[7]),type:WidthType.DXA},borders:allB(),
+          shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+          children:[
+            new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:4},
+              children:[new TextRun({text:action,size:10,color:'333333',font:'Arial'})]}),
+            new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
+              children:[new TextRun({text:'KPI: '+kpi,size:9,color:'666666',font:'Arial',italics:true})]}),
+          ]}),
       ]});
     }),
   ]}),sp(200,80));
