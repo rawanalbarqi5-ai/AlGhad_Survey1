@@ -1174,9 +1174,7 @@ async function buildWordFromResult(result, cfg){
   );
   // ── ENHANCEMENT PLANS ────────────────────────────────────────────────
   // Use all Qs from all sections
-  const allEPQs = isMulti
-    ? allQs  // all 24 from multi-course
-    : secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
+  const allEPQs = secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
 
   const epItems=[];
   allEPQs.forEach((q,qi)=>{
