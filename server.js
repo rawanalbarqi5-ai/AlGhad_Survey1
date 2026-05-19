@@ -77,6 +77,34 @@ app.get('/', (req,res) => {
 
 // ── Colors & helpers ──────────────────────────────────────────────────────────
 const DARK='1F4E79',MID='2E75B6',PALE='EBF3FB',WHITE='FFFFFF';
+
+// Bilingual Q translations
+const Q_EN = {
+  1: 'Course guidelines and descriptions (including knowledge and skills the course was designed to develop) were clear.',
+  2: 'Course requirements (including tests and assignments used for assessment) were clear.',
+  3: 'Help resources available to students (including office hours) were helpful.',
+  4: 'Course delivery and tasks required were consistent with the course outline.',
+  5: 'My instructor(s) were fully committed to the delivery of the course (e.g. classes started on time, always present, material well prepared).',
+  6: 'My instructor(s) had thorough knowledge of the content of the course.',
+  7: 'My instructor(s) were available for help during office hours.',
+  8: 'My instructor(s) showed enthusiasm for teaching.',
+  9: 'My instructor(s) were interested in my progress and were helpful to me.',
+  10: 'All course materials were current and useful (readings, summaries, references, etc.).',
+  11: 'Resources I needed in this course were available whenever I needed them.',
+  12: 'Technology was used effectively to support my learning in this course.',
+  13: 'I was encouraged to ask questions and develop my own ideas in this course.',
+  14: 'I was encouraged to do my best work in this course.',
+  15: 'Things I had to do in this course (class activities, assignments, laboratories, etc.) were helpful for developing knowledge and skills the course was intended to teach.',
+  16: 'The amount of work I had to do in this course was reasonable for the credit hours allocated.',
+  17: 'Marks for assignments and tests were returned within reasonable time.',
+  18: 'Grading of my tests and assignments was fair and reasonable.',
+  19: 'The links between this course and other courses in my program were made clear to me.',
+  20: 'What I learned in this course is important and will benefit me in the future.',
+  21: 'This course helped me improve my ability to think and solve problems rather than memorize information.',
+  22: 'This course helped me improve my teamwork skills.',
+  23: 'This course helped me improve my ability to communicate effectively.',
+  24: 'I feel generally satisfied with the overall quality of this course.',
+};
 const GREEN='375623',GREEN2='E2EFDA',AMBER='7F6000',AMBER2='FFEB9C';
 const RED='9C0006',RED2='FFC7CE',PINK='FCE4D6',BLUE2='DDEBF7',ORANGE='ED7D31',ORANGE2='FCE4D6';
 
@@ -900,76 +928,121 @@ async function buildWordFromResult(result, cfg){
       ]}),sp(200,80),
     );
 
-    // ── SECTION 3: Q × COURSE (Q rows, Course M/F columns) ──────────────
-    // Build: cols = [Question, Course1_M, Course1_F, Course2_M, Course2_F, ..., Overall_M, Overall_F, Overall]
+    // ── SECTION 3: Q × COURSE (course name on top, M/F columns below) ────
     const hasMF=Object.values(courseResults).some(cd=>cd.nB>0&&cd.nG>0);
-    
+
     if(hasMF){
-      // Build header: Q | C1 M | C1 F | C2 M | C2 F | ... | Overall
-      const colsPerCourse=2; // M + F
-      const qLW=Math.round(CW*0.22);
-      const courseColW=Math.max(380,Math.floor((CW-qLW-800)/(courses.length*colsPerCourse+1)));
-      const overallW=Math.max(600,CW-qLW-courseColW*courses.length*colsPerCourse);
-      const mfC=[qLW,...courses.flatMap(()=>[courseColW,courseColW]),overallW];
+      const nC=courses.length;
+      const qLblW=Math.round(CW*0.18);
+      const cW=Math.max(340,Math.floor((CW-qLblW-600)/(nC*2+1)));
+      const ovW=Math.max(500,CW-qLblW-cW*nC*2);
+      // cols: [Q_label, C1_M, C1_F, C2_M, C2_F, ..., Overall]
+      const mfCols=[qLblW,...Array(nC*2).fill(cW),ovW];
 
       children.push(
         new Paragraph({pageBreakBefore:true,children:[]}),
         mP('ثالثاً: مقارنة الأسئلة — ذكور وإناث | Q × Course (M/F)',{bold:true,size:22,color:DARK,before:0,after:80}),
-        new Table({width:{size:CW,type:WidthType.DXA},columnWidths:mfC,rows:[
-          // Header row 1: course names (spanning M+F)
+        new Table({width:{size:CW,type:WidthType.DXA},columnWidths:mfCols,rows:[
+
+          // ── Header Row 1: السؤال + Course names (each spans 2 cols) + Overall
           new TableRow({children:[
-            new TableCell({width:{size:Math.max(1,qLW),type:WidthType.DXA},borders:allB(DARK),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),rowSpan:2,verticalAlign:VerticalAlign.CENTER,
-              children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'السؤال',bold:true,color:WHITE,size:16,font:'Arial'})]})]}),
-            ...courses.flatMap((cn,ci)=>[
-              new TableCell({width:{size:Math.max(1,courseColW*2),type:WidthType.DXA},columnSpan:2,borders:allB(MID),shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),
-                children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cn.slice(0,14),bold:true,color:WHITE,size:13,font:'Arial'})]})]}),
-            ]),
-            new TableCell({width:{size:Math.max(1,overallW),type:WidthType.DXA},borders:allB(DARK),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),rowSpan:2,verticalAlign:VerticalAlign.CENTER,
-              children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'الإجمالي',bold:true,color:WHITE,size:14,font:'Arial'})]})]}),
+            // Q label cell - spans 2 rows
+            new TableCell({
+              width:{size:Math.max(1,qLblW),type:WidthType.DXA},
+              borders:allB(DARK),shading:{fill:DARK,type:ShadingType.CLEAR},
+              margins:mg(),rowSpan:2,verticalAlign:VerticalAlign.CENTER,
+              children:[new Paragraph({alignment:AlignmentType.CENTER,
+                children:[new TextRun({text:'Criteria / السؤال',bold:true,color:WHITE,size:15,font:'Arial'})]})]
+            }),
+            // Course names - each spans M+F (2 cols)
+            ...courses.map(cn=>new TableCell({
+              width:{size:Math.max(1,cW*2),type:WidthType.DXA},
+              columnSpan:2,
+              borders:allB(MID),shading:{fill:MID,type:ShadingType.CLEAR},
+              margins:mg(),verticalAlign:VerticalAlign.CENTER,
+              children:[new Paragraph({alignment:AlignmentType.CENTER,
+                children:[new TextRun({text:cn.slice(0,12),bold:true,color:WHITE,size:13,font:'Arial'})]})]
+            })),
+            // Overall - spans 2 rows
+            new TableCell({
+              width:{size:Math.max(1,ovW),type:WidthType.DXA},
+              borders:allB(DARK),shading:{fill:DARK,type:ShadingType.CLEAR},
+              margins:mg(),rowSpan:2,verticalAlign:VerticalAlign.CENTER,
+              children:[new Paragraph({alignment:AlignmentType.CENTER,
+                children:[new TextRun({text:'Overall',bold:true,color:WHITE,size:13,font:'Arial'})]})]
+            }),
           ]}),
-          // Header row 2: M / F labels
+
+          // ── Header Row 2: M / F under each course
           new TableRow({children:[
-            ...courses.flatMap(()=>[
-              mH(['M👦'],courseColW,'1F4E79',12),
-              mH(['F👧'],courseColW,'843C0C',12),
+            ...courses.flatMap(cn=>[
+              new TableCell({width:{size:Math.max(1,cW),type:WidthType.DXA},borders:allB('1F4E79'),
+                shading:{fill:'DDEBF7',type:ShadingType.CLEAR},margins:mg(),
+                children:[new Paragraph({alignment:AlignmentType.CENTER,
+                  children:[new TextRun({text:'M',bold:true,color:'1F4E79',size:14,font:'Arial'})]})]}),
+              new TableCell({width:{size:Math.max(1,cW),type:WidthType.DXA},borders:allB('843C0C'),
+                shading:{fill:'FCE4D6',type:ShadingType.CLEAR},margins:mg(),
+                children:[new Paragraph({alignment:AlignmentType.CENTER,
+                  children:[new TextRun({text:'F',bold:true,color:'843C0C',size:14,font:'Arial'})]})]}),
             ]),
           ]}),
-          // Data rows: one per question
+
+          // ── Data Rows: one per question
           ...allQs.map((q,qi)=>{
             const bg=qi%2===0?PALE:WHITE;
             const oCl=clf5(q.cM||0);
             return new TableRow({children:[
-              mC('Q'+q.qn+' '+( q.lbl||'').slice(0,35),mfC[0],bg,{align:AlignmentType.RIGHT,size:12}),
+              // Question label - bilingual
+              new TableCell({width:{size:Math.max(1,mfCols[0]),type:WidthType.DXA},borders:allB(),
+                shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+                children:[
+                  new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:20},children:[
+                    new TextRun({text:'Q'+q.qn+': '+(q.lbl||'').slice(0,50),bold:true,size:12,color:'1F4E79',font:'Arial',rtl:true})
+                  ]}),
+                  new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},children:[
+                    new TextRun({text:(Q_EN[q.qn]||'').slice(0,55),size:10,color:'555555',font:'Arial',italics:true})
+                  ]}),
+                ]
+              }),
+              // M+F per course
               ...courses.flatMap((cn,ci)=>{
                 const cd=courseResults[cn];
-                const qmF=(cd.qMeansF||cd.qMeans||[])[qi]||0;
-                const qmM=(cd.qMeansM||cd.qMeans||[])[qi]||0;
-                const fCl=clf5(qmF); const mCl=clf5(qmM);
+                const qmM=cd.qMeansM?+(cd.qMeansM[qi]||0).toFixed(2):'—';
+                const qmF=cd.qMeansF?+(cd.qMeansF[qi]||0).toFixed(2):'—';
+                const mCl=clf5(parseFloat(qmM)||0);
+                const fCl=clf5(parseFloat(qmF)||0);
                 return [
-                  mC(qmM.toFixed(2),courseColW,'DDEBF7',{color:'1F4E79',size:12,bold:true}),
-                  mC(qmF.toFixed(2),courseColW,'FCE4D6',{color:'843C0C',size:12,bold:true}),
+                  mC(qmM,cW,'DDEBF7',{color:'1F4E79',size:13,bold:true}),
+                  mC(qmF,cW,'FCE4D6',{color:'843C0C',size:13,bold:true}),
                 ];
               }),
-              mC(q.cM,mfC[mfC.length-1],oCl.bg,{bold:true,color:oCl.c,size:14}),
+              // Overall
+              mC((q.cM||0).toFixed?+(q.cM).toFixed(2):q.cM,mfCols[mfCols.length-1],oCl.bg,{bold:true,color:oCl.c,size:14}),
             ]});
           }),
-          // Total row
+
+          // ── Total Row
           new TableRow({children:[
-            mC('المتوسط العام',mfC[0],DARK,{bold:true,color:WHITE}),
+            mC('المتوسط العام',mfCols[0],DARK,{bold:true,color:WHITE,size:14}),
             ...courses.flatMap((cn,ci)=>{
               const cd=courseResults[cn];
-              const fCl=clf5(cd.meanF||0); const mCl=clf5(cd.meanM||0);
+              const mV=+(cd.meanM||cd.mean||0).toFixed(2);
+              const fV=+(cd.meanF||cd.mean||0).toFixed(2);
+              const mCl=clf5(parseFloat(mV));
+              const fCl=clf5(parseFloat(fV));
               return [
-                mC((cd.meanM||cd.mean||0).toFixed(2),courseColW,'DDEBF7',{bold:true,color:'1F4E79',size:13}),
-                mC((cd.meanF||cd.mean||0).toFixed(2),courseColW,'FCE4D6',{bold:true,color:'843C0C',size:13}),
+                mC(mV,cW,mCl.bg,{bold:true,color:mCl.c,size:14}),
+                mC(fV,cW,fCl.bg,{bold:true,color:fCl.c,size:14}),
               ];
             }),
-            mC(overall,mfC[mfC.length-1],gCl.bg,{bold:true,color:gCl.c,size:16}),
+            mC(overall,mfCols[mfCols.length-1],gCl.bg,{bold:true,color:gCl.c,size:16}),
           ]}),
+
         ]}),sp(200,80),
       );
+
     } else {
-      // No gender split: simple Q × Course
+      // No gender: simple Q × Course
       const qCW2=Math.max(700,Math.floor((CW-2800)/(courses.length+1)));
       const qCC2=[2800,...Array(courses.length).fill(qCW2),Math.max(400,CW-2800-qCW2*courses.length)];
       children.push(
@@ -1110,7 +1183,12 @@ async function buildWordFromResult(result, cfg){
         mC(item.pr,epC[0],item.cl.bg,{bold:true,color:item.cl.c,size:13}),
         mC('Q'+item.q.qn,epC[1],bg,{bold:true,color:DARK}),
         mC(item.sec.ar,epC[2],bg,{align:AlignmentType.RIGHT,size:13}),
-        mC(String(item.q.lbl||'').slice(0,60),epC[3],bg,{align:AlignmentType.RIGHT,size:12}),
+        new TableCell({width:{size:Math.max(1,epC[3]),type:WidthType.DXA},borders:allB(),
+          shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+          children:[
+            new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:15},children:[new TextRun({text:String(item.q.lbl||'').slice(0,50),size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
+            new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},children:[new TextRun({text:(Q_EN[item.q.qn]||'').slice(0,50),size:10,color:'555555',font:'Arial',italics:true})]}),
+          ]}),
         mC(item.q.cM,epC[4],item.cl.bg,{bold:true,color:item.cl.c}),
         mC(item.cl.l,epC[5],item.cl.bg,{bold:true,color:item.cl.c,size:13}),
         mC(item.posP+'%',epC[6],item.posP>=80?GREEN2:item.posP>=60?AMBER2:RED2,{bold:true,color:item.posP>=80?GREEN:item.posP>=60?AMBER:RED,size:14}),
