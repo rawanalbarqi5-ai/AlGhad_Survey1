@@ -1139,29 +1139,79 @@ async function buildWordFromResult(result, cfg){
     );
     secs.forEach((sec,si)=>{
       const cl=clf5(sec.mean);
-      if(si>0)children.push(new Paragraph({pageBreakBefore:true,children:[]}));
+      // Sort Qs by qn and deduplicate
+      const seenQns=new Set();
+      const sortedQs=(sec.qs||[]).filter(q=>{
+        if(!q||seenQns.has(q.qn)) return false;
+        seenQns.add(q.qn); return true;
+      }).sort((a,b)=>a.qn-b.qn);
+
+      if(si>0) children.push(new Paragraph({pageBreakBefore:true,children:[]}));
       children.push(
         mP(sec.name+' | '+sec.ar,{bold:true,size:26,color:MID,before:0,after:40}),
         mP('Mean: '+sec.mean+' | '+cl.l,{size:17,color:'444444',before:0,after:80}),
       );
-      const dC=showG
-        ?[500,3200,1100,1100,1100,1100,1100,1200,CW-500-3200-1100*5-1200]
-        :[500,3200,1200,1200,1200,1200,1200,1300,CW-500-3200-1200*5-1300];
-      const dH=[mH(['Q#'],dC[0]),mH(['السؤال'],dC[1])];
-      if(showG)dH.push(mH(['F.Mean'],dC[2]),mH(['M.Mean'],dC[3]),mH(['Max'],dC[4]),mH(['Min'],dC[5]));
-      else dH.push(mH(['%SA\nموافق بشدة'],dC[2]),mH(['%A\nموافق'],dC[3]),mH(['%N\nمحايد'],dC[4]),mH(['%D\nلا أوافق'],dC[5]));
-      dH.push(mH(['Mean'],dC[6]),mH(['Pos%'],dC[7]),mH(['التصنيف'],dC[8]));
-      children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:[
+
+      const showG=(cfg.gmode==='col');
+      const dH=[mH(['Q#'],500),mH(['السؤال / Question'],3000)];
+      if(showG) dH.push(mH(['F.Mean'],900),mH(['M.Mean'],900),mH(['Max'],700),mH(['Min'],700));
+      else dH.push(mH(['%SA'],700),mH(['%A'],700),mH(['%N'],700),mH(['%D'],700));
+      dH.push(mH(['Mean'],900),mH(['Pos%'],700),mH(['التصنيف'],Math.max(400,CW-500-3000-(showG?4*900:4*700)-900-700)));
+
+      const cols=[500,3000,...(showG?[900,900,700,700]:[700,700,700,700]),900,700,
+        Math.max(400,CW-500-3000-(showG?4*900:4*700)-900-700)];
+
+      children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:cols,rows:[
         new TableRow({children:dH}),
-        ...(sec.qs||[]).map((q,qi)=>{
-          const cD=q.cD||[0,0,0,0,0];const qcl=clf5(q.cM||0);const bg=qi%2===0?PALE:WHITE;
-          const cells=[mC('Q'+q.qn,dC[0],bg,{bold:true,color:DARK,size:14}),mC((q.lbl||'').slice(0,55),dC[1],bg,{align:AlignmentType.RIGHT,size:13})];
-          if(showG)cells.push(mC(q.fM,dC[2],'FCE4D6',{color:'843C0C',size:14}),mC(q.mM,dC[3],'DDEBF7',{color:DARK,size:14}),mC(q.maxM,dC[4],bg,{size:13}),mC(q.minM,dC[5],bg,{size:13}));
-          else cells.push(mC(cD[0]+'%',dC[2],cD[0]>=80?GREEN2:bg,{color:cD[0]>=80?GREEN:'000000',size:13}),mC(cD[1]+'%',dC[3],bg,{size:13}),mC(cD[2]+'%',dC[4],bg,{size:13}),mC(cD[3]+'%',dC[5],cD[3]>15?RED2:bg,{color:cD[3]>15?RED:'000000',size:13}));
-          cells.push(mC(q.cM,dC[6],qcl.bg,{bold:true,color:qcl.c,size:16}),mC((q.pos||0)+'%',dC[7],(q.pos||0)>=80?GREEN2:bg,{color:(q.pos||0)>=80?GREEN:'000000',size:13}),mC(qcl.l,dC[8],qcl.bg,{bold:true,color:qcl.c,size:13}));
+        ...sortedQs.map((q,qi)=>{
+          const cD=q.cD||[0,0,0,0,0];
+          const qcl=clf5(q.cM||0);
+          const bg=qi%2===0?PALE:WHITE;
+          const cells=[
+            mC('Q'+q.qn,cols[0],bg,{bold:true,color:DARK,size:14}),
+            // Bilingual Q text
+            new TableCell({width:{size:Math.max(1,cols[1]),type:WidthType.DXA},borders:allB(),
+              shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+              children:[
+                new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:10},
+                  children:[new TextRun({text:String(q.lbl||''),size:12,color:'1F4E79',font:'Arial',rtl:true})]}),
+                new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
+                  children:[new TextRun({text:Q_EN[q.qn]||'',size:10,color:'666666',font:'Arial',italics:true})]}),
+              ]}),
+          ];
+          if(showG){
+            cells.push(
+              mC(q.fM??q.cM,cols[2],'FCE4D6',{color:'843C0C',size:13}),
+              mC(q.mM??q.cM,cols[3],'DDEBF7',{color:'1F4E79',size:13}),
+              mC(q.maxM??q.cM,cols[4],bg,{size:12}),
+              mC(q.minM??q.cM,cols[5],bg,{size:12}),
+            );
+          } else {
+            cells.push(
+              mC((cD[0]||0)+'%',cols[2],(cD[0]||0)>=70?GREEN2:bg,{color:(cD[0]||0)>=70?GREEN:'000000',size:12}),
+              mC((cD[1]||0)+'%',cols[3],bg,{size:12}),
+              mC((cD[2]||0)+'%',cols[4],bg,{size:12}),
+              mC((cD[3]||0)+'%',cols[5],(cD[3]||0)>20?RED2:bg,{color:(cD[3]||0)>20?RED:'000000',size:12}),
+            );
+          }
+          const posP=Math.round((cD[0]||0)+(cD[1]||0));
+          cells.push(
+            mC((q.cM||0).toFixed?+(q.cM).toFixed(2):q.cM,cols[6],qcl.bg,{bold:true,color:qcl.c,size:14}),
+            mC(posP+'%',cols[7],posP>=80?GREEN2:posP>=60?AMBER2:RED2,{bold:true,color:posP>=80?GREEN:posP>=60?AMBER:RED,size:12}),
+            mC(qcl.l,cols[8],qcl.bg,{bold:true,color:qcl.c,size:12}),
+          );
           return new TableRow({children:cells});
         }),
-        new TableRow({children:[mC('المتوسط',dC[0]+dC[1],DARK,{bold:true,color:WHITE,colSpan:2}),mC('—',dC[2],PALE),mC('—',dC[3],PALE),mC('—',dC[4],PALE),mC('—',dC[5],PALE),mC(sec.mean,dC[6],cl.bg,{bold:true,color:cl.c,size:18}),mC('—',dC[7],PALE),mC(cl.l,dC[8],cl.bg,{bold:true,color:cl.c})]}),
+        // Total row
+        new TableRow({children:[
+          mC('Avg',cols[0],DARK,{bold:true,color:WHITE,size:12}),
+          mC('المتوسط / Average',cols[1],DARK,{bold:true,color:WHITE,size:12}),
+          ...(showG?[mC('—',cols[2],PALE),mC('—',cols[3],PALE),mC('—',cols[4],PALE),mC('—',cols[5],PALE)]
+                   :[mC('—',cols[2],PALE),mC('—',cols[3],PALE),mC('—',cols[4],PALE),mC('—',cols[5],PALE)]),
+          mC(sec.mean,cols[6],cl.bg,{bold:true,color:cl.c,size:16}),
+          mC('—',cols[7],PALE),
+          mC(cl.l,cols[8],cl.bg,{bold:true,color:cl.c,size:12}),
+        ]}),
       ]}),sp(80,40));
     });
   }
