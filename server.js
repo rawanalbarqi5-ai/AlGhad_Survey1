@@ -838,25 +838,35 @@ async function buildWordFromResult(result, cfg){
 
     // ── SECTION 1: ALL SECTIONS SUMMARY ──────────────────────────────
     // Build allSecs from courseResults + secs data
-    const s1C=[Math.round(CW*0.10),Math.round(CW*0.18),Math.round(CW*0.09),Math.round(CW*0.09),Math.round(CW*0.09),Math.round(CW*0.09),Math.max(400,CW-Math.round(CW*0.10)-Math.round(CW*0.18)-Math.round(CW*0.09)*4)];
+    // s1C: # | Course | Total n | F sections | F n | M sections | M n | Mean | Class
+    const s1CW=[Math.round(CW*0.06),Math.round(CW*0.16),Math.round(CW*0.08),Math.round(CW*0.07),Math.round(CW*0.08),Math.round(CW*0.07),Math.round(CW*0.08),Math.round(CW*0.08),Math.max(300,CW-Math.round(CW*0.06)-Math.round(CW*0.16)-Math.round(CW*0.08)*3-Math.round(CW*0.07)*2-Math.round(CW*0.08)-Math.round(CW*0.08))];
+    const s1C=s1CW;
     children.push(
       mP('أولاً: ملخص المقررات | Course Summary',{bold:true,size:22,color:DARK,before:0,after:80}),
       new Table({width:{size:CW,type:WidthType.DXA},columnWidths:s1C,rows:[
         new TableRow({children:[
-          mH(['#'],s1C[0]),mH(['المقرر / Course'],s1C[1]),
-          mH(['المستجيبون'],s1C[2]),mH(['إناث'],s1C[3]),mH(['ذكور'],s1C[4]),
-          mH(['المتوسط'],s1C[5]),mH(['التصنيف'],s1C[6]),
+          mH(['#'],s1C[0]),
+          mH(['المقرر / Course'],s1C[1]),
+          mH(['إجمالي مستجيبين'],s1C[2]),
+          mH(['شعب إناث F'],s1C[3]),
+          mH(['مستجيبين إناث F'],s1C[4]),
+          mH(['شعب ذكور M'],s1C[5]),
+          mH(['مستجيبين ذكور M'],s1C[6]),
+          mH(['المتوسط / Mean'],s1C[7]),
+          mH(['التصنيف / Class.'],s1C[8]),
         ]}),
         ...courses.map((cn,ci)=>{
           const cd=courseResults[cn]; const cl=clf5(cd.mean||0); const bg=ci%2===0?PALE:WHITE;
           return new TableRow({children:[
-            mC(ci+1,s1C[0],bg,{bold:true,color:DARK}),
-            mC(cn,s1C[1],bg,{bold:true,color:DARK,align:AlignmentType.LEFT}),
-            mC(cd.n||0,s1C[2],bg,{bold:true}),
-            mC(cd.nG||'—',s1C[3],bg),
-            mC(cd.nB||'—',s1C[4],bg),
-            mC((cd.mean||0).toFixed(2),s1C[5],cl.bg,{bold:true,color:cl.c}),
-            mC(cl.l,s1C[6],cl.bg,{bold:true,color:cl.c,size:14}),
+            mC(ci+1,s1C[0],bg,{bold:true,color:DARK,size:13}),
+            mC(cn,s1C[1],bg,{bold:true,color:DARK,align:AlignmentType.LEFT,size:13}),
+            mC(cd.n||0,s1C[2],bg,{bold:true,size:14}),
+            mC(cd.sectionsG||cd.sectionCount||'—',s1C[3],'FCE4D6',{color:'843C0C',size:13}),
+            mC(cd.nG||'—',s1C[4],'FCE4D6',{bold:true,color:'843C0C',size:14}),
+            mC(cd.sectionsM||'—',s1C[5],'DDEBF7',{color:'1F4E79',size:13}),
+            mC(cd.nB||'—',s1C[6],'DDEBF7',{bold:true,color:'1F4E79',size:14}),
+            mC((cd.mean||0).toFixed(2),s1C[7],cl.bg,{bold:true,color:cl.c,size:14}),
+            mC(cl.l,s1C[8],cl.bg,{bold:true,color:cl.c,size:12}),
           ]});
         }),
         new TableRow({children:[
@@ -997,10 +1007,10 @@ async function buildWordFromResult(result, cfg){
                 shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
                 children:[
                   new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:20},children:[
-                    new TextRun({text:'Q'+q.qn+': '+(q.lbl||'').slice(0,50),bold:true,size:12,color:'1F4E79',font:'Arial',rtl:true})
+                    new TextRun({text:'Q'+q.qn+': '+(q.lbl||''),bold:true,size:12,color:'1F4E79',font:'Arial',rtl:true})
                   ]}),
                   new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},children:[
-                    new TextRun({text:(Q_EN[q.qn]||'').slice(0,55),size:10,color:'555555',font:'Arial',italics:true})
+                    new TextRun({text:Q_EN[q.qn]||'',size:10,color:'555555',font:'Arial',italics:true})
                   ]}),
                 ]
               }),
@@ -1070,38 +1080,42 @@ async function buildWordFromResult(result, cfg){
       );
       const dqW=Math.max(400,Math.floor((CW-600-2600-700-1400)/Math.max(nQ,1)));
       const dLW=Math.max(400,CW-600-2600-700-dqW*nQ-1400);
-      const dC=[600,2600,700,...Array(nQ).fill(dqW),dLW];
+      const enrolledG=cd.enrolledG||0;
+      const enrolledM=cd.enrolledB||0;
+      const dC=[700,2800,700,...Array(nQ).fill(dqW),dLW];
       children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:[
         new TableRow({children:[
-          mH(['#'],dC[0]),mH(['السؤال / Question'],dC[1]),mH(['Pos%'],dC[2]),
+          mH(['Group'],dC[0]),
+          mH(['Course / المقرر'],dC[1]),
+          mH(['n / Enrolled'],dC[2]),
           ...Array.from({length:nQ},(_,i)=>mH(['Q'+(i+1)],dC[3+i],MID,12)),
-          mH(['المتوسط'],dC[3+nQ]),
+          mH(['Mean'],dC[3+nQ]),
         ]}),
         // Combined row
-      new TableRow({children:[
-        mC('Combined',dC[0],PALE,{bold:true,color:DARK,size:12}),
-        mC(cd.n||0,dC[1],PALE,{bold:true,size:12}),
-        mC((cd.n&&cd.n>0?Math.round(((cd.nG||0)+(cd.nB||0))/cd.n*100):100)+'%',dC[2],PALE,{size:12}),
-        ...(cd.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],qcl.bg,{color:qcl.c,size:12});}),
-        mC((cd.mean||0).toFixed(2),dC[3+nQ],cl.bg,{bold:true,color:cl.c,size:15}),
-      ]}),
-      // Female row
-      ...(cd.nG>0?[new TableRow({children:[
-        mC('Female 👧',dC[0],'FCE4D6',{bold:true,color:'843C0C',size:12}),
-        mC(cd.nG||0,dC[1],'FCE4D6',{color:'843C0C',size:12}),
-        mC(cd.n>0?Math.round((cd.nG/cd.n)*100)+'%':'—',dC[2],'FCE4D6',{color:'843C0C',size:12}),
-        ...(cd.qMeansF||cd.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],'FCE4D6',{color:'843C0C',size:12});}),
-        mC((cd.meanF||cd.mean||0).toFixed(2),dC[3+nQ],'FCE4D6',{bold:true,color:'843C0C',size:14}),
-      ]})]:[]),
-      // Male row
-      ...(cd.nB>0?[new TableRow({children:[
-        mC('Male 👦',dC[0],'DDEBF7',{bold:true,color:'1F4E79',size:12}),
-        mC(cd.nB||0,dC[1],'DDEBF7',{color:'1F4E79',size:12}),
-        mC(cd.n>0?Math.round((cd.nB/cd.n)*100)+'%':'—',dC[2],'DDEBF7',{color:'1F4E79',size:12}),
-        ...(cd.qMeansM||cd.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],'DDEBF7',{color:'1F4E79',size:12});}),
-        mC((cd.meanM||cd.mean||0).toFixed(2),dC[3+nQ],'DDEBF7',{bold:true,color:'1F4E79',size:14}),
-      ]})]:[]),
-      ]}),sp(60,40));
+        new TableRow({children:[
+          mC('All',dC[0],PALE,{bold:true,color:DARK,size:12}),
+          mC(cn,dC[1],PALE,{bold:true,color:DARK,size:12}),
+          mC((cd.n||0)+' / '+(enrolledG+enrolledM||'—'),dC[2],PALE,{size:11}),
+          ...(cd.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],qcl.bg,{color:qcl.c,size:12});}),
+          mC((cd.mean||0).toFixed(2),dC[3+nQ],cl.bg,{bold:true,color:cl.c,size:15}),
+        ]}),
+        // Female row
+        ...(cd.nG>0?[new TableRow({children:[
+          mC('F 👧',dC[0],'FCE4D6',{bold:true,color:'843C0C',size:12}),
+          mC(cn,dC[1],'FCE4D6',{color:'843C0C',size:11}),
+          mC((cd.nG||0)+' / '+(enrolledG||'—'),dC[2],'FCE4D6',{color:'843C0C',size:11}),
+          ...(cd.qMeansF||cd.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],'FCE4D6',{color:'843C0C',size:12});}),
+          mC((cd.meanF||cd.mean||0).toFixed(2),dC[3+nQ],'FCE4D6',{bold:true,color:'843C0C',size:14}),
+        ]})]:[]),
+        // Male row
+        ...(cd.nB>0?[new TableRow({children:[
+          mC('M 👦',dC[0],'DDEBF7',{bold:true,color:'1F4E79',size:12}),
+          mC(cn,dC[1],'DDEBF7',{color:'1F4E79',size:11}),
+          mC((cd.nB||0)+' / '+(enrolledM||'—'),dC[2],'DDEBF7',{color:'1F4E79',size:11}),
+          ...(cd.qMeansM||cd.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],'DDEBF7',{color:'1F4E79',size:12});}),
+          mC((cd.meanM||cd.mean||0).toFixed(2),dC[3+nQ],'DDEBF7',{bold:true,color:'1F4E79',size:14}),
+        ]})]:[]),
+      ]}),sp(60,40))
     });
 
   } else {
@@ -1158,41 +1172,67 @@ async function buildWordFromResult(result, cfg){
     mP('Enhancement Plans | خطة التحسين والتطوير',{bold:true,size:30,color:DARK,before:0,after:60}),
     mP('مرتبة من الأضعف للأقوى — Priority: Low Mean First',{size:17,color:'555555',italic:true,before:0,after:100}),
   );
+  // ── ENHANCEMENT PLANS ────────────────────────────────────────────────
+  // Use all Qs from all sections
+  const allEPQs = isMulti
+    ? allQs  // all 24 from multi-course
+    : secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
+
   const epItems=[];
-  (secs||[]).forEach((sec,si)=>{
-    (sec.qs||[]).forEach((q,qi)=>{
-      if(!q||q.cM===undefined)return;
-      const cD=q.cD||[0,0,0,0,0];
-      const posP=Math.round((cD[0]||0)+(cD[1]||0));
-      const cl=clf5(q.cM||0);
-      const pr=q.cM>=4.5?'🟢 Excellent':q.cM>=3.5?'🟢 Good':q.cM>=2.5?'🟡 Medium':'🔴 High';
-      const action=q.cM<2.5?`Immediate action required for "${q.lbl||'Q'+q.qn}". Develop improvement plan.`
-        :q.cM<3.5?`Review "${q.lbl||'Q'+q.qn}" — provide support and training.`
-        :`Document best practices for "${q.lbl||'Q'+q.qn}".`;
-      const kpi=q.cM<3.5?`Raise mean to ≥${Math.min(5,+(q.cM+0.5).toFixed(1))}; Pos% ≥${Math.min(95,posP+15)}%`:`Maintain ≥${q.cM}; Pos% ≥${posP}%`;
-      epItems.push({sec,q,qi,posP,cl,pr,action,kpi});
-    });
+  allEPQs.forEach((q,qi)=>{
+    if(!q||q.cM===undefined) return;
+    const cD=q.cD||[0,0,0,0,0];
+    const posP=Math.round((cD[0]||0)+(cD[1]||0));
+    const negP=Math.round((cD[3]||0)+(cD[4]||0));
+    const cl=clf5(q.cM||0);
+    const pr=q.cM>=4.5?'🟢 Excellent':q.cM>=3.5?'🟢 Good':q.cM>=2.5?'🟡 Medium':'🔴 High';
+    const arText=String(q.lbl||'');
+    const enText=Q_EN[q.qn]||'';
+    const action=q.cM<2.5
+      ?`Immediate improvement plan required. Review delivery and support.`
+      :q.cM<3.5
+      ?`Monitor and enhance through training, peer feedback, and resources.`
+      :`Maintain current performance. Document as best practice.`;
+    const kpi=q.cM<3.5
+      ?`Target: Mean ≥${Math.min(5,+(q.cM+0.5).toFixed(1))} | Positive% ≥${Math.min(95,posP+15)}%`
+      :`Maintain: Mean ≥${+(q.cM).toFixed(2)} | Positive% ≥${posP}%`;
+    epItems.push({q,posP,negP,cl,pr,action,kpi,arText,enText});
   });
   epItems.sort((a,b)=>(a.q.cM||0)-(b.q.cM||0));
-  const epC=[900,700,1600,1600,800,1400,1400,Math.max(400,CW-900-700-1600-1600-800-1400-1400)];
+
+  // EP table: Priority | Q# | Survey Item (AR+EN) | Mean | Class | Pos% | Neg% | Action+KPI
+  const epC=[700,500,3000,700,1000,600,600,Math.max(400,CW-700-500-3000-700-1000-600-600)];
   children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:epC,rows:[
-    new TableRow({children:[mH(['Priority'],epC[0]),mH(['Q#'],epC[1]),mH(['Section'],epC[2]),mH(['Survey Item'],epC[3]),mH(['Mean'],epC[4]),mH(['Classification'],epC[5]),mH(['Positive%\nSA+A'],epC[6]),mH(['Recommended Action | KPI'],epC[7])]}),
+    new TableRow({children:[
+      mH(['Priority'],epC[0]),
+      mH(['Q#'],epC[1]),
+      mH(['Survey Item | السؤال'],epC[2]),
+      mH(['Mean'],epC[3]),
+      mH(['Classification\nالتصنيف'],epC[4]),
+      mH(['Pos%\nموافق'],epC[5]),
+      mH(['Neg%\nلا أوافق'],epC[6]),
+      mH(['Recommended Action | KPI'],epC[7]),
+    ]}),
     ...epItems.filter(item=>item&&item.q).map((item,i)=>{
       const bg=i%2===0?PALE:WHITE;
       return new TableRow({children:[
-        mC(item.pr,epC[0],item.cl.bg,{bold:true,color:item.cl.c,size:13}),
-        mC('Q'+item.q.qn,epC[1],bg,{bold:true,color:DARK}),
-        mC(item.sec.ar,epC[2],bg,{align:AlignmentType.RIGHT,size:13}),
-        new TableCell({width:{size:Math.max(1,epC[3]),type:WidthType.DXA},borders:allB(),
+        mC(item.pr,epC[0],item.cl.bg,{bold:true,color:item.cl.c,size:12}),
+        mC('Q'+item.q.qn,epC[1],bg,{bold:true,color:DARK,size:14}),
+        new TableCell({width:{size:Math.max(1,epC[2]),type:WidthType.DXA},borders:allB(),
           shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
           children:[
-            new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:15},children:[new TextRun({text:String(item.q.lbl||'').slice(0,50),size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
-            new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},children:[new TextRun({text:(Q_EN[item.q.qn]||'').slice(0,50),size:10,color:'555555',font:'Arial',italics:true})]}),
+            new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:10},
+              children:[new TextRun({text:item.arText,size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
+            new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
+              children:[new TextRun({text:item.enText,size:10,color:'555555',font:'Arial',italics:true})]}),
           ]}),
-        mC(item.q.cM,epC[4],item.cl.bg,{bold:true,color:item.cl.c}),
-        mC(item.cl.l,epC[5],item.cl.bg,{bold:true,color:item.cl.c,size:13}),
-        mC(item.posP+'%',epC[6],item.posP>=80?GREEN2:item.posP>=60?AMBER2:RED2,{bold:true,color:item.posP>=80?GREEN:item.posP>=60?AMBER:RED,size:14}),
-        mC(item.action+'\n'+item.kpi,epC[7],bg,{align:AlignmentType.LEFT,size:12}),
+        mC((item.q.cM||0).toFixed?+(item.q.cM).toFixed(2):item.q.cM,epC[3],item.cl.bg,{bold:true,color:item.cl.c,size:14}),
+        mC(item.cl.l,epC[4],item.cl.bg,{bold:true,color:item.cl.c,size:12}),
+        mC(item.posP+'%',epC[5],item.posP>=80?GREEN2:item.posP>=60?AMBER2:RED2,
+          {bold:true,color:item.posP>=80?GREEN:item.posP>=60?AMBER:RED,size:13}),
+        mC(item.negP+'%',epC[6],item.negP>20?RED2:item.negP>10?AMBER2:GREEN2,
+          {bold:true,color:item.negP>20?RED:item.negP>10?AMBER:GREEN,size:13}),
+        mC(item.action+'\n'+item.kpi,epC[7],bg,{align:AlignmentType.LEFT,size:11}),
       ]});
     }),
   ]}),sp(200,80));
