@@ -28,51 +28,32 @@ app.get('/', (req,res) => {
   res.set('Cache-Control','no-store, no-cache, must-revalidate');
   res.set('Pragma','no-cache');
   res.set('Expires','0');
-
-  // Try multiple possible paths (including space variant)
-  const paths = [
-    path.join(__dirname,'public','index.html'),
-    path.join(__dirname,'public','index .html'),
-    path.join(__dirname,'index.html'),
-    path.join(process.cwd(),'public','index.html'),
-    path.join(process.cwd(),'public','index .html'),
-    path.join(process.cwd(),'index.html'),
-    '/app/public/index.html',
-    '/app/public/index .html',
-    '/app/index.html',
-  ];
-
-  for(const p of paths){
-    if(fs.existsSync(p)){
-      console.log('Serving from:', p);
-      return res.sendFile(p);
-    }
-  }
+  res.set('X-Accel-Expires','0');
 
   // Scan public dir for any HTML file
   const pubDir = path.join(__dirname,'public');
-  if(fs.existsSync(pubDir)){
-    const files = fs.readdirSync(pubDir);
-    for(const f of files){
-      if(f.toLowerCase().includes('index') || f.endsWith('.html')){
-        const fp = path.join(pubDir, f);
-        console.log('Found HTML file:', fp);
-        return res.sendFile(fp);
+  try {
+    if(fs.existsSync(pubDir)){
+      const files = fs.readdirSync(pubDir);
+      const htmlFile = files.find(f=>f.toLowerCase().endsWith('.html'));
+      if(htmlFile){
+        console.log('Serving:', htmlFile);
+        return res.sendFile(path.join(pubDir, htmlFile));
       }
     }
-  }
+  } catch(e){ console.error('Scan error:', e.message); }
 
-  // Debug: show what exists
-  const debug = {
-    __dirname,
-    cwd: process.cwd(),
-    paths_tried: paths,
-    cwd_contents: fs.existsSync(process.cwd()) ? fs.readdirSync(process.cwd()) : 'N/A',
-    public_exists: fs.existsSync(path.join(__dirname,'public')),
-    public_contents: fs.existsSync(path.join(__dirname,'public')) ? fs.readdirSync(path.join(__dirname,'public')) : 'N/A',
-  };
-  console.error('index.html not found:', JSON.stringify(debug, null, 2));
-  res.status(500).json({error: 'index.html not found', debug});
+  // Fallback
+  const fallbacks=[
+    path.join(__dirname,'public','index.html'),
+    path.join(__dirname,'index.html'),
+    path.join(process.cwd(),'public','index.html'),
+  ];
+  for(const p of fallbacks){
+    if(fs.existsSync(p)) return res.sendFile(p);
+  }
+  res.status(404).send('<h1>index.html not found</h1><p>public dir contents: '+
+    (fs.existsSync(pubDir)?fs.readdirSync(pubDir).join(', '):'N/A')+'</p>');
 });
 
 // ── Colors & helpers ──────────────────────────────────────────────────────────
