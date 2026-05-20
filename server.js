@@ -750,7 +750,10 @@ app.post('/api/generate-word',async(req,res)=>{
 // ── Build Word from result (course) ──────────────────────────────────────────
 async function buildWordFromResult(result, cfg){
   // Use clf1 (1=best) for single survey, clf5 (5=best) for XLS multi-course
-  const clfR=cfg.isMulti?clf5:clf1;
+  // Use scale from cfg: '5best' = XLS scale, '1best' = single survey scale
+  const scale=cfg.scale||(cfg.isMulti?'5best':'1best');
+  const clfR=scale==='5best'?clf5:clf1;
+  console.log('Report scale:', scale, '| isMulti:', cfg.isMulti);
   const CW=15398;
   const {nF,nM,n,secs,overall}=result;
   const showG=(cfg.gmode==='col');
@@ -776,7 +779,7 @@ async function buildWordFromResult(result, cfg){
     mP('المقياس المستخدم | Scale',{bold:true,size:22,color:DARK,before:0,after:80}),
     new Table({width:{size:CW,type:WidthType.DXA},columnWidths:sCols,rows:[
       new TableRow({children:[
-        ...(isMulti?[
+        ...(scale==='5best'?[
           mH(['5=موافق بشدة\nStrongly Agree'],sCols[0],GREEN),
           mH(['4=موافق\nAgree'],sCols[1],GREEN),
           mH(['3=محايد\nNeutral'],sCols[2],'7F7F7F'),
@@ -799,7 +802,7 @@ async function buildWordFromResult(result, cfg){
     mP('Classification Scale | مقياس التصنيف',{bold:true,size:22,color:DARK,before:0,after:80}),
     new Table({width:{size:CW,type:WidthType.DXA},columnWidths:clsC,rows:[
       new TableRow({children:[mH(['Range'],clsC[0]),mH(['Classification'],clsC[1]),mH(['التصنيف'],clsC[2]),mH(['Interpretation'],clsC[3])]}),
-      ...(!isMulti?[
+      ...(scale==='1best'?[
         ['≤1.50','Excellent / Clear Strength','ممتاز / نقطة قوة','Excellent — sustain',GREEN2,GREEN],
         ['1.51–2.00','Good / Strength','جيد / نقطة قوة','Good — maintain',GREEN2,GREEN],
         ['2.01–2.50','Acceptable','مقبول / يحتاج متابعة','Acceptable — monitor',AMBER2,AMBER],
