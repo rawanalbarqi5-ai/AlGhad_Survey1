@@ -749,11 +749,13 @@ app.post('/api/generate-word',async(req,res)=>{
 
 // ── Build Word from result (course) ──────────────────────────────────────────
 async function buildWordFromResult(result, cfg){
+  // Use clf1 (1=best) for single survey, clf5 (5=best) for XLS multi-course
+  const clfR=cfg.isMulti?clf5:clf1;
   const CW=15398;
   const {nF,nM,n,secs,overall}=result;
   const showG=(cfg.gmode==='col');
   const children=[];
-  const gCl=clf5(overall);
+  const gCl=clfR(overall);
   const totalQ=secs.reduce((a,s)=>a+(s.qs||[]).length,0);
   const courseResults=cfg.courseResults||null;
   const isMulti=cfg.isMulti&&courseResults&&Object.keys(courseResults).length>1;
@@ -856,7 +858,7 @@ async function buildWordFromResult(result, cfg){
           mH(['التصنيف / Class.'],s1C[8]),
         ]}),
         ...courses.map((cn,ci)=>{
-          const cd=courseResults[cn]; const cl=clf5(cd.mean||0); const bg=ci%2===0?PALE:WHITE;
+          const cd=courseResults[cn]; const cl=clfR(cd.mean||0); const bg=ci%2===0?PALE:WHITE;
           return new TableRow({children:[
             mC(ci+1,s1C[0],bg,{bold:true,color:DARK,size:13}),
             mC(cn,s1C[1],bg,{bold:true,color:DARK,align:AlignmentType.LEFT,size:13}),
@@ -899,7 +901,7 @@ async function buildWordFromResult(result, cfg){
           mH(['المتوسط\nالموزون'],s2C[4+lqN]),mH(['التصنيف'],s2C[5+lqN]),
         ]}),
         ...courses.flatMap((cn,ci)=>{
-          const cd=courseResults[cn]; const cl=clf5(cd.mean||0); const bg=ci%2===0?PALE:WHITE;
+          const cd=courseResults[cn]; const cl=clfR(cd.mean||0); const bg=ci%2===0?PALE:WHITE;
           const rows=[];
           // Combined row
           rows.push(new TableRow({children:[
@@ -907,28 +909,28 @@ async function buildWordFromResult(result, cfg){
             mC(cn,s2C[1],bg,{bold:true,align:AlignmentType.LEFT,size:13}),
             mC(cd.sectionCount||1,s2C[2],bg),
             mC(cd.n||0,s2C[3],bg,{bold:true}),
-            ...(cd.qMeans||[]).slice(0,lqN).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),s2C[4+qi],qcl.bg,{color:qcl.c,size:11});}),
+            ...(cd.qMeans||[]).slice(0,lqN).map((qm,qi)=>{const qcl=clfR(qm||0);return mC((qm||0).toFixed(2),s2C[4+qi],qcl.bg,{color:qcl.c,size:11});}),
             mC((cd.mean||0).toFixed(2),s2C[4+lqN],cl.bg,{bold:true,color:cl.c,size:14}),
             mC(cl.l,s2C[5+lqN],cl.bg,{bold:true,color:cl.c,size:11}),
           ]}));
           // Female row
           if(cd.nG>0&&cd.qMeansF){
-            const clf=clf5(cd.meanF||0);
+            const clf=clfR(cd.meanF||0);
             rows.push(new TableRow({children:[
               mC('',s2C[0],'FCE4D6'),mC('👧 Female',s2C[1],'FCE4D6',{color:'843C0C',size:11}),
               mC('—',s2C[2],'FCE4D6'),mC(cd.nG,s2C[3],'FCE4D6',{color:'843C0C',size:12}),
-              ...(cd.qMeansF||[]).slice(0,lqN).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),s2C[4+qi],'FCE4D6',{color:'843C0C',size:11});}),
+              ...(cd.qMeansF||[]).slice(0,lqN).map((qm,qi)=>{const qcl=clfR(qm||0);return mC((qm||0).toFixed(2),s2C[4+qi],'FCE4D6',{color:'843C0C',size:11});}),
               mC((cd.meanF||0).toFixed(2),s2C[4+lqN],'FCE4D6',{bold:true,color:'843C0C',size:13}),
               mC(clf.l,s2C[5+lqN],'FCE4D6',{bold:true,color:'843C0C',size:11}),
             ]}));
           }
           // Male row
           if(cd.nB>0&&cd.qMeansM){
-            const clm=clf5(cd.meanM||0);
+            const clm=clfR(cd.meanM||0);
             rows.push(new TableRow({children:[
               mC('',s2C[0],'DDEBF7'),mC('👦 Male',s2C[1],'DDEBF7',{color:'1F4E79',size:11}),
               mC('—',s2C[2],'DDEBF7'),mC(cd.nB,s2C[3],'DDEBF7',{color:'1F4E79',size:12}),
-              ...(cd.qMeansM||[]).slice(0,lqN).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),s2C[4+qi],'DDEBF7',{color:'1F4E79',size:11});}),
+              ...(cd.qMeansM||[]).slice(0,lqN).map((qm,qi)=>{const qcl=clfR(qm||0);return mC((qm||0).toFixed(2),s2C[4+qi],'DDEBF7',{color:'1F4E79',size:11});}),
               mC((cd.meanM||0).toFixed(2),s2C[4+lqN],'DDEBF7',{bold:true,color:'1F4E79',size:13}),
               mC(clm.l,s2C[5+lqN],'DDEBF7',{bold:true,color:'1F4E79',size:11}),
             ]}));
@@ -1000,7 +1002,7 @@ async function buildWordFromResult(result, cfg){
           // ── Data Rows: one per question
           ...allQs.map((q,qi)=>{
             const bg=qi%2===0?PALE:WHITE;
-            const oCl=clf5(q.cM||0);
+            const oCl=clfR(q.cM||0);
             return new TableRow({children:[
               // Question label - bilingual
               new TableCell({width:{size:Math.max(1,mfCols[0]),type:WidthType.DXA},borders:allB(),
@@ -1019,8 +1021,8 @@ async function buildWordFromResult(result, cfg){
                 const cd=courseResults[cn];
                 const qmM=cd.qMeansM?+(cd.qMeansM[qi]||0).toFixed(2):'—';
                 const qmF=cd.qMeansF?+(cd.qMeansF[qi]||0).toFixed(2):'—';
-                const mCl=clf5(parseFloat(qmM)||0);
-                const fCl=clf5(parseFloat(qmF)||0);
+                const mCl=clfR(parseFloat(qmM)||0);
+                const fCl=clfR(parseFloat(qmF)||0);
                 return [
                   mC(qmM,cW,'DDEBF7',{color:'1F4E79',size:13,bold:true}),
                   mC(qmF,cW,'FCE4D6',{color:'843C0C',size:13,bold:true}),
@@ -1038,8 +1040,8 @@ async function buildWordFromResult(result, cfg){
               const cd=courseResults[cn];
               const mV=+(cd.meanM||cd.mean||0).toFixed(2);
               const fV=+(cd.meanF||cd.mean||0).toFixed(2);
-              const mCl=clf5(parseFloat(mV));
-              const fCl=clf5(parseFloat(fV));
+              const mCl=clfR(parseFloat(mV));
+              const fCl=clfR(parseFloat(fV));
               return [
                 mC(mV,cW,mCl.bg,{bold:true,color:mCl.c,size:14}),
                 mC(fV,cW,fCl.bg,{bold:true,color:fCl.c,size:14}),
@@ -1052,275 +1054,238 @@ async function buildWordFromResult(result, cfg){
       );
 
     } else {
-      // No gender: simple Q × Course
-      const qCW2=Math.max(700,Math.floor((CW-2800)/(courses.length+1)));
-      const qCC2=[2800,...Array(courses.length).fill(qCW2),Math.max(400,CW-2800-qCW2*courses.length)];
-      children.push(
-        new Paragraph({pageBreakBefore:true,children:[]}),
-        mP('ثالثاً: مقارنة الأسئلة بين المقررات | Q × Course',{bold:true,size:22,color:DARK,before:0,after:80}),
-        new Table({width:{size:CW,type:WidthType.DXA},columnWidths:qCC2,rows:[
-          new TableRow({children:[mH(['السؤال'],qCC2[0]),...courses.map((cn,ci)=>mH([cn.slice(0,16)],qCC2[ci+1],MID)),mH(['الإجمالي'],qCC2[courses.length+1])]}),
-          ...allQs.map((q,qi)=>{const bg=qi%2===0?PALE:WHITE;const oCl=clf5(q.cM||0);return new TableRow({children:[mC('Q'+q.qn+' '+(q.lbl||'').slice(0,40),qCC2[0],bg,{align:AlignmentType.RIGHT,size:13}),...courses.map((cn,ci)=>{const qm=(courseResults[cn].qMeans||[])[qi];const qcl=clf5(qm||0);return mC(qm!=null?parseFloat(qm).toFixed(2):'—',qCC2[ci+1],qcl.bg,{color:qcl.c,size:14});}),mC(q.cM,qCC2[courses.length+1],oCl.bg,{bold:true,color:oCl.c})]});}),
-          new TableRow({children:[mC('المتوسط',qCC2[0],DARK,{bold:true,color:WHITE}),...courses.map((cn,ci)=>{const cl=clf5(courseResults[cn].mean||0);return mC((courseResults[cn].mean||0).toFixed(2),qCC2[ci+1],cl.bg,{bold:true,color:cl.c,size:16});}),mC(overall,qCC2[courses.length+1],gCl.bg,{bold:true,color:gCl.c,size:18})]}),
-        ]}),sp(200,80),
-      );
-    }
+    // ══════════════════════════════════════════════════════════════════
+    // SINGLE COURSE — matches reference report structure exactly
+    // Scale: 1=Strongly Agree (best), 5=Strongly Disagree (worst)
+    // Pos% = %SA(1)+%A(2), Neg% = %D(4)+%SD(5), Neutral(3) excluded
+    // ══════════════════════════════════════════════════════════════════
 
-    // ── SECTION 4: PER-COURSE DETAIL (like per-instructor detail) ────
+    // ── 1. SECTION SUMMARY ─────────────────────────────────────────
+    const ssC=[Math.round(CW*0.10),Math.round(CW*0.35),Math.round(CW*0.10),Math.round(CW*0.10),Math.round(CW*0.10),Math.round(CW*0.10),Math.max(300,CW-Math.round(CW*0.85))];
+    children.push(
+      mP('Section Summary Results | ملخص نتائج المحاور',{bold:true,size:22,color:DARK,before:0,after:80}),
+      new Table({width:{size:CW,type:WidthType.DXA},columnWidths:ssC,rows:[
+        new TableRow({children:[
+          mH(['#'],ssC[0]),mH(['Section / المحور'],ssC[1]),
+          mH(['Mean'],ssC[2]),mH(['F.Mean'],ssC[3]),mH(['M.Mean'],ssC[4]),
+          mH(['Gap'],ssC[5]),mH(['Classification'],ssC[6]),
+        ]}),
+        ...secs.map((s,i)=>{
+          const cl=clfR(s.mean); const bg=i%2===0?PALE:WHITE;
+          return new TableRow({children:[
+            mC(i+1,ssC[0],bg,{bold:true,color:DARK,size:13}),
+            new TableCell({width:{size:Math.max(1,ssC[1]),type:WidthType.DXA},borders:allB(),
+              shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+              children:[
+                new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:4},
+                  children:[new TextRun({text:s.name,bold:true,size:13,color:DARK,font:'Arial'})]}),
+                new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:0},
+                  children:[new TextRun({text:s.ar,size:12,color:DARK,font:'Arial',rtl:true})]}),
+              ]}),
+            mC(s.mean,ssC[2],cl.bg,{bold:true,color:cl.c,size:15}),
+            mC(s.fMean||s.mean,ssC[3],'FCE4D6',{bold:true,color:'843C0C',size:13}),
+            mC(s.mMean||s.mean,ssC[4],'DDEBF7',{bold:true,color:'1F4E79',size:13}),
+            mC(Math.abs((s.fMean||s.mean)-(s.mMean||s.mean)).toFixed(2),ssC[5],bg,{size:12}),
+            mC(cl.l,ssC[6],cl.bg,{bold:true,color:cl.c,size:11}),
+          ]});
+        }),
+      ]}),sp(200,80),
+    );
+
+    // ── 2. OVERALL ANALYSIS ─────────────────────────────────────────
+    // Matches Table 5 in reference: Q | Sec.Q | Section | Female | Male | Max | Min | SD | Mean | Pos% | Neg% | Classification
+    const oaC=[600,400,1000,800,800,700,700,600,900,700,700,Math.max(300,CW-600-400-1000-800*2-700*2-600-900-700*2)];
+    const oaRows=[];
+    const seenOA=new Set();
+    secs.forEach(s=>{
+      const sortedSQs=(s.qs||[]).filter(q=>{
+        if(!q||seenOA.has(q.qn)) return false;
+        seenOA.add(q.qn); return true;
+      }).sort((a,b)=>a.qn-b.qn);
+      if(!sortedSQs.length) return;
+      // Section header row
+      oaRows.push(new TableRow({children:[
+        new TableCell({columnSpan:12,width:{size:CW,type:WidthType.DXA},
+          borders:allB(MID),shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),
+          children:[new Paragraph({alignment:AlignmentType.LEFT,
+            children:[new TextRun({text:s.name+' | '+s.ar,bold:true,color:WHITE,size:16,font:'Arial'})]})]}),
+      ]}));
+      sortedSQs.forEach((q,qi)=>{
+        const cl=clfR(q.cM||0); const bg=qi%2===0?PALE:WHITE;
+        const cD=q.cD||[0,0,0,0,0];
+        const posP=Math.round((cD[0]||0)+(cD[1]||0)); // %SA + %A only
+        const negP=Math.round((cD[3]||0)+(cD[4]||0)); // %D + %SD only
+        oaRows.push(new TableRow({children:[
+          mC('Q'+q.qn,oaC[0],bg,{bold:true,color:DARK,size:13}),
+          mC(qi+1,oaC[1],bg,{size:11}),
+          new TableCell({width:{size:Math.max(1,oaC[2]),type:WidthType.DXA},borders:allB(),
+            shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+            children:[
+              new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:4},
+                children:[new TextRun({text:String(q.lbl||'').slice(0,55),size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
+            ]}),
+          mC(q.fM??q.cM,oaC[3],'FCE4D6',{color:'843C0C',bold:true,size:12}),
+          mC(q.mM??q.cM,oaC[4],'DDEBF7',{color:'1F4E79',bold:true,size:12}),
+          mC(q.maxM??q.cM,oaC[5],bg,{size:11}),
+          mC(q.minM??q.cM,oaC[6],bg,{size:11}),
+          mC('—',oaC[7],bg,{size:10}),
+          mC(q.cM,oaC[8],cl.bg,{bold:true,color:cl.c,size:14}),
+          mC(posP+'%',oaC[9],posP>=80?GREEN2:posP>=60?AMBER2:WHITE,{bold:true,color:posP>=80?GREEN:posP>=60?AMBER:'333333',size:12}),
+          mC(negP+'%',oaC[10],negP>20?RED2:WHITE,{bold:true,color:negP>20?RED:'333333',size:12}),
+          mC(cl.l,oaC[11],cl.bg,{bold:true,color:cl.c,size:10}),
+        ]}));
+      });
+    });
     children.push(
       new Paragraph({pageBreakBefore:true,children:[]}),
-      mP('رابعاً: التحليل التفصيلي لكل مقرر | Course Detail',{bold:true,size:24,color:DARK,before:0,after:100}),
+      mP('Overall Analysis | التحليل الإجمالي',{bold:true,size:22,color:DARK,before:0,after:20}),
+      mP('Pos% = %(1)SA + %(2)A  |  Neg% = %(4)D + %(5)SD  |  %(3)Neutral excluded',
+        {size:13,color:'2E75B6',italic:true,before:0,after:60}),
+      new Table({width:{size:CW,type:WidthType.DXA},columnWidths:oaC,rows:[
+        new TableRow({children:[
+          mH(['Q'],oaC[0]),mH(['Sec.\nQ'],oaC[1]),mH(['Section / السؤال'],oaC[2]),
+          mH(['Female\nMean'],oaC[3],'843C0C'),mH(['Male\nMean'],oaC[4],'1F4E79'),
+          mH(['Max\nMean'],oaC[5]),mH(['Min\nMean'],oaC[6]),mH(['SD'],oaC[7]),
+          mH(['Mean\nAll'],oaC[8]),
+          mH(['Positive\n%'],oaC[9],'375623'),mH(['Negative\n%'],oaC[10],'9C0006'),
+          mH(['Classification'],oaC[11]),
+        ]}),
+        ...oaRows,
+      ]}),sp(200,80),
     );
-    courses.forEach((cn,ci)=>{
-      const cd=courseResults[cn]; const cl=clf5(cd.mean||0);
+
+    // ── 3. PER-SECTION DETAIL ──────────────────────────────────────
+    // Matches Table 6+ in reference: Section title | Q text row | Female/Male/Combined rows
+    secs.forEach((sec,si)=>{
+      const cl=clfR(sec.mean);
+      const seenQns=new Set();
+      const sortedQs=(sec.qs||[]).filter(q=>{
+        if(!q||seenQns.has(q.qn)) return false;
+        seenQns.add(q.qn); return true;
+      }).sort((a,b)=>a.qn-b.qn);
+      if(!sortedQs.length) return;
+
+      if(si>0) children.push(new Paragraph({pageBreakBefore:true,children:[]}));
+
+      // Section title
       children.push(
-        mP(`${ci+1}. ${cn}`,{bold:true,size:22,color:MID,before:ci===0?0:200,after:40}),
-        mP(`المستجيبون: ${cd.n||0}  |  إناث: ${cd.nG||'—'}  |  ذكور: ${cd.nB||'—'}  |  المتوسط: ${(cd.mean||0).toFixed(2)}  |  ${cl.l}`,
-          {size:16,color:'444444',before:0,after:70}),
+        mP(sec.name+' | '+sec.ar,{bold:true,size:20,color:MID,before:0,after:6}),
+        mP('Mean: '+sec.mean+' | F: '+(sec.fMean||sec.mean)+' | M: '+(sec.mMean||sec.mean)+' | '+cl.l,
+          {size:15,color:'444444',before:0,after:8}),
       );
-      const dqW=Math.max(400,Math.floor((CW-600-2600-700-1400)/Math.max(nQ,1)));
-      const dLW=Math.max(400,CW-600-2600-700-dqW*nQ-1400);
-      const enrolledG=cd.enrolledG||0;
-      const enrolledM=cd.enrolledB||0;
-      const dC=[700,2800,700,...Array(nQ).fill(dqW),dLW];
-      children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:[
-        new TableRow({children:[
-          mH(['Group'],dC[0]),
-          mH(['Course / المقرر'],dC[1]),
-          mH(['n / Enrolled'],dC[2]),
-          ...Array.from({length:nQ},(_,i)=>mH(['Q'+(i+1)],dC[3+i],MID,12)),
-          mH(['Mean'],dC[3+nQ]),
-        ]}),
-        // Combined row
-        new TableRow({children:[
-          mC('All',dC[0],PALE,{bold:true,color:DARK,size:12}),
-          mC(cn,dC[1],PALE,{bold:true,color:DARK,size:12}),
-          mC((cd.n||0)+' / '+(enrolledG+enrolledM||'—'),dC[2],PALE,{size:11}),
-          ...(cd.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],qcl.bg,{color:qcl.c,size:12});}),
-          mC((cd.mean||0).toFixed(2),dC[3+nQ],cl.bg,{bold:true,color:cl.c,size:15}),
-        ]}),
-        // Female row
-        ...(cd.nG>0?[new TableRow({children:[
-          mC('F 👧',dC[0],'FCE4D6',{bold:true,color:'843C0C',size:12}),
-          mC(cn,dC[1],'FCE4D6',{color:'843C0C',size:11}),
-          mC((cd.nG||0)+' / '+(enrolledG||'—'),dC[2],'FCE4D6',{color:'843C0C',size:11}),
-          ...(cd.qMeansF||cd.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],'FCE4D6',{color:'843C0C',size:12});}),
-          mC((cd.meanF||cd.mean||0).toFixed(2),dC[3+nQ],'FCE4D6',{bold:true,color:'843C0C',size:14}),
-        ]})]:[]),
-        // Male row
-        ...(cd.nB>0?[new TableRow({children:[
-          mC('M 👦',dC[0],'DDEBF7',{bold:true,color:'1F4E79',size:12}),
-          mC(cn,dC[1],'DDEBF7',{color:'1F4E79',size:11}),
-          mC((cd.nB||0)+' / '+(enrolledM||'—'),dC[2],'DDEBF7',{color:'1F4E79',size:11}),
-          ...(cd.qMeansM||cd.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],'DDEBF7',{color:'1F4E79',size:12});}),
-          mC((cd.meanM||cd.mean||0).toFixed(2),dC[3+nQ],'DDEBF7',{bold:true,color:'1F4E79',size:14}),
-        ]})]:[]),
-      ]}),sp(60,40))
-    });
 
-  } else {
-    // ── SINGLE COURSE: original detailed report ───────────────────────
-  // ══════════════════════════════════════════════════════════════════
-  // SINGLE COURSE: Full report like Field Training reference
-  // ══════════════════════════════════════════════════════════════════
-
-  // ── 1. SECTION SUMMARY TABLE ─────────────────────────────────────
-  const ssC=showG
-    ?[1400,3000,1000,1000,1000,800,Math.max(400,CW-1400-3000-1000*3-800)]
-    :[1400,4500,1200,Math.max(400,CW-1400-4500-1200)];
-  const ssH=[mH(['Section'],ssC[0]),mH(['المحور'],ssC[1]),mH(['Mean'],ssC[2])];
-  if(showG) ssH.push(mH(['F.Mean'],ssC[3]),mH(['M.Mean'],ssC[4]),mH(['Gap'],ssC[5]));
-  ssH.push(mH(['Classification'],ssC[ssC.length-1]));
-  children.push(
-    mP('Section Summary Results | ملخص نتائج المحاور',{bold:true,size:22,color:DARK,before:0,after:80}),
-    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:ssC,rows:[
-      new TableRow({children:ssH}),
-      ...secs.map((s,i)=>{
-        const cl=clf5(s.mean); const bg=i%2===0?PALE:WHITE;
-        const cells=[
-          mC(s.name,ssC[0],bg,{align:AlignmentType.LEFT,size:13}),
-          mC(s.ar,ssC[1],bg,{align:AlignmentType.RIGHT,size:13,rtl:true}),
-          mC(s.mean,ssC[2],cl.bg,{bold:true,color:cl.c,size:16}),
-        ];
-        if(showG) cells.push(
-          mC(s.fMean||s.mean,ssC[3],'FCE4D6',{bold:true,color:'843C0C',size:14}),
-          mC(s.mMean||s.mean,ssC[4],'DDEBF7',{bold:true,color:'1F4E79',size:14}),
-          mC(Math.abs((s.fMean||s.mean)-(s.mMean||s.mean)).toFixed(2),ssC[5],bg,{size:12}),
-        );
-        cells.push(mC(cl.l,ssC[ssC.length-1],cl.bg,{bold:true,color:cl.c,size:13}));
-        return new TableRow({children:cells});
-      }),
-    ]}),sp(200,80),
-  );
-
-  // ── 2. OVERALL ANALYSIS TABLE ────────────────────────────────────
-  children.push(
-    new Paragraph({pageBreakBefore:true,children:[]}),
-    mP('Overall Analysis | التحليل الإجمالي لجميع الأسئلة',{bold:true,size:22,color:DARK,before:0,after:20}),
-    mP('Pos% = %(1)SA + %(2)A  |  Neg% = %(4)D + %(5)SD  |  %(3)Neutral excluded',
-      {size:14,color:'2E75B6',italic:true,before:0,after:60}),
-  );
-  const oaC=[700,400,1200,900,900,700,700,900,700,700,Math.max(400,CW-700-400-1200-900*2-700*2-900-700*2)];
-  const oaRows=[];
-  const seenOA=new Set();
-  secs.forEach(s=>{
-    const sortedSQs=(s.qs||[]).filter(q=>{
-      if(!q||seenOA.has(q.qn)) return false;
-      seenOA.add(q.qn); return true;
-    }).sort((a,b)=>a.qn-b.qn);
-    if(!sortedSQs.length) return;
-    // Section header row
-    oaRows.push(new TableRow({children:[
-      new TableCell({columnSpan:11,width:{size:CW,type:WidthType.DXA},
-        borders:allB(MID),shading:{fill:MID,type:ShadingType.CLEAR},margins:mg(),
-        children:[new Paragraph({alignment:AlignmentType.LEFT,
-          children:[new TextRun({text:s.name+' | '+s.ar,bold:true,color:WHITE,size:17,font:'Arial'})]})]})
-    ]}));
-    sortedSQs.forEach((q,qi)=>{
-      const cl=clf5(q.cM||0); const bg=qi%2===0?PALE:WHITE;
-      const cD=q.cD||[0,0,0,0,0];
-      const posP=Math.round((cD[0]||0)+(cD[1]||0));
-      const negP=Math.round((cD[3]||0)+(cD[4]||0));
-      oaRows.push(new TableRow({children:[
-        mC('Q'+q.qn,oaC[0],bg,{bold:true,color:DARK,size:14}),
-        mC(qi+1,oaC[1],bg,{size:12}),
-        // Bilingual Q text
-        new TableCell({width:{size:Math.max(1,oaC[2]),type:WidthType.DXA},borders:allB(),
-          shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
-          children:[
-            new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:6},
-              children:[new TextRun({text:String(q.lbl||''),size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
-            new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
-              children:[new TextRun({text:Q_EN[q.qn]||'',size:9,color:'666666',font:'Arial',italics:true})]}),
+      // Mini summary row
+      const sSumC=[Math.round(CW*0.42),Math.round(CW*0.12),Math.round(CW*0.12),Math.round(CW*0.12),Math.max(300,CW-Math.round(CW*0.78))];
+      children.push(
+        new Table({width:{size:CW,type:WidthType.DXA},columnWidths:sSumC,rows:[
+          new TableRow({children:[
+            mH(['Section / المحور'],sSumC[0]),
+            mH(['Mean'],sSumC[1]),mH(['F.Mean'],sSumC[2],'843C0C'),
+            mH(['M.Mean'],sSumC[3],'1F4E79'),mH(['Classification'],sSumC[4]),
           ]}),
-        mC(q.fM??q.cM,oaC[3],'FCE4D6',{color:'843C0C',bold:true,size:12}),
-        mC(q.mM??q.cM,oaC[4],'DDEBF7',{color:'1F4E79',bold:true,size:12}),
-        mC(q.maxM??q.cM,oaC[5],bg,{size:11}),
-        mC(q.minM??q.cM,oaC[6],bg,{size:11}),
-        mC(q.cM,oaC[7],cl.bg,{bold:true,color:cl.c,size:14}),
-        mC(posP+'%',oaC[8],posP>=80?GREEN2:posP>=60?AMBER2:WHITE,{bold:true,color:posP>=80?GREEN:posP>=60?AMBER:'333333',size:12}),
-        mC(negP+'%',oaC[9],negP>20?RED2:WHITE,{bold:true,color:negP>20?RED:'333333',size:12}),
-        mC(cl.l,oaC[10],cl.bg,{bold:true,color:cl.c,size:11}),
+          new TableRow({children:[
+            new TableCell({width:{size:Math.max(1,sSumC[0]),type:WidthType.DXA},borders:allB(MID),
+              shading:{fill:PALE,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+              children:[
+                new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:3},
+                  children:[new TextRun({text:sec.name,bold:true,size:13,color:DARK,font:'Arial'})]}),
+                new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:0},
+                  children:[new TextRun({text:sec.ar,size:12,color:DARK,font:'Arial',rtl:true})]}),
+              ]}),
+            mC(sec.mean,sSumC[1],cl.bg,{bold:true,color:cl.c,size:15}),
+            mC(sec.fMean||sec.mean,sSumC[2],'FCE4D6',{bold:true,color:'843C0C',size:13}),
+            mC(sec.mMean||sec.mean,sSumC[3],'DDEBF7',{bold:true,color:'1F4E79',size:13}),
+            mC(cl.l,sSumC[4],cl.bg,{bold:true,color:cl.c,size:12}),
+          ]}),
+        ]}),sp(40,30),
+      );
+
+      // Distribution table - matches reference Table 6+ exactly
+      // Cols: Global Q | Sec.Q | Group | %SD(5) | %D(4) | %N(3) | %A(2) | %SA(1) | Mean
+      const dC=[1600,400,700,700,700,700,700,700,Math.max(400,CW-1600-400-700*6)];
+      const secRows=[];
+
+      // Section header row (merged)
+      secRows.push(new TableRow({children:[
+        new TableCell({columnSpan:9,width:{size:CW,type:WidthType.DXA},
+          borders:allB(DARK),shading:{fill:DARK,type:ShadingType.CLEAR},margins:mg(),
+          children:[new Paragraph({alignment:AlignmentType.LEFT,
+            children:[new TextRun({text:sec.name+' | '+sec.ar,bold:true,color:WHITE,size:15,font:'Arial'})]})]}),
       ]}));
-    });
-  });
-  children.push(
-    new Table({width:{size:CW,type:WidthType.DXA},columnWidths:oaC,rows:[
-      new TableRow({children:[
-        mH(['Q#'],oaC[0]),mH(['Sec.Q'],oaC[1]),mH(['السؤال / Question'],oaC[2]),
-        mH(['Female\nMean'],oaC[3],'843C0C'),mH(['Male\nMean'],oaC[4],'1F4E79'),
-        mH(['Max'],oaC[5]),mH(['Min'],oaC[6]),
-        mH(['Mean'],oaC[7]),mH(['Pos%'],oaC[8],'375623'),mH(['Neg%'],oaC[9],'9C0006'),
-        mH(['Classification'],oaC[10]),
-      ]}),
-      ...oaRows,
-    ]}),sp(200,80),
-    new Paragraph({pageBreakBefore:true,children:[]}),
-  );
 
-  // ── 3. PER-SECTION DETAIL: Mini summary + Distribution table ─────
-  secs.forEach((sec,si)=>{
-    const cl=clf5(sec.mean);
-    const seenQns=new Set();
-    const sortedQs=(sec.qs||[]).filter(q=>{
-      if(!q||seenQns.has(q.qn)) return false;
-      seenQns.add(q.qn); return true;
-    }).sort((a,b)=>a.qn-b.qn);
-    if(!sortedQs.length) return;
+      // Column headers row
+      secRows.push(new TableRow({children:[
+        mH(['Global\nQ'],dC[0]),mH(['Section\nQ'],dC[1]),mH(['Group'],dC[2]),
+        mH(['%\nStrongly\nDisagree\n(5)'],dC[3],'9C0006',8),
+        mH(['%\nDisagree\n(4)'],dC[4],'C55A11',8),
+        mH(['%\nNeutral\n(3)'],dC[5],'7F7F7F',8),
+        mH(['%\nAgree\n(2)'],dC[6],'375623',8),
+        mH(['%\nStrongly\nAgree\n(1)'],dC[7],'1a5216',8),
+        mH(['Mean'],dC[8]),
+      ]}));
 
-    if(si>0) children.push(new Paragraph({pageBreakBefore:true,children:[]}));
+      sortedQs.forEach((q,qi)=>{
+        const cD=q.cD||[0,0,0,0,0];
+        const fD=q.fD||cD; const mD=q.mD||cD;
+        const qcl=clfR(q.cM||0);
 
-    // Separator + section title
-    children.push(
-      mP('─'.repeat(55)+' '+sec.name,{size:11,color:'AAAAAA',before:0,after:6}),
-      mP(sec.ar,{bold:true,size:20,color:MID,before:0,after:4,rtl:true}),
-      mP('Mean: '+sec.mean+' | F.Mean: '+(sec.fMean||sec.mean)+' | M.Mean: '+(sec.mMean||sec.mean)+' | Gap: '+Math.abs((sec.fMean||sec.mean)-(sec.mMean||sec.mean)).toFixed(2)+' | '+cl.l,
-        {size:15,color:'444444',before:0,after:8}),
-    );
-
-    // Mini section summary (1-row table)
-    const sSumC=[Math.round(CW*0.40),Math.round(CW*0.12),Math.round(CW*0.12),Math.round(CW*0.12),Math.max(300,CW-Math.round(CW*0.40)-Math.round(CW*0.12)*3)];
-    children.push(
-      new Table({width:{size:CW,type:WidthType.DXA},columnWidths:sSumC,rows:[
-        new TableRow({children:[
-          mH(['Section / المحور'],sSumC[0]),mH(['Mean'],sSumC[1]),
-          mH(['F.Mean'],sSumC[2],'843C0C'),mH(['M.Mean'],sSumC[3],'1F4E79'),
-          mH(['Classification'],sSumC[4]),
-        ]}),
-        new TableRow({children:[
-          new TableCell({width:{size:Math.max(1,sSumC[0]),type:WidthType.DXA},borders:allB(MID),
-            shading:{fill:PALE,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+        // Q text row (merged across all 9 cols)
+        secRows.push(new TableRow({children:[
+          new TableCell({columnSpan:9,width:{size:CW,type:WidthType.DXA},
+            borders:allB(MID),shading:{fill:PALE,type:ShadingType.CLEAR},margins:mg(),
             children:[
-              new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:3},
-                children:[new TextRun({text:sec.name,bold:true,size:14,color:DARK,font:'Arial'})]}),
-              new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:0},
-                children:[new TextRun({text:sec.ar,size:12,color:DARK,font:'Arial',rtl:true})]}),
+              new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:4},
+                children:[new TextRun({text:'Q'+q.qn+'. '+String(q.lbl||''),bold:true,size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
+              new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
+                children:[new TextRun({text:Q_EN[q.qn]||'',size:9,color:'666666',font:'Arial',italics:true})]}),
             ]}),
-          mC(sec.mean,sSumC[1],cl.bg,{bold:true,color:cl.c,size:16}),
-          mC(sec.fMean||sec.mean,sSumC[2],'FCE4D6',{bold:true,color:'843C0C',size:14}),
-          mC(sec.mMean||sec.mean,sSumC[3],'DDEBF7',{bold:true,color:'1F4E79',size:14}),
-          mC(cl.l,sSumC[4],cl.bg,{bold:true,color:cl.c,size:13}),
-        ]}),
-      ]}),sp(40,30),
-    );
+        ]}));
 
-    // Distribution table: Global Q | Sec.Q | Group | %SD(5)|%D(4)|%N(3)|%A(2)|%SA(1) | Mean
-    const dC=[1600,400,700,700,700,700,700,700,Math.max(400,CW-1600-400-700*6)];
-    children.push(
-      new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:[
-        new TableRow({children:[
-          mH(['Global Q / السؤال'],dC[0]),mH(['Sec.\nQ'],dC[1]),mH(['Group'],dC[2]),
-          mH(['%\nStr.Disagree\n(5)'],dC[3],'9C0006',9),mH(['%\nDisagree\n(4)'],dC[4],'C55A11',9),
-          mH(['%\nNeutral\n(3)'],dC[5],'7F7F7F',9),mH(['%\nAgree\n(2)'],dC[6],'375623',9),
-          mH(['%\nStr.Agree\n(1)'],dC[7],'1a5216',9),mH(['Mean'],dC[8]),
-        ]}),
-        ...sortedQs.flatMap((q,qi)=>{
-          const cD=q.cD||[0,0,0,0,0]; // [%1SA,%2A,%3N,%4D,%5SD]
-          const fD=q.fD||cD; const mD=q.mD||cD;
-          const bg=qi%2===0?PALE:WHITE;
-          return [
-            // Q text header row (merged, spans Female+Male rowSpan:2)
-            new TableRow({children:[
-              new TableCell({width:{size:Math.max(1,dC[0]),type:WidthType.DXA},
-                borders:allB(DARK),shading:{fill:PALE,type:ShadingType.CLEAR},
-                margins:mg(),rowSpan:2,verticalAlign:VerticalAlign.CENTER,
-                children:[
-                  new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:6},
-                    children:[new TextRun({text:'Q'+q.qn+'. '+(q.lbl||''),bold:true,size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
-                  new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
-                    children:[new TextRun({text:Q_EN[q.qn]||'',size:9,color:'666666',font:'Arial',italics:true})]}),
-                ]}),
-              new TableCell({width:{size:Math.max(1,dC[1]),type:WidthType.DXA},
-                borders:allB(MID),shading:{fill:bg,type:ShadingType.CLEAR},
-                margins:mg(),rowSpan:2,verticalAlign:VerticalAlign.CENTER,
-                children:[new Paragraph({alignment:AlignmentType.CENTER,children:[
-                  new TextRun({text:String(qi+1),size:12,font:'Arial'})]})]
-              }),
-              // Female row
-              mC('Female\n👧',dC[2],'FCE4D6',{bold:true,color:'843C0C',size:10}),
-              mC((fD[4]||0)+'%',dC[3],'FFEBEE',{color:'9C0006',size:11}),
-              mC((fD[3]||0)+'%',dC[4],'FFF3E0',{color:'C55A11',size:11}),
-              mC((fD[2]||0)+'%',dC[5],bg,{size:11}),
-              mC((fD[1]||0)+'%',dC[6],'E8F5E9',{color:'375623',size:11}),
-              mC((fD[0]||0)+'%',dC[7],'E2EFDA',{color:'1a5216',size:11}),
-              mC(q.fM??q.cM,dC[8],'FCE4D6',{bold:true,color:'843C0C',size:13}),
-            ]}),
-            // Male row
-            new TableRow({children:[
-              mC('Male\n👦',dC[2],'DDEBF7',{bold:true,color:'1F4E79',size:10}),
-              mC((mD[4]||0)+'%',dC[3],'FFEBEE',{color:'9C0006',size:11}),
-              mC((mD[3]||0)+'%',dC[4],'FFF3E0',{color:'C55A11',size:11}),
-              mC((mD[2]||0)+'%',dC[5],bg,{size:11}),
-              mC((mD[1]||0)+'%',dC[6],'E8F5E9',{color:'375623',size:11}),
-              mC((mD[0]||0)+'%',dC[7],'E2EFDA',{color:'1a5216',size:11}),
-              mC(q.mM??q.cM,dC[8],'DDEBF7',{bold:true,color:'1F4E79',size:13}),
-            ]}),
-          ];
-        }),
-      ]}),sp(80,40),
-    );
-  });
-  }
+        // Female row
+        secRows.push(new TableRow({children:[
+          mC('Q'+q.qn,dC[0],'FCE4D6',{bold:true,color:'843C0C',size:11}),
+          mC(qi+1,dC[1],'FCE4D6',{size:11}),
+          mC('Female',dC[2],'FCE4D6',{bold:true,color:'843C0C',size:10}),
+          mC((fD[4]||0),dC[3],'FFEBEE',{color:'9C0006',size:11}),
+          mC((fD[3]||0),dC[4],'FFF3E0',{color:'C55A11',size:11}),
+          mC((fD[2]||0),dC[5],'FCE4D6',{size:11}),
+          mC((fD[1]||0),dC[6],'E8F5E9',{color:'375623',size:11}),
+          mC((fD[0]||0),dC[7],'E2EFDA',{color:'1a5216',size:11}),
+          mC(q.fM??q.cM,dC[8],'FCE4D6',{bold:true,color:'843C0C',size:13}),
+        ]}));
+
+        // Male row
+        secRows.push(new TableRow({children:[
+          mC('Q'+q.qn,dC[0],'DDEBF7',{bold:true,color:'1F4E79',size:11}),
+          mC(qi+1,dC[1],'DDEBF7',{size:11}),
+          mC('Male',dC[2],'DDEBF7',{bold:true,color:'1F4E79',size:10}),
+          mC((mD[4]||0),dC[3],'FFEBEE',{color:'9C0006',size:11}),
+          mC((mD[3]||0),dC[4],'FFF3E0',{color:'C55A11',size:11}),
+          mC((mD[2]||0),dC[5],'DDEBF7',{size:11}),
+          mC((mD[1]||0),dC[6],'E8F5E9',{color:'375623',size:11}),
+          mC((mD[0]||0),dC[7],'E2EFDA',{color:'1a5216',size:11}),
+          mC(q.mM??q.cM,dC[8],'DDEBF7',{bold:true,color:'1F4E79',size:13}),
+        ]}));
+
+        // Combined row
+        secRows.push(new TableRow({children:[
+          mC('Q'+q.qn,dC[0],'EBF3FB',{bold:true,color:DARK,size:11}),
+          mC(qi+1,dC[1],'EBF3FB',{size:11}),
+          mC('Combined',dC[2],'EBF3FB',{bold:true,color:DARK,size:10}),
+          mC((cD[4]||0),dC[3],'FFEBEE',{color:'9C0006',size:11}),
+          mC((cD[3]||0),dC[4],'FFF3E0',{color:'C55A11',size:11}),
+          mC((cD[2]||0),dC[5],'EBF3FB',{size:11}),
+          mC((cD[1]||0),dC[6],'E8F5E9',{color:'375623',size:11}),
+          mC((cD[0]||0),dC[7],'E2EFDA',{color:'1a5216',size:11}),
+          mC(q.cM,dC[8],qcl.bg,{bold:true,color:qcl.c,size:13}),
+        ]}));
+      });
+
+      children.push(
+        new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:secRows}),
+        sp(80,40),
+      );
+    });
 
   // ── ENHANCEMENT PLANS ──────────────────────────────────────────────
   children.push(
@@ -1356,7 +1321,7 @@ async function buildWordFromResult(result, cfg){
       const cD=q.cD||[0,0,0,0,0];
       const posP=Math.round((cD[0]||0)+(cD[1]||0));
       const negP=Math.round((cD[3]||0)+(cD[4]||0));
-      const cl=clf5(q.cM||0);
+      const cl=clfR(q.cM||0);
       const bg=i%2===0?PALE:WHITE;
       const cMv=parseFloat(q.cM)||0;
       const pr=cMv>=4.5?'🔴 Critical':cMv>=3.5?'🔴 High':cMv>=2.5?'🟡 Medium':cMv>=1.5?'🟢 Good':'🟢 Excellent';
@@ -1398,6 +1363,11 @@ async function buildWordFromResult(result, cfg){
     }),
   ]}),sp(200,80));
 
+  } // end else (single course)
+
+
+  } // end else single course
+
   return buildDoc(children);
 }
 
@@ -1405,7 +1375,7 @@ async function buildInstructorWordFromResult(result, cfg){
   const CW=15398;
   const {allSecs,lecturers,qTexts,totalN,totalEnrolled,totalNot,grandMean}=result;
   const nQ=qTexts.length;
-  const gCl=clf5(grandMean);
+  const gCl=clfR(grandMean);
   const pct=totalEnrolled>0?Math.round(totalN/totalEnrolled*100):0;
   const children=[];
   const courses=[...new Set(allSecs.map(s=>s.course))];
@@ -1500,7 +1470,7 @@ async function buildInstructorWordFromResult(result, cfg){
         mH(['المشاركة%'],s1C[5]),mH(['المتوسط'],s1C[6]),mH(['التصنيف'],s1C[7]),
       ]}),
       ...allSecs.map((s,i)=>{
-        const cl=clf5(s.sec_mean); const bg=i%2===0?PALE:WHITE;
+        const cl=clfR(s.sec_mean); const bg=i%2===0?PALE:WHITE;
         const pp=s.participation_pct||0;
         return new TableRow({children:[
           mC(s.sec_num,s1C[0],bg,{size:14}),
@@ -1562,11 +1532,11 @@ async function buildInstructorWordFromResult(result, cfg){
         mH(['التصنيف'],oaC[nC+2]),
       ]}),
       ...Array.from({length:nQ},(_,qi)=>{
-        const oM=overallQM[qi]; const oCl=clf5(oM); const bg=qi%2===0?PALE:WHITE;
+        const oM=overallQM[qi]; const oCl=clfR(oM); const bg=qi%2===0?PALE:WHITE;
         return new TableRow({children:[
           mC('Q'+(qi+1)+' — '+(qTexts[qi]||'').slice(0,45),oaC[0],bg,{align:AlignmentType.RIGHT,size:13}),
           ...courses.map((code,ci)=>{
-            const qm=courseQData[code].qMeans[qi]; const qcl=clf5(qm);
+            const qm=courseQData[code].qMeans[qi]; const qcl=clfR(qm);
             return mC(qm.toFixed(2),oaC[ci+1],qcl.bg,{color:qcl.c,size:14});
           }),
           mC(oM.toFixed(2),oaC[nC+1],oCl.bg,{bold:true,color:oCl.c,size:15}),
@@ -1575,7 +1545,7 @@ async function buildInstructorWordFromResult(result, cfg){
       }),
       new TableRow({children:[
         mC('المتوسط العام',oaC[0],DARK,{bold:true,color:WHITE}),
-        ...courses.map((code,ci)=>{const cl=clf5(courseQData[code].mean);return mC(courseQData[code].mean.toFixed(2),oaC[ci+1],cl.bg,{bold:true,color:cl.c,size:16});}),
+        ...courses.map((code,ci)=>{const cl=clfR(courseQData[code].mean);return mC(courseQData[code].mean.toFixed(2),oaC[ci+1],cl.bg,{bold:true,color:cl.c,size:16});}),
         mC(grandMean,oaC[nC+1],gCl.bg,{bold:true,color:gCl.c,size:18}),
         mC(gCl.l,oaC[nC+2],gCl.bg,{bold:true,color:gCl.c}),
       ]}),
@@ -1600,13 +1570,13 @@ async function buildInstructorWordFromResult(result, cfg){
         mH(['المتوسط'],s2C[4+lqShowN]),mH(['التصنيف'],s2C[5+lqShowN]),
       ]}),
       ...lecturers.map((lec,i)=>{
-        const cl=clf5(lec.mean||0); const bg=i%2===0?PALE:WHITE;
+        const cl=clfR(lec.mean||0); const bg=i%2===0?PALE:WHITE;
         return new TableRow({children:[
           mC(i+1,s2C[0],bg,{bold:true,size:13}),
           mC(lec.name,s2C[1],bg,{align:AlignmentType.RIGHT,size:13}),
           mC((lec.secs||[]).length,s2C[2],bg),
           mC(lec.n,s2C[3],bg,{bold:true}),
-          ...(lec.qMeans||[]).slice(0,lqShowN).map((qm,qi)=>{const qcl=clf5(qm);return mC(qm.toFixed(2),s2C[4+qi],qcl.bg,{color:qcl.c,size:12});}),
+          ...(lec.qMeans||[]).slice(0,lqShowN).map((qm,qi)=>{const qcl=clfR(qm);return mC(qm.toFixed(2),s2C[4+qi],qcl.bg,{color:qcl.c,size:12});}),
           mC((lec.mean||0).toFixed(2),s2C[4+lqShowN],cl.bg,{bold:true,color:cl.c,size:16}),
           mC(cl.l,s2C[5+lqShowN],cl.bg,{bold:true,color:cl.c,size:12}),
         ]});
@@ -1621,7 +1591,7 @@ async function buildInstructorWordFromResult(result, cfg){
   );
 
   lecturers.forEach((lec,li)=>{
-    const cl=clf5(lec.mean||0);
+    const cl=clfR(lec.mean||0);
     children.push(
       mP(`${li+1}. ${lec.name}`,{bold:true,size:22,color:MID,before:li===0?0:180,after:40}),
       mP(`المقررات: ${(lec.courses||[]).join(' | ')}  |  الشعب: ${(lec.secs||[]).length}  |  المقيّمون: ${lec.n}  |  المتوسط: ${(lec.mean||0).toFixed(2)}  |  ${cl.l}`,
@@ -1637,19 +1607,19 @@ async function buildInstructorWordFromResult(result, cfg){
         mH(['المتوسط'],dC[3+nQ]),
       ]}),
       ...(lec.secs||[]).map((s,si)=>{
-        const scl=clf5(s.sec_mean||0); const bg=si%2===0?PALE:WHITE;
+        const scl=clfR(s.sec_mean||0); const bg=si%2===0?PALE:WHITE;
         return new TableRow({children:[
           mC(s.sec_num,dC[0],bg,{size:13}),
           mC(s.course,dC[1],bg,{bold:true,color:DARK,size:13}),
           mC(s.n,dC[2],bg,{bold:true}),
-          ...(s.questions||[]).map((q,qi)=>{const qcl=clf5(q.mean||0);return mC((q.mean||0).toFixed(2),dC[3+qi],qcl.bg,{color:qcl.c,size:12});}),
+          ...(s.questions||[]).map((q,qi)=>{const qcl=clfR(q.mean||0);return mC((q.mean||0).toFixed(2),dC[3+qi],qcl.bg,{color:qcl.c,size:12});}),
           mC((s.sec_mean||0).toFixed(2),dC[3+nQ],scl.bg,{bold:true,color:scl.c,size:15}),
         ]});
       }),
       new TableRow({children:[
         mC('المتوسط',dC[0]+dC[1],DARK,{bold:true,color:WHITE,colSpan:2}),
         mC(lec.n,dC[2],PALE,{bold:true}),
-        ...(lec.qMeans||[]).map((qm,qi)=>{const qcl=clf5(qm);return mC(qm.toFixed(2),dC[3+qi],qcl.bg,{bold:true,color:qcl.c,size:13});}),
+        ...(lec.qMeans||[]).map((qm,qi)=>{const qcl=clfR(qm);return mC(qm.toFixed(2),dC[3+qi],qcl.bg,{bold:true,color:qcl.c,size:13});}),
         mC((lec.mean||0).toFixed(2),dC[3+nQ],cl.bg,{bold:true,color:cl.c,size:17}),
       ]}),
     ]}),sp(60,40));
@@ -1666,7 +1636,7 @@ async function buildInstructorWordFromResult(result, cfg){
   const epItems=[];
   Array.from({length:nQ},(_,qi)=>{
     const oM=overallQM[qi]; if(oM===undefined||oM===0) return;
-    const cl=clf5(oM);
+    const cl=clfR(oM);
     const posP=Math.round(allSecs.reduce((a,s)=>{const q=s.questions[qi];return a+(q?(q.pct_sa||0)+(q.pct_a||0):0);},0)/(allSecs.length||1));
     epItems.push({qi,text:qTexts[qi]||('Q'+(qi+1)),mean:oM,cl,posP,
       priority:oM<2.5?'🔴 High':oM<3.5?'🟡 Medium':'🟢 Good',
