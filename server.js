@@ -31,8 +31,10 @@ app.get('/', (req,res) => {
   try {
     const files = fs.readdirSync(pub).filter(f=>f.endsWith('.html')||f.endsWith('.htm'));
     if(files.length){
-      console.log('Serving HTML:', files[0]);
-      return res.sendFile(path.join(pub, files[0]));
+      // Prefer index.html (no space) over index .html (with space)
+      const preferred = files.find(f=>f==='index.html') || files[0];
+      console.log('Serving HTML:', preferred, '| All files:', files.join(','));
+      return res.sendFile(path.join(pub, preferred));
     }
   } catch(e){ console.error(e.message); }
   const fallback = path.join(__dirname,'index.html');
