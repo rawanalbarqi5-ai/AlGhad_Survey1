@@ -27,33 +27,17 @@ app.use(express.static(__dirname));
 app.get('/', (req,res) => {
   res.set('Cache-Control','no-store, no-cache, must-revalidate');
   res.set('Pragma','no-cache');
-  res.set('Expires','0');
-  res.set('X-Accel-Expires','0');
-
-  // Scan public dir for any HTML file
-  const pubDir = path.join(__dirname,'public');
+  const pub = path.join(__dirname,'public');
   try {
-    if(fs.existsSync(pubDir)){
-      const files = fs.readdirSync(pubDir);
-      const htmlFile = files.find(f=>f.toLowerCase().endsWith('.html'));
-      if(htmlFile){
-        console.log('Serving:', htmlFile);
-        return res.sendFile(path.join(pubDir, htmlFile));
-      }
+    const files = fs.readdirSync(pub).filter(f=>f.endsWith('.html')||f.endsWith('.htm'));
+    if(files.length){
+      console.log('Serving HTML:', files[0]);
+      return res.sendFile(path.join(pub, files[0]));
     }
-  } catch(e){ console.error('Scan error:', e.message); }
-
-  // Fallback
-  const fallbacks=[
-    path.join(__dirname,'public','index.html'),
-    path.join(__dirname,'index.html'),
-    path.join(process.cwd(),'public','index.html'),
-  ];
-  for(const p of fallbacks){
-    if(fs.existsSync(p)) return res.sendFile(p);
-  }
-  res.status(404).send('<h1>index.html not found</h1><p>public dir contents: '+
-    (fs.existsSync(pubDir)?fs.readdirSync(pubDir).join(', '):'N/A')+'</p>');
+  } catch(e){ console.error(e.message); }
+  const fallback = path.join(__dirname,'index.html');
+  if(fs.existsSync(fallback)) return res.sendFile(fallback);
+  res.send('<h1>Error</h1><p>No HTML in: '+pub+'</p><p>Files: '+(fs.existsSync(pub)?fs.readdirSync(pub).join(', '):'N/A')+'</p>');
 });
 
 // ── Colors & helpers ──────────────────────────────────────────────────────────
@@ -1120,7 +1104,7 @@ async function buildWordFromResult(result, cfg){
             shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
             children:[
               new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:4},
-                children:[new TextRun({text:String(q.lbl||'').slice(0,55),size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
+                children:[new TextRun({text:String(q.lbl||''),size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
             ]}),
           mC(q.fM??q.cM,oaC[3],'FCE4D6',{color:'843C0C',bold:true,size:12}),
           mC(q.mM??q.cM,oaC[4],'DDEBF7',{color:'1F4E79',bold:true,size:12}),
