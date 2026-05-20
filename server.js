@@ -776,11 +776,19 @@ async function buildWordFromResult(result, cfg){
     mP('المقياس المستخدم | Scale',{bold:true,size:22,color:DARK,before:0,after:80}),
     new Table({width:{size:CW,type:WidthType.DXA},columnWidths:sCols,rows:[
       new TableRow({children:[
-        mH(['5=موافق بشدة\nStrongly Agree'],sCols[0],GREEN),
-        mH(['4=موافق\nAgree'],sCols[1],GREEN),
-        mH(['3=محايد\nNeutral'],sCols[2],'7F7F7F'),
-        mH(['2=لا أوافق\nDisagree'],sCols[3],RED),
-        mH(['1=لا أوافق بشدة\nStr. Disagree'],sCols[4],RED),
+        ...(isMulti?[
+          mH(['5=موافق بشدة\nStrongly Agree'],sCols[0],GREEN),
+          mH(['4=موافق\nAgree'],sCols[1],GREEN),
+          mH(['3=محايد\nNeutral'],sCols[2],'7F7F7F'),
+          mH(['2=لا أوافق\nDisagree'],sCols[3],RED),
+          mH(['1=لا أوافق بشدة\nStr. Disagree'],sCols[4],RED),
+        ]:[
+          mH(['1=موافق بشدة\nStrongly Agree'],sCols[0],GREEN),
+          mH(['2=موافق\nAgree'],sCols[1],GREEN),
+          mH(['3=محايد\nNeutral'],sCols[2],'7F7F7F'),
+          mH(['4=لا أوافق\nDisagree'],sCols[3],RED),
+          mH(['5=لا أوافق بشدة\nStr. Disagree'],sCols[4],RED),
+        ]),
       ]}),
     ]}),sp(100,60),
   );
@@ -791,13 +799,19 @@ async function buildWordFromResult(result, cfg){
     mP('Classification Scale | مقياس التصنيف',{bold:true,size:22,color:DARK,before:0,after:80}),
     new Table({width:{size:CW,type:WidthType.DXA},columnWidths:clsC,rows:[
       new TableRow({children:[mH(['Range'],clsC[0]),mH(['Classification'],clsC[1]),mH(['التصنيف'],clsC[2]),mH(['Interpretation'],clsC[3])]}),
-      ...[
+      ...(!isMulti?[
+        ['≤1.50','Excellent / Clear Strength','ممتاز / نقطة قوة','Excellent — sustain',GREEN2,GREEN],
+        ['1.51–2.00','Good / Strength','جيد / نقطة قوة','Good — maintain',GREEN2,GREEN],
+        ['2.01–2.50','Acceptable','مقبول / يحتاج متابعة','Acceptable — monitor',AMBER2,AMBER],
+        ['2.51–3.00','Weakness','ضعف / يحتاج تحسين','Weakness — action plan',RED2,RED],
+        ['>3.00','Critical Weakness','ضعف حرج','Critical — immediate action',RED2,'9C0006'],
+      ]:[
         ['≥4.50','Excellent','ممتاز','Strong positive outcome',GREEN2,GREEN],
         ['3.50–4.49','Very Good','جيد جداً','Good performance',GREEN2,GREEN],
         ['2.50–3.49','Good','جيد','Acceptable — monitor',AMBER2,AMBER],
         ['1.50–2.49','Acceptable','مقبول','Needs improvement',RED2,RED],
         ['<1.50','Weak','ضعيف','Immediate action required',RED2,RED],
-      ].map(([r,cl,ar,interp,bg,c])=>new TableRow({children:[
+      ]).map(([r,cl,ar,interp,bg,c])=>new TableRow({children:[
         mC(r,clsC[0],bg,{bold:true,color:c,align:AlignmentType.CENTER}),
         mC(cl,clsC[1],bg,{bold:true,color:c}),
         mC(ar,clsC[2],bg,{bold:true,color:c}),
