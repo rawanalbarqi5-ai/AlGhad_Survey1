@@ -1144,7 +1144,7 @@ async function buildWordFromResult(result, cfg){
       new Table({width:{size:CW,type:WidthType.DXA},columnWidths:oaC,rows:[
         new TableRow({children:[
           mH(['Q'],oaC[0]),mH(['Sec.\nQ'],oaC[1]),mH(['Section / السؤال'],oaC[2]),
-          mH(['Female\nMean'],oaC[3],'843C0C'),mH(['Male\nMean'],oaC[4],'1F4E79'),
+          mH(['Female Mean'],oaC[3],'843C0C'),mH(['Male Mean'],oaC[4],'1F4E79'),
           mH(['Max\nMean'],oaC[5]),mH(['Min\nMean'],oaC[6]),mH(['SD'],oaC[7]),
           mH(['Mean\nAll'],oaC[8]),
           mH(['Positive\n%'],oaC[9],'375623'),mH(['Negative\n%'],oaC[10],'9C0006'),
@@ -1324,17 +1324,19 @@ async function buildWordFromResult(result, cfg){
       const cl=clfR(q.cM||0);
       const bg=i%2===0?PALE:WHITE;
       const cMv=parseFloat(q.cM)||0;
-      const pr=cMv>=4.5?'🔴 Critical':cMv>=3.5?'🔴 High':cMv>=2.5?'🟡 Medium':cMv>=1.5?'🟢 Good':'🟢 Excellent';
-      const prBg=cMv>=3.5?RED2:cMv>=2.5?AMBER2:GREEN2;
-      const prC=cMv>=3.5?RED:cMv>=2.5?AMBER:GREEN;
-      const action=cMv>=4.5?'Immediate review & intervention required.':
-        cMv>=3.5?'Develop targeted improvement plan with clear milestones.':
-        cMv>=2.5?'Monitor closely and provide additional support/resources.':
-        'Maintain current practices. Document as best practice.';
-      const kpi=cMv>=3.5?`Reduce mean to ≤${(cMv-0.5).toFixed(1)} within one semester`:
-        `Maintain mean ≤${(cMv+0.2).toFixed(1)} | Positive% ≥${Math.min(95,posP+10)}%`;
+      // Priority using 1=best scale thresholds
+      const pr=cMv>3.00?'Critical / حرج':cMv>2.50?'High / مرتفع':cMv>2.00?'Medium / متوسط':cMv>1.50?'Low / منخفض':'Strength / نقطة قوة';
+      const prBg=cMv>3.00?'FF0000':cMv>2.50?RED2:cMv>2.00?AMBER2:GREEN2;
+      const prC=cMv>3.00?'FFFFFF':cMv>2.50?RED:cMv>2.00?AMBER:GREEN;
+      const action=cMv>3.00?'Critical weakness — immediate intervention required. Assign responsible team and set urgent timeline.':
+        cMv>2.50?'Weakness — develop targeted improvement plan with clear milestones and accountability.':
+        cMv>2.00?'Needs monitoring — provide additional support, resources, and follow-up assessment.':
+        cMv>1.50?'Good — maintain current practices and document for benchmarking.':
+        'Excellent — document as best practice and share with other departments.';
+      const kpi=cMv>2.50?`Reduce mean to ≤${(cMv-0.3).toFixed(2)}; Positive% ≥${Math.min(95,posP+15)}%`:
+        `Maintain mean ≤${(cMv+0.2).toFixed(2)}; Positive% ≥${posP}%`;
       return new TableRow({children:[
-        mC(pr,epC[0],prBg,{bold:true,color:prC,size:11}),
+        mC(pr,epC[0],prBg,{bold:true,color:prC,size:10}),
         mC('Q'+q.qn,epC[1],bg,{bold:true,color:DARK,size:13}),
         // Bilingual Q text
         new TableCell({width:{size:Math.max(1,epC[2]),type:WidthType.DXA},borders:allB(),
