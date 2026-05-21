@@ -26,43 +26,97 @@ app.use(express.static(path.join(__dirname,'public'), {
 }));
 app.use(express.static(__dirname));
 // ── Batch chart generation (pure JS + sharp, no Python) ─────────────────────
-function makeChartSVG(qn, lbl, fD, mD, fLabel, mLabel){
-  const W=520,H=190,PAD={top:36,bottom:28,left:32,right:82};
-  const cW=W-PAD.left-PAD.right, cH=H-PAD.top-PAD.bottom;
-  const labs=['SA(1)','A(2)','N(3)','D(4)','SD(5)'];
-  const fC=['#2E7D32','#4CAF50','#FFA726','#EF5350','#C62828'];
-  const mC=['#1565C0','#42A5F5','#90CAF9','#EF9A9A','#B71C1C'];
-  const mx=Math.max(...fD,...mD,1);
-  const yS=cH/(mx*1.32+5);
-  const gW=cW/5; const bW=gW*0.34;
-  let bars='',xlabs='',vals='',grid='';
+function makeChartSVG(qn, lbl, fD, mD, fLabel, mLabel, secName){
+  const W=580, H=210;
+  const PAD={top:52, bottom:38, left:42, right:10};
+  const cW=W-PAD.left-PAD.right;
+  const cH=H-PAD.top-PAD.bottom;
+  const labs=['موافق بشدة\nSA(1)','موافق\nA(2)','محايد\nN(3)','لا أوافق\nD(4)','لا أوافق بشدة\nSD(5)'];
+  const labsShort=['SA(1)','A(2)','N(3)','D(4)','SD(5)'];
+
+  // Colors: green for positive, grey for neutral, red for negative
+  const fColors=['#1B5E20','#388E3C','#757575','#D32F2F','#B71C1C'];
+  const mColors=['#0D47A1','#1976D2','#90A4AE','#EF5350','#E53935'];
+
+  const mx = Math.max(...fD, ...mD, 1);
+  const yScale = cH / (mx * 1.30 + 5);
+  const grpW = cW / 5;
+  const bW = grpW * 0.32;
+  const gap = 3;
+
+  let bars='', xLabels='', valLabels='', gridLines='';
+
+  // Grid lines & Y axis labels
+  const gridSteps = 4;
+  const gridStep = Math.ceil(mx / gridSteps / 10) * 10 || 10;
+  for(let v = 0; v <= mx * 1.3 + 5; v += gridStep){
+    const y = PAD.top + cH - v * yScale;
+    if(y < PAD.top - 2) break;
+    gridLines += `<line x1="${PAD.left}" y1="${y.toFixed(1)}" x2="${W-PAD.right}" y2="${y.toFixed(1)}" stroke="#E0E0E0" stroke-width="0.8"/>`;
+    gridLines += `<text x="${PAD.left-4}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="8" fill="#888" font-family="Arial">${v}</text>`;
+  }
+
+  // Bars
   for(let i=0;i<5;i++){
-    const x=PAD.left+i*gW+gW*0.12;
-    const fh=fD[i]*yS; const fy=PAD.top+cH-fh;
-    bars+=`<rect x="${x.toFixed(1)}" y="${fy.toFixed(1)}" width="${bW.toFixed(1)}" height="${Math.max(0,fh).toFixed(1)}" fill="${fC[i]}" opacity="0.87"/>`;
-    if(fD[i]>5) vals+=`<text x="${(x+bW/2).toFixed(1)}" y="${(fy-2).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="bold" fill="#222">${fD[i].toFixed(0)}%</text>`;
-    const mh=mD[i]*yS; const my=PAD.top+cH-mh;
-    bars+=`<rect x="${(x+bW+2).toFixed(1)}" y="${my.toFixed(1)}" width="${bW.toFixed(1)}" height="${Math.max(0,mh).toFixed(1)}" fill="${mC[i]}" opacity="0.87"/>`;
-    if(mD[i]>5) vals+=`<text x="${(x+bW*1.5+2).toFixed(1)}" y="${(my-2).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="bold" fill="#222">${mD[i].toFixed(0)}%</text>`;
-    xlabs+=`<text x="${(x+bW+1).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="8.5" fill="#444">${labs[i]}</text>`;
+    const xBase = PAD.left + i * grpW + (grpW - bW*2 - gap) / 2;
+
+    // Female bar
+    const fh = Math.max(0, fD[i] * yScale);
+    const fy = PAD.top + cH - fh;
+    bars += `<rect x="${xBase.toFixed(1)}" y="${fy.toFixed(1)}" width="${bW.toFixed(1)}" height="${fh.toFixed(1)}" fill="${fColors[i]}" rx="1.5"/>`;
+    if(fD[i] >= 5){
+      valLabels += `<text x="${(xBase+bW/2).toFixed(1)}" y="${(fy-3).toFixed(1)}" text-anchor="middle" font-size="7.5" font-weight="bold" fill="${fColors[i]}" font-family="Arial">${fD[i].toFixed(0)}%</text>`;
+    }
+
+    // Male bar
+    const mh = Math.max(0, mD[i] * yScale);
+    const my = PAD.top + cH - mh;
+    const mx2 = xBase + bW + gap;
+    bars += `<rect x="${mx2.toFixed(1)}" y="${my.toFixed(1)}" width="${bW.toFixed(1)}" height="${mh.toFixed(1)}" fill="${mColors[i]}" rx="1.5"/>`;
+    if(mD[i] >= 5){
+      valLabels += `<text x="${(mx2+bW/2).toFixed(1)}" y="${(my-3).toFixed(1)}" text-anchor="middle" font-size="7.5" font-weight="bold" fill="${mColors[i]}" font-family="Arial">${mD[i].toFixed(0)}%</text>`;
+    }
+
+    // X axis label
+    const xCenter = xBase + bW + gap/2;
+    xLabels += `<text x="${xCenter.toFixed(1)}" y="${(H-20).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="#444" font-family="Arial">${labsShort[i]}</text>`;
   }
-  const step=Math.ceil(mx/4)||10;
-  for(let v=0;v<=mx+step;v+=step){
-    const y=(PAD.top+cH-v*yS).toFixed(1);
-    if(y<PAD.top) break;
-    grid+=`<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="#ddd" stroke-width="0.8" stroke-dasharray="3"/>`;
-    grid+=`<text x="${PAD.left-3}" y="${+y+3}" text-anchor="end" font-size="7" fill="#999">${v}</text>`;
-  }
-  const t=String(lbl||'').slice(0,58)+(lbl&&lbl.length>58?'...':'');
-  const leg=`<rect x="${W-77}" y="8" width="9" height="9" fill="${fC[0]}"/>
-    <text x="${W-65}" y="16" font-size="7.5" fill="#333" font-family="Arial">${fLabel||'Female'}</text>
-    <rect x="${W-77}" y="22" width="9" height="9" fill="${mC[0]}"/>
-    <text x="${W-65}" y="30" font-size="7.5" fill="#333" font-family="Arial">${mLabel||'Male'}</text>`;
+
+  // Axes
+  const axes = `
+    <line x1="${PAD.left}" y1="${PAD.top}" x2="${PAD.left}" y2="${PAD.top+cH}" stroke="#999" stroke-width="1"/>
+    <line x1="${PAD.left}" y1="${PAD.top+cH}" x2="${W-PAD.right}" y2="${PAD.top+cH}" stroke="#999" stroke-width="1"/>`;
+
+  // Y axis label
+  const yAxisLabel = `<text x="9" y="${(PAD.top+cH/2).toFixed(1)}" text-anchor="middle" font-size="8" fill="#666" font-family="Arial" transform="rotate(-90,9,${(PAD.top+cH/2).toFixed(1)})">%</text>`;
+
+  // Title - Q number + question text
+  const titleText = `Q${qn}: ${String(lbl||'').slice(0,65)}${lbl&&lbl.length>65?'...':''}`;
+  const secText = secName ? `| ${String(secName).slice(0,30)}` : '';
+  const title = `<text x="${W/2}" y="14" text-anchor="middle" font-size="9" font-weight="bold" fill="#1F4E79" font-family="Arial">${titleText}</text>
+    ${secText ? `<text x="${W/2}" y="26" text-anchor="middle" font-size="7.5" fill="#2E75B6" font-family="Arial">${secText}</text>` : ''}`;
+
+  // Legend - horizontal at bottom
+  const fLbl = String(fLabel||'Female');
+  const mLbl = String(mLabel||'Male');
+  const legendY = H - 6;
+  const legend = `
+    <rect x="${W/2-80}" y="${legendY-9}" width="11" height="11" fill="${fColors[0]}" rx="2"/>
+    <text x="${W/2-65}" y="${legendY}" font-size="8.5" fill="#1B5E20" font-family="Arial" font-weight="bold">${fLbl}</text>
+    <rect x="${W/2+10}" y="${legendY-9}" width="11" height="11" fill="${mColors[0]}" rx="2"/>
+    <text x="${W/2+25}" y="${legendY}" font-size="8.5" fill="#0D47A1" font-family="Arial" font-weight="bold">${mLbl}</text>`;
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-    <rect width="${W}" height="${H}" fill="#F8FBFF"/>
-    <text x="${(W-82)/2+PAD.left/2}" y="13" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#1F4E79" font-family="Arial">Q${qn}: ${t}</text>
-    ${grid}${bars}${vals}${xlabs}${leg}
-    <text x="10" y="${PAD.top+cH/2}" text-anchor="middle" font-size="7" fill="#888" transform="rotate(-90,10,${PAD.top+cH/2})">%</text>
+    <rect width="${W}" height="${H}" fill="#FAFCFF" rx="4"/>
+    <rect x="1" y="1" width="${W-2}" height="${H-2}" fill="none" stroke="#DDE8F5" stroke-width="1" rx="4"/>
+    ${title}
+    ${gridLines}
+    ${bars}
+    ${valLabels}
+    ${xLabels}
+    ${axes}
+    ${yAxisLabel}
+    ${legend}
   </svg>`;
 }
 
@@ -75,7 +129,7 @@ app.post('/api/chart', async(req,res)=>{
     const charts={};
     await Promise.all(questions.map(async d=>{
       try{
-        const svg=makeChartSVG(d.qn,d.lbl||'',d.fD||[0,0,0,0,0],d.mD||[0,0,0,0,0],d.f_lbl||'Female',d.m_lbl||'Male');
+        const svg=makeChartSVG(d.qn,d.lbl||'',d.fD||[0,0,0,0,0],d.mD||[0,0,0,0,0],d.f_lbl||'Female',d.m_lbl||'Male',d.secName||'');
         const png=await sharp(Buffer.from(svg)).png().toBuffer();
         charts[String(d.qn)]=png.toString('base64');
       }catch(e){ charts[String(d.qn)]=null; }
@@ -768,7 +822,8 @@ async function fetchChartsAll(questions, f_lbl, m_lbl){
       qn:q.qn, lbl:q.lbl||'',
       fD:q.fD||q.cD||[0,0,0,0,0],
       mD:q.mD||q.cD||[0,0,0,0,0],
-      f_lbl:f_lbl||'Female', m_lbl:m_lbl||'Male'
+      f_lbl:f_lbl||'Female', m_lbl:m_lbl||'Male',
+      secName:q.secName||''
     }));
     return await new Promise((resolve)=>{
       const body=JSON.stringify({questions:qs});
@@ -820,7 +875,8 @@ async function fetchChartsAll(questions, f_lbl, m_lbl){
       qn:q.qn, lbl:q.lbl||'',
       fD:q.fD||q.cD||[0,0,0,0,0],
       mD:q.mD||q.cD||[0,0,0,0,0],
-      f_lbl:f_lbl||'Female', m_lbl:m_lbl||'Male'
+      f_lbl:f_lbl||'Female', m_lbl:m_lbl||'Male',
+      secName:q.secName||''
     }));
     return await new Promise((resolve)=>{
       const body=JSON.stringify({questions:qs});
@@ -1175,6 +1231,9 @@ async function buildWordFromResult(result, cfg){
     const multiAllQs=secs.reduce((acc,s)=>acc.concat(s.qs||[]),[]);
     const multiSeenC=new Set();
     const multiUniqueQs=multiAllQs.filter(q=>{if(!q||multiSeenC.has(q.qn))return false;multiSeenC.add(q.qn);return true;});
+    const multiSecLookup={};
+    secs.forEach(s=>(s.qs||[]).forEach(q=>{multiSecLookup[q.qn]=s.ar||s.name||'';}));
+    multiUniqueQs.forEach(q=>{q.secName=multiSecLookup[q.qn]||'';});
     const multiChartMap=await fetchChartsAll(multiUniqueQs,'Female','Male');
 
     for(const [ci,cn] of courses.entries()){
@@ -1220,19 +1279,7 @@ async function buildWordFromResult(result, cfg){
         ]})]:[]),
       ]}),sp(60,40));
 
-      // Charts for this course
-      const cqList=secs.reduce((acc,s)=>acc.concat(s.qs||[]),[]).filter(q=>multiChartMap[String(q.qn)]);
-      if(cqList.length>0){
-        children.push(mP('📊 '+cn+' — توزيع الإجابات | Answer Distribution',
-          {bold:true,size:14,color:MID,before:40,after:20}));
-        cqList.forEach(q=>{
-          const imgBuf=Buffer.from(multiChartMap[String(q.qn)],'base64');
-          children.push(new Paragraph({
-            spacing:{before:8,after:8},
-            children:[new ImageRun({data:imgBuf,transformation:{width:510,height:180},type:'png'})],
-          }));
-        });
-      }
+      // charts added at end
     }
 
     // ── ENHANCEMENT PLANS (isMulti) ────────────────────────────────────────
@@ -1403,6 +1450,10 @@ async function buildWordFromResult(result, cfg){
       if(!q||seenChart.has(q.qn))return false;
       seenChart.add(q.qn);return true;
     });
+    // Add secName to each Q
+    const secLookup={};
+    secs.forEach(s=>(s.qs||[]).forEach(q=>{secLookup[q.qn]=s.ar||s.name||'';}));
+    uniqueQsForCharts.forEach(q=>{q.secName=secLookup[q.qn]||'';});
     const chartMap=await fetchChartsAll(uniqueQsForCharts,'Female','Male');
 
     for(const [si,sec] of secs.entries()){
@@ -1535,19 +1586,7 @@ async function buildWordFromResult(result, cfg){
         sp(80,40),
       );
 
-      // ── Charts per Q ────────────────────────────────────────────
-      const secChartQs=sortedQs.filter(q=>chartMap[String(q.qn)]);
-      if(secChartQs.length>0){
-        children.push(mP('📊 توزيع الإجابات بيانياً | Answer Distribution Charts',
-          {bold:true,size:15,color:MID,before:50,after:30}));
-        secChartQs.forEach(q=>{
-          const imgBuf=Buffer.from(chartMap[String(q.qn)],'base64');
-          children.push(new Paragraph({
-            spacing:{before:10,after:10},
-            children:[new ImageRun({data:imgBuf,transformation:{width:510,height:185},type:'png'})],
-          }));
-        });
-      }
+      // charts added at end of report
     }
 
   // ── ENHANCEMENT PLANS ──────────────────────────────────────────────
