@@ -1227,17 +1227,7 @@ async function buildWordFromResult(result, cfg){
       new Paragraph({pageBreakBefore:true,children:[]}),
       mP('خامساً: التحليل التفصيلي لكل مقرر | Course Detail',{bold:true,size:22,color:DARK,before:0,after:80}),
     );
-    // Batch fetch charts for all Qs
-    const multiAllQs=secs.reduce((acc,s)=>acc.concat(s.qs||[]),[]);
-    const multiSeenC=new Set();
-    const multiUniqueQs=multiAllQs.filter(q=>{if(!q||multiSeenC.has(q.qn))return false;multiSeenC.add(q.qn);return true;});
-    const multiSecLookup={};
-    secs.forEach(s=>(s.qs||[]).forEach(q=>{multiSecLookup[q.qn]=s.name||s.ar||'';}));
-    multiUniqueQs.forEach(q=>{
-      q.secName=multiSecLookup[q.qn]||'';
-      q.lbl=Q_EN[q.qn]||q.lbl||'';
-    });
-    const multiChartMap=await fetchChartsAll(multiUniqueQs,'Female','Male');
+
 
     for(const [ci,cn] of courses.entries()){
       const cd=courseResults[cn]; const cl=clfR(cd.mean||0);
@@ -1446,22 +1436,7 @@ async function buildWordFromResult(result, cfg){
 
     // ── 3. PER-SECTION DETAIL ──────────────────────────────────────
     // Matches Table 6+ in reference: Section title | Q text row | Female/Male/Combined rows
-    // ── Batch fetch ALL charts at once ──────────────────────────
-    const allQsForCharts=secs.reduce((acc,s)=>acc.concat(s.qs||[]),[]);
-    const seenChart=new Set();
-    const uniqueQsForCharts=allQsForCharts.filter(q=>{
-      if(!q||seenChart.has(q.qn))return false;
-      seenChart.add(q.qn);return true;
-    });
-    // Add secName (English) to each Q for charts
-    const secLookup={};
-    secs.forEach(s=>(s.qs||[]).forEach(q=>{secLookup[q.qn]=s.name||s.ar||'';}));
-    uniqueQsForCharts.forEach(q=>{
-      q.secName=secLookup[q.qn]||'';
-      // Use English Q text for chart (Arabic shows as squares in SVG)
-      q.lbl=Q_EN[q.qn]||q.lbl||'';
-    });
-    const chartMap=await fetchChartsAll(uniqueQsForCharts,'Female','Male');
+    // Charts removed
 
     for(const [si,sec] of secs.entries()){
       const cl=clfR(sec.mean);
