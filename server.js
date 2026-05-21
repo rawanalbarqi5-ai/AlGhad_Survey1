@@ -1044,7 +1044,115 @@ async function buildWordFromResult(result, cfg){
         ]}),sp(200,80),
       );
 
-    } else {
+  
+    // ── COURSE DETAIL ─────────────────────────────────────────────────────
+    children.push(
+      new Paragraph({pageBreakBefore:true,children:[]}),
+      mP('خامساً: التحليل التفصيلي لكل مقرر | Course Detail',{bold:true,size:22,color:DARK,before:0,after:80}),
+    );
+    courses.forEach((cn,ci)=>{
+      const cd=courseResults[cn]; const cl=clfR(cd.mean||0);
+      const allQsList=secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
+      const nQ2=allQsList.length;
+      children.push(
+        mP(`${ci+1}. ${cn}`,{bold:true,size:20,color:MID,before:ci===0?0:160,after:30}),
+        mP(`المستجيبون: ${cd.n||0}  |  إناث: ${cd.nG||'—'}  |  ذكور: ${cd.nB||'—'}  |  المتوسط: ${(cd.mean||0).toFixed(2)}  |  ${cl.l}`,
+          {size:15,color:'444444',before:0,after:50}),
+      );
+      const dqW=Math.max(500,Math.floor((CW-600-2600-600)/Math.max(nQ2,1)));
+      const dC=[600,2600,600,...Array(nQ2).fill(dqW),Math.max(400,CW-600-2600-600-dqW*nQ2)];
+      children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:[
+        new TableRow({children:[
+          mH(['Group'],dC[0]),mH(['المقرر / Course'],dC[1]),mH(['n'],dC[2]),
+          ...Array.from({length:nQ2},(_,i)=>mH(['Q'+(i+1)],dC[3+i],MID,11)),
+          mH(['Mean'],dC[3+nQ2]),
+        ]}),
+        // Combined
+        new TableRow({children:[
+          mC('All',dC[0],PALE,{bold:true,color:DARK,size:11}),
+          mC(cn,dC[1],PALE,{bold:true,color:DARK,size:11}),
+          mC(cd.n||0,dC[2],PALE,{size:11}),
+          ...(cd.qMeans||[]).map((qm,qi)=>{const qcl=clfR(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],qcl.bg,{color:qcl.c,size:11});}),
+          mC((cd.mean||0).toFixed(2),dC[3+nQ2],cl.bg,{bold:true,color:cl.c,size:14}),
+        ]}),
+        // Female
+        ...(cd.nG>0&&cd.qMeansF?[new TableRow({children:[
+          mC('Female',dC[0],'FCE4D6',{bold:true,color:'843C0C',size:11}),
+          mC(cn,dC[1],'FCE4D6',{color:'843C0C',size:11}),
+          mC(cd.nG,dC[2],'FCE4D6',{color:'843C0C',size:11}),
+          ...(cd.qMeansF||[]).map((qm,qi)=>{const qcl=clfR(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],'FCE4D6',{color:'843C0C',size:11});}),
+          mC((cd.meanF||cd.mean||0).toFixed(2),dC[3+nQ2],'FCE4D6',{bold:true,color:'843C0C',size:13}),
+        ]})]:[]),
+        // Male
+        ...(cd.nB>0&&cd.qMeansM?[new TableRow({children:[
+          mC('Male',dC[0],'DDEBF7',{bold:true,color:'1F4E79',size:11}),
+          mC(cn,dC[1],'DDEBF7',{color:'1F4E79',size:11}),
+          mC(cd.nB,dC[2],'DDEBF7',{color:'1F4E79',size:11}),
+          ...(cd.qMeansM||[]).map((qm,qi)=>{const qcl=clfR(qm||0);return mC((qm||0).toFixed(2),dC[3+qi],'DDEBF7',{color:'1F4E79',size:11});}),
+          mC((cd.meanM||cd.mean||0).toFixed(2),dC[3+nQ2],'DDEBF7',{bold:true,color:'1F4E79',size:13}),
+        ]})]:[]),
+      ]}),sp(60,40));
+    });
+
+    // ── ENHANCEMENT PLANS (isMulti) ────────────────────────────────────────
+    const allQsEP=secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
+    const seenEP=new Set();
+    const epItemsMulti=allQsEP.filter(q=>{
+      if(!q||q.cM===undefined||seenEP.has(q.qn))return false;
+      seenEP.add(q.qn);return true;
+    }).sort((a,b)=>(b.cM||0)-(a.cM||0));
+    const epCM=[700,500,2800,700,1000,600,600,Math.max(300,CW-700-500-2800-700-1000-600-600)];
+    children.push(
+      new Paragraph({pageBreakBefore:true,children:[]}),
+      mP('Enhancement Plans | خطة التحسين والتطوير',{bold:true,size:28,color:DARK,before:0,after:60}),
+      mP('مرتبة من الأضعف للأقوى — Sorted by Mean (Lowest = Needs Most Attention)',{size:16,color:'555555',italic:true,before:0,after:80}),
+      new Table({width:{size:CW,type:WidthType.DXA},columnWidths:epCM,rows:[
+        new TableRow({children:[
+          mH(['Priority'],epCM[0]),mH(['Q#'],epCM[1]),mH(['Survey Item | السؤال'],epCM[2]),
+          mH(['Mean'],epCM[3]),mH(['Classification'],epCM[4]),
+          mH(['Pos%'],epCM[5],'375623'),mH(['Neg%'],epCM[6],'9C0006'),
+          mH(['Recommended Action | KPI'],epCM[7]),
+        ]}),
+        ...epItemsMulti.map((q,i)=>{
+          const cD=q.cD||[0,0,0,0,0];
+          const posP=Math.round((cD[0]||0)+(cD[1]||0));
+          const negP=Math.round((cD[3]||0)+(cD[4]||0));
+          const cl=clfR(q.cM||0); const bg=i%2===0?PALE:WHITE;
+          const cMv=parseFloat(q.cM)||0;
+          const pr=cMv>=4.5?'🔴 Critical':cMv>=3.5?'🔴 High':cMv>=2.5?'🟡 Medium':cMv>=1.5?'🟢 Good':'🟢 Excellent';
+          const prBg=cMv>=3.5?RED2:cMv>=2.5?AMBER2:GREEN2;
+          const prC=cMv>=3.5?RED:cMv>=2.5?AMBER:GREEN;
+          const action=cMv<2.5?'Immediate review & improvement plan required.':cMv<3.5?'Monitor and provide additional support.':'Maintain current practices.';
+          const kpi=cMv>=3.5?`Raise to ≥${(cMv+0.5).toFixed(1)}; Pos% ≥${Math.min(95,posP+15)}%`:`Maintain ≥${cMv}; Pos% ≥${posP}%`;
+          return new TableRow({children:[
+            mC(pr,epCM[0],prBg,{bold:true,color:prC,size:11}),
+            mC('Q'+q.qn,epCM[1],bg,{bold:true,color:DARK,size:13}),
+            new TableCell({width:{size:Math.max(1,epCM[2]),type:WidthType.DXA},borders:allB(),
+              shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+              children:[
+                new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:8},
+                  children:[new TextRun({text:String(q.lbl||''),size:11,color:'1F4E79',font:'Arial',rtl:true})]}),
+                new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
+                  children:[new TextRun({text:Q_EN[q.qn]||'',size:9,color:'666666',font:'Arial',italics:true})]}),
+              ]}),
+            mC(cMv.toFixed(2),epCM[3],cl.bg,{bold:true,color:cl.c,size:13}),
+            mC(cl.l,epCM[4],cl.bg,{bold:true,color:cl.c,size:11}),
+            mC(posP+'%',epCM[5],posP>=80?GREEN2:posP>=60?AMBER2:WHITE,{bold:true,color:posP>=80?GREEN:posP>=60?AMBER:'333333',size:12}),
+            mC(negP+'%',epCM[6],negP>20?RED2:WHITE,{bold:true,color:negP>20?RED:'333333',size:12}),
+            new TableCell({width:{size:Math.max(1,epCM[7]),type:WidthType.DXA},borders:allB(),
+              shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+              children:[
+                new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:4},
+                  children:[new TextRun({text:action,size:10,color:'333333',font:'Arial'})]}),
+                new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
+                  children:[new TextRun({text:'KPI: '+kpi,size:9,color:'666666',font:'Arial',italics:true})]}),
+              ]}),
+          ]});
+        }),
+      ]}),sp(200,80),
+    );
+
+  } else {
     // ══════════════════════════════════════════════════════════════════
     // SINGLE COURSE — matches reference report structure exactly
     // Scale: 1=Strongly Agree (best), 5=Strongly Disagree (worst)
