@@ -91,6 +91,15 @@ const clf=m=>{
 // clf for 5=best scale (instructor evaluation: 5=موافق بشدة=ممتاز)
 const clf5=m=>{
   if(m>=4.50)return{l:'ممتاز',    en:'Excellent', bg:GREEN2,c:GREEN};
+// clf1: 1=best scale (single survey)
+const clf1=m=>{
+  if(m<=1.50)return{l:'ممتاز',    en:'Excellent',           bg:GREEN2,c:GREEN};
+  if(m<=2.00)return{l:'جيد',      en:'Good',                 bg:GREEN2,c:GREEN};
+  if(m<=2.50)return{l:'مقبول',    en:'Acceptable',           bg:AMBER2,c:AMBER};
+  if(m<=3.00)return{l:'ضعف',      en:'Weakness',             bg:RED2,  c:RED};
+  return      {l:'ضعف حرج',       en:'Critical Weakness',    bg:RED2,  c:'9C0006'};
+};
+
   if(m>=3.50)return{l:'جيد جداً', en:'Very Good',  bg:GREEN2,c:GREEN};
   if(m>=2.50)return{l:'جيد',      en:'Good',       bg:AMBER2,c:AMBER};
   if(m>=1.50)return{l:'مقبول',    en:'Acceptable', bg:RED2,  c:RED};
