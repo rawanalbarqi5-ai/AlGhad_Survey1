@@ -1232,8 +1232,11 @@ async function buildWordFromResult(result, cfg){
     const multiSeenC=new Set();
     const multiUniqueQs=multiAllQs.filter(q=>{if(!q||multiSeenC.has(q.qn))return false;multiSeenC.add(q.qn);return true;});
     const multiSecLookup={};
-    secs.forEach(s=>(s.qs||[]).forEach(q=>{multiSecLookup[q.qn]=s.ar||s.name||'';}));
-    multiUniqueQs.forEach(q=>{q.secName=multiSecLookup[q.qn]||'';});
+    secs.forEach(s=>(s.qs||[]).forEach(q=>{multiSecLookup[q.qn]=s.name||s.ar||'';}));
+    multiUniqueQs.forEach(q=>{
+      q.secName=multiSecLookup[q.qn]||'';
+      q.lbl=Q_EN[q.qn]||q.lbl||'';
+    });
     const multiChartMap=await fetchChartsAll(multiUniqueQs,'Female','Male');
 
     for(const [ci,cn] of courses.entries()){
@@ -1450,10 +1453,14 @@ async function buildWordFromResult(result, cfg){
       if(!q||seenChart.has(q.qn))return false;
       seenChart.add(q.qn);return true;
     });
-    // Add secName to each Q
+    // Add secName (English) to each Q for charts
     const secLookup={};
-    secs.forEach(s=>(s.qs||[]).forEach(q=>{secLookup[q.qn]=s.ar||s.name||'';}));
-    uniqueQsForCharts.forEach(q=>{q.secName=secLookup[q.qn]||'';});
+    secs.forEach(s=>(s.qs||[]).forEach(q=>{secLookup[q.qn]=s.name||s.ar||'';}));
+    uniqueQsForCharts.forEach(q=>{
+      q.secName=secLookup[q.qn]||'';
+      // Use English Q text for chart (Arabic shows as squares in SVG)
+      q.lbl=Q_EN[q.qn]||q.lbl||'';
+    });
     const chartMap=await fetchChartsAll(uniqueQsForCharts,'Female','Male');
 
     for(const [si,sec] of secs.entries()){
@@ -1668,6 +1675,61 @@ async function buildWordFromResult(result, cfg){
   ]}),sp(200,80));
 
   } // end else single course
+
+  // ── CHARTS SECTION ──────────────────────────────────────────────────────
+  try{
+    const allChartQs=secs.reduce((acc,s)=>acc.concat(s.qs||[]),[]);
+    const seenCh=new Set();
+    const chartQsUniq=allChartQs.filter(q=>{
+      if(!q||seenCh.has(q.qn))return false;
+      seenCh.add(q.qn);return true;
+    });
+    if(chartQsUniq.length>0){
+      const secLookup={};
+      secs.forEach(s=>(s.qs||[]).forEach(q=>{secLookup[q.qn]=s.ar||s.name||'';}));
+      chartQsUniq.forEach(q=>{q.secName=secLookup[q.qn]||'';});
+      const allCharts=await fetchChartsAll(chartQsUniq,'Female','Male');
+      const sortedChartQs=chartQsUniq.filter(q=>allCharts[String(q.qn)]).sort((a,b)=>a.qn-b.qn);
+      if(sortedChartQs.length>0){
+        children.push(
+          new Paragraph({pageBreakBefore:true,children:[]}),
+          mP('توزيع الإجابات بيانياً | Answer Distribution Charts',
+            {bold:true,size:26,color:DARK,before:0,after:30,align:AlignmentType.CENTER}),
+          mP('الأخضر = Female | الأزرق = Male',
+            {size:15,color:'555555',italic:true,before:0,after:60,align:AlignmentType.CENTER}),
+        );
+        const half=Math.floor(CW/2)-100;
+        for(let i=0;i<sortedChartQs.length;i+=2){
+          const q1=sortedChartQs[i];
+          const q2=sortedChartQs[i+1];
+          if(q2){
+            const img1=Buffer.from(allCharts[String(q1.qn)],'base64');
+            const img2=Buffer.from(allCharts[String(q2.qn)],'base64');
+            children.push(new Table({
+              width:{size:CW,type:WidthType.DXA},
+              columnWidths:[half,CW-half],
+              rows:[new TableRow({children:[
+                new TableCell({width:{size:half,type:WidthType.DXA},
+                  borders:{top:{style:BorderStyle.NONE},bottom:{style:BorderStyle.NONE},
+                           left:{style:BorderStyle.NONE},right:{style:BorderStyle.NONE}},
+                  children:[new Paragraph({spacing:{before:4,after:4},
+                    children:[new ImageRun({data:img1,transformation:{width:270,height:165},type:'png'})]})]}),
+                new TableCell({width:{size:CW-half,type:WidthType.DXA},
+                  borders:{top:{style:BorderStyle.NONE},bottom:{style:BorderStyle.NONE},
+                           left:{style:BorderStyle.NONE},right:{style:BorderStyle.NONE}},
+                  children:[new Paragraph({spacing:{before:4,after:4},
+                    children:[new ImageRun({data:img2,transformation:{width:270,height:165},type:'png'})]})]}),
+              ]})]
+            }),sp(6,6));
+          } else {
+            const img1=Buffer.from(allCharts[String(q1.qn)],'base64');
+            children.push(new Paragraph({spacing:{before:4,after:8},
+              children:[new ImageRun({data:img1,transformation:{width:400,height:165},type:'png'})]}));
+          }
+        }
+      }
+    }
+  }catch(e){ console.error('Charts section error:',e.message); }
 
   return buildDoc(children);
 }
