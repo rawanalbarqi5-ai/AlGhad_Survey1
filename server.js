@@ -25,76 +25,68 @@ app.use(express.static(path.join(__dirname,'public'), {
   }
 }));
 app.use(express.static(__dirname));
-// ── Batch chart generation endpoint ───────────────────────────────────────
-app.post('/api/chart', (req,res) => {
-  const {execFileSync}=require('child_process');
-  const os=require('os');
-  const tmpIn=path.join(os.tmpdir(),'charts_in_'+Date.now()+'.json');
-  const tmpPy=path.join(os.tmpdir(),'charts_gen.py');
+// ── Batch chart generation (pure JS + sharp, no Python) ─────────────────────
+function makeChartSVG(qn, lbl, fD, mD, fLabel, mLabel){
+  const W=520,H=190,PAD={top:36,bottom:28,left:32,right:82};
+  const cW=W-PAD.left-PAD.right, cH=H-PAD.top-PAD.bottom;
+  const labs=['SA(1)','A(2)','N(3)','D(4)','SD(5)'];
+  const fC=['#2E7D32','#4CAF50','#FFA726','#EF5350','#C62828'];
+  const mC=['#1565C0','#42A5F5','#90CAF9','#EF9A9A','#B71C1C'];
+  const mx=Math.max(...fD,...mD,1);
+  const yS=cH/(mx*1.32+5);
+  const gW=cW/5; const bW=gW*0.34;
+  let bars='',xlabs='',vals='',grid='';
+  for(let i=0;i<5;i++){
+    const x=PAD.left+i*gW+gW*0.12;
+    const fh=fD[i]*yS; const fy=PAD.top+cH-fh;
+    bars+=`<rect x="${x.toFixed(1)}" y="${fy.toFixed(1)}" width="${bW.toFixed(1)}" height="${Math.max(0,fh).toFixed(1)}" fill="${fC[i]}" opacity="0.87"/>`;
+    if(fD[i]>5) vals+=`<text x="${(x+bW/2).toFixed(1)}" y="${(fy-2).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="bold" fill="#222">${fD[i].toFixed(0)}%</text>`;
+    const mh=mD[i]*yS; const my=PAD.top+cH-mh;
+    bars+=`<rect x="${(x+bW+2).toFixed(1)}" y="${my.toFixed(1)}" width="${bW.toFixed(1)}" height="${Math.max(0,mh).toFixed(1)}" fill="${mC[i]}" opacity="0.87"/>`;
+    if(mD[i]>5) vals+=`<text x="${(x+bW*1.5+2).toFixed(1)}" y="${(my-2).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="bold" fill="#222">${mD[i].toFixed(0)}%</text>`;
+    xlabs+=`<text x="${(x+bW+1).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="8.5" fill="#444">${labs[i]}</text>`;
+  }
+  const step=Math.ceil(mx/4)||10;
+  for(let v=0;v<=mx+step;v+=step){
+    const y=(PAD.top+cH-v*yS).toFixed(1);
+    if(y<PAD.top) break;
+    grid+=`<line x1="${PAD.left}" y1="${y}" x2="${W-PAD.right}" y2="${y}" stroke="#ddd" stroke-width="0.8" stroke-dasharray="3"/>`;
+    grid+=`<text x="${PAD.left-3}" y="${+y+3}" text-anchor="end" font-size="7" fill="#999">${v}</text>`;
+  }
+  const t=String(lbl||'').slice(0,58)+(lbl&&lbl.length>58?'...':'');
+  const leg=`<rect x="${W-77}" y="8" width="9" height="9" fill="${fC[0]}"/>
+    <text x="${W-65}" y="16" font-size="7.5" fill="#333" font-family="Arial">${fLabel||'Female'}</text>
+    <rect x="${W-77}" y="22" width="9" height="9" fill="${mC[0]}"/>
+    <text x="${W-65}" y="30" font-size="7.5" fill="#333" font-family="Arial">${mLabel||'Male'}</text>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+    <rect width="${W}" height="${H}" fill="#F8FBFF"/>
+    <text x="${(W-82)/2+PAD.left/2}" y="13" text-anchor="middle" font-size="8.5" font-weight="bold" fill="#1F4E79" font-family="Arial">Q${qn}: ${t}</text>
+    ${grid}${bars}${vals}${xlabs}${leg}
+    <text x="10" y="${PAD.top+cH/2}" text-anchor="middle" font-size="7" fill="#888" transform="rotate(-90,10,${PAD.top+cH/2})">%</text>
+  </svg>`;
+}
+
+app.post('/api/chart', async(req,res)=>{
   try{
-    // Accept either single {qn,lbl,fD,mD} or batch {questions:[...]}
+    const sharp=require('sharp');
     const body=req.body;
     const questions=body.questions||[{qn:body.qn,lbl:body.lbl,fD:body.fD,mD:body.mD,
-      f_lbl:body.fasli_label||'Female',m_lbl:body.imtiaz_label||'Male'}];
-    fs.writeFileSync(tmpIn, JSON.stringify(questions));
-    const pyScript=`
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np,sys,json,base64,io
-with open(sys.argv[1]) as f: questions=json.load(f)
-results={}
-for d in questions:
-    try:
-        fD=d['fD'];mD=d['mD'];q_num=d['qn'];q_lbl=d.get('lbl','')
-        f_lbl=d.get('f_lbl','Female');m_lbl=d.get('m_lbl','Male')
-        fig,ax=plt.subplots(figsize=(6,2.1))
-        fig.patch.set_facecolor('#F8FBFF');ax.set_facecolor('#F8FBFF')
-        labels=['SA(1)','A(2)','N(3)','D(4)','SD(5)']
-        cf=['#2E7D32','#4CAF50','#FFA726','#EF5350','#C62828']
-        cm=['#1565C0','#42A5F5','#90CAF9','#EF9A9A','#B71C1C']
-        x=np.arange(5);w=0.35
-        bf=ax.bar(x-w/2,fD,w,color=cf,alpha=0.85,label=f_lbl,edgecolor='white',linewidth=0.5)
-        bm=ax.bar(x+w/2,mD,w,color=cm,alpha=0.85,label=m_lbl,edgecolor='white',linewidth=0.5)
-        for b in list(bf)+list(bm):
-            h=b.get_height()
-            if h>4:ax.text(b.get_x()+b.get_width()/2,h+0.5,f'{h:.0f}%',ha='center',va='bottom',fontsize=6.5,fontweight='bold',color='#333')
-        ax.set_xticks(x);ax.set_xticklabels(labels,fontsize=8)
-        mx=max(max(fD),max(mD),1)
-        ax.set_ylim(0,mx*1.3+5);ax.set_ylabel('%',fontsize=7)
-        t=f'Q{q_num}: {q_lbl[:58]}'
-        if len(q_lbl)>58:t+='...'
-        ax.set_title(t,fontsize=8,fontweight='bold',color='#1F4E79',pad=3)
-        ax.legend([f_lbl,m_lbl],fontsize=7,loc='upper right',framealpha=0.7)
-        ax.yaxis.grid(True,alpha=0.3,linestyle='--');ax.set_axisbelow(True)
-        ax.spines['top'].set_visible(False);ax.spines['right'].set_visible(False)
-        plt.tight_layout(pad=0.4)
-        buf=io.BytesIO()
-        plt.savefig(buf,format='png',dpi=100,bbox_inches='tight',facecolor='#F8FBFF')
-        plt.close();buf.seek(0)
-        results[str(q_num)]=base64.b64encode(buf.read()).decode()
-    except Exception as e:
-        results[str(q_num)]=None
-import json as J
-print(J.dumps(results))
-`;
-    fs.writeFileSync(tmpPy, pyScript);
-    const result=execFileSync('python3',[tmpPy,tmpIn],{timeout:60000,maxBuffer:20*1024*1024});
-    try{fs.unlinkSync(tmpIn);fs.unlinkSync(tmpPy);}catch{}
-    const charts=JSON.parse(result.toString().trim());
-    // Return single or batch
+      f_lbl:body.fasli_label,m_lbl:body.imtiaz_label}];
+    const charts={};
+    await Promise.all(questions.map(async d=>{
+      try{
+        const svg=makeChartSVG(d.qn,d.lbl||'',d.fD||[0,0,0,0,0],d.mD||[0,0,0,0,0],d.f_lbl||'Female',d.m_lbl||'Male');
+        const png=await sharp(Buffer.from(svg)).png().toBuffer();
+        charts[String(d.qn)]=png.toString('base64');
+      }catch(e){ charts[String(d.qn)]=null; }
+    }));
     if(body.questions) res.json({charts});
     else res.json({png:charts[String(body.qn)]});
   }catch(e){
-    try{fs.unlinkSync(tmpIn);fs.unlinkSync(tmpPy);}catch{}
-    console.error('Chart err:',e.message?.slice(0,200));
-    res.status(500).json({error:e.message?.slice(0,200)});
+    console.error('Chart err:',e.message?.slice(0,100));
+    res.status(500).json({error:e.message?.slice(0,100)});
   }
 });
-
-
-
-
 
 app.get('/', (req,res) => {
   res.set('Cache-Control','no-store, no-cache, must-revalidate');
