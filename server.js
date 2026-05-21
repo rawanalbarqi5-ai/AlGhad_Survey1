@@ -24,6 +24,67 @@ app.use(express.static(path.join(__dirname,'public'), {
   }
 }));
 app.use(express.static(__dirname));
+// ── Chart generation endpoint ──────────────────────────────────────────────
+app.post('/api/chart', (req,res) => {
+  const {execFileSync}=require('child_process');
+  const os=require('os');
+  const tmpFile=path.join(os.tmpdir(),'chart_data_'+Date.now()+'.json');
+  try{
+    const body=req.body;
+    fs.writeFileSync(tmpFile, JSON.stringify({
+      qn:body.qn||1, lbl:body.lbl||'',
+      fD:body.fD||[0,0,0,0,0], mD:body.mD||[0,0,0,0,0],
+      f_lbl:body.fasli_label||'Female',
+      m_lbl:body.imtiaz_label||'Male'
+    }));
+    const pyScript=`
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np,sys,json,base64,io
+with open(sys.argv[1]) as f: d=json.load(f)
+fD=d['fD'];mD=d['mD'];q_num=d['qn'];q_lbl=d['lbl']
+f_lbl=d.get('f_lbl','Female');m_lbl=d.get('m_lbl','Male')
+fig,ax=plt.subplots(figsize=(6,2.2))
+fig.patch.set_facecolor('#F8FBFF');ax.set_facecolor('#F8FBFF')
+labels=['SA(1)','A(2)','N(3)','D(4)','SD(5)']
+cf=['#2E7D32','#4CAF50','#FFA726','#EF5350','#C62828']
+cm=['#1565C0','#42A5F5','#90CAF9','#EF9A9A','#B71C1C']
+x=np.arange(5);w=0.35
+bf=ax.bar(x-w/2,fD,w,color=cf,alpha=0.85,label=f_lbl,edgecolor='white',linewidth=0.5)
+bm=ax.bar(x+w/2,mD,w,color=cm,alpha=0.85,label=m_lbl,edgecolor='white',linewidth=0.5)
+for b in list(bf)+list(bm):
+    h=b.get_height()
+    if h>3:ax.text(b.get_x()+b.get_width()/2,h+0.5,f'{h:.0f}%',ha='center',va='bottom',fontsize=7,fontweight='bold',color='#333')
+ax.set_xticks(x);ax.set_xticklabels(labels,fontsize=9)
+mx=max(max(fD),max(mD),1)
+ax.set_ylim(0,mx*1.3+5);ax.set_ylabel('%',fontsize=8)
+t=f'Q{q_num}: {q_lbl[:60]}'
+if len(q_lbl)>60:t+='...'
+ax.set_title(t,fontsize=8.5,fontweight='bold',color='#1F4E79',pad=4)
+ax.legend([f_lbl,m_lbl],fontsize=8,loc='upper right',framealpha=0.7)
+ax.yaxis.grid(True,alpha=0.3,linestyle='--');ax.set_axisbelow(True)
+ax.spines['top'].set_visible(False);ax.spines['right'].set_visible(False)
+plt.tight_layout(pad=0.5)
+buf=io.BytesIO()
+plt.savefig(buf,format='png',dpi=110,bbox_inches='tight',facecolor='#F8FBFF')
+plt.close();buf.seek(0)
+print(base64.b64encode(buf.read()).decode())
+`;
+    const pyFile=path.join(os.tmpdir(),'chart_gen.py');
+    fs.writeFileSync(pyFile, pyScript);
+    const result=execFileSync('python3',[pyFile,tmpFile],{timeout:20000,maxBuffer:3*1024*1024});
+    try{fs.unlinkSync(tmpFile);fs.unlinkSync(pyFile);}catch{}
+    res.json({png:result.toString().trim()});
+  }catch(e){
+    try{fs.unlinkSync(tmpFile);}catch{}
+    console.error('Chart err:',e.message?.slice(0,200));
+    res.status(500).json({error:e.message?.slice(0,200)});
+  }
+});
+
+
+
 app.get('/', (req,res) => {
   res.set('Cache-Control','no-store, no-cache, must-revalidate');
   res.set('Pragma','no-cache');
@@ -1050,7 +1111,7 @@ async function buildWordFromResult(result, cfg){
       new Paragraph({pageBreakBefore:true,children:[]}),
       mP('خامساً: التحليل التفصيلي لكل مقرر | Course Detail',{bold:true,size:22,color:DARK,before:0,after:80}),
     );
-    courses.forEach((cn,ci)=>{
+    for(const [ci,cn] of courses.entries()){
       const cd=courseResults[cn]; const cl=clfR(cd.mean||0);
       const allQsList=secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
       const nQ2=allQsList.length;
@@ -1092,7 +1153,26 @@ async function buildWordFromResult(result, cfg){
           mC((cd.meanM||cd.mean||0).toFixed(2),dC[3+nQ2],'DDEBF7',{bold:true,color:'1F4E79',size:13}),
         ]})]:[]),
       ]}),sp(60,40));
-    });
+
+      // ── Charts for this course ──────────────────────────────────
+      const courseQsList=secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
+      if(courseQsList.length>0){
+        children.push(mP('📊 '+cn+' — توزيع الإجابات بيانياً | Answer Distribution',
+          {bold:true,size:15,color:MID,before:50,after:30}));
+        for(const q of courseQsList){
+          const fD=q.fD||q.cD||[0,0,0,0,0];
+          const mD=q.mD||q.cD||[0,0,0,0,0];
+          const png=await fetchChart(q.qn,q.lbl||'',fD,mD,'Female','Male');
+          if(png){
+            const imgBuf=Buffer.from(png,'base64');
+            children.push(new Paragraph({
+              spacing:{before:15,after:15},
+              children:[new ImageRun({data:imgBuf,transformation:{width:520,height:185},type:'png'})],
+            }));
+          }
+        }
+      }
+    }
 
     // ── ENHANCEMENT PLANS (isMulti) ────────────────────────────────────────
     const allQsEP=secs.reduce((acc,sec)=>acc.concat(sec.qs||[]),[]);
@@ -1255,7 +1335,7 @@ async function buildWordFromResult(result, cfg){
 
     // ── 3. PER-SECTION DETAIL ──────────────────────────────────────
     // Matches Table 6+ in reference: Section title | Q text row | Female/Male/Combined rows
-    secs.forEach((sec,si)=>{
+    for(const [si,sec] of secs.entries()){
       const cl=clfR(sec.mean);
       const seenQns=new Set();
       const sortedQs=(sec.qs||[]).filter(q=>{
@@ -1384,7 +1464,25 @@ async function buildWordFromResult(result, cfg){
         new Table({width:{size:CW,type:WidthType.DXA},columnWidths:dC,rows:secRows}),
         sp(80,40),
       );
-    });
+
+      // ── Charts: one per Q ─────────────────────────────────────
+      if(sortedQs.length>0){
+        children.push(mP('📊 توزيع الإجابات بيانياً | Answer Distribution Charts',
+          {bold:true,size:16,color:MID,before:60,after:40}));
+        for(const q of sortedQs){
+          const fD=q.fD||q.cD||[0,0,0,0,0];
+          const mD=q.mD||q.cD||[0,0,0,0,0];
+          const png=await fetchChart(q.qn,q.lbl||'',fD,mD,'Female','Male');
+          if(png){
+            const imgBuf=Buffer.from(png,'base64');
+            children.push(new Paragraph({
+              spacing:{before:20,after:20},
+              children:[new ImageRun({data:imgBuf,transformation:{width:520,height:190},type:'png'})],
+            }));
+          }
+        }
+      }
+    }
 
   // ── ENHANCEMENT PLANS ──────────────────────────────────────────────
   children.push(
@@ -1691,7 +1789,7 @@ async function buildInstructorWordFromResult(result, cfg){
     mP('رابعاً: التحليل التفصيلي لكل محاضر | Detailed Analysis',{bold:true,size:22,color:DARK,before:0,after:100}),
   );
 
-  lecturers.forEach((lec,li)=>{
+  for(const [li,lec] of lecturers.entries()){
     const cl=clfR(lec.mean||0);
     children.push(
       mP(`${li+1}. ${lec.name}`,{bold:true,size:22,color:MID,before:li===0?0:180,after:40}),
@@ -1724,7 +1822,27 @@ async function buildInstructorWordFromResult(result, cfg){
         mC((lec.mean||0).toFixed(2),dC[3+nQ],cl.bg,{bold:true,color:cl.c,size:17}),
       ]}),
     ]}),sp(60,40));
-  });
+
+    // ── Charts for this lecturer ─────────────────────────────────
+    if(lec.qMeans && lec.qMeans.length>0){
+      children.push(mP('📊 '+lec.name+' — توزيع الإجابات | Answer Distribution',
+        {bold:true,size:15,color:MID,before:40,after:20}));
+      for(let qi=0;qi<lec.qMeans.length;qi++){
+        const qLabel=qTexts[qi]||('Q'+(qi+1));
+        const fD=lec.fDist?lec.fDist[qi]||[0,0,0,0,0]:[0,0,0,0,0];
+        const mD=lec.mDist?lec.mDist[qi]||[0,0,0,0,0]:[0,0,0,0,0];
+        const allD=lec.dist?lec.dist[qi]||[0,0,0,0,0]:fD;
+        const png=await fetchChart(qi+1,qLabel,fD.length?fD:allD,mD.length?mD:allD,'Female','Male');
+        if(png){
+          const imgBuf=Buffer.from(png,'base64');
+          children.push(new Paragraph({
+            spacing:{before:10,after:10},
+            children:[new ImageRun({data:imgBuf,transformation:{width:520,height:185},type:'png'})],
+          }));
+        }
+      }
+    }
+  }
 
   // ── ENHANCEMENT PLANS ─────────────────────────────────────────────────
   children.push(
