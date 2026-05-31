@@ -906,6 +906,7 @@ async function buildWordFromResult(result, cfg){
   const children=[];
   const gCl=clfR(overall);
   const totalQ=secs.reduce((a,s)=>a+(s.qs||[]).length,0);
+  const nQ=totalQ;
   const courseResults=cfg.courseResults||null;
   const isMulti=cfg.isMulti&&courseResults&&Object.keys(courseResults).length>1;
   const courses=isMulti?Object.keys(courseResults):[];
