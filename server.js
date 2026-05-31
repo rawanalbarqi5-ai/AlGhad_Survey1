@@ -1652,53 +1652,6 @@ async function buildWordFromResult(result, cfg){
   } // end else single course
 
 
-  // ── ENHANCEMENT PLANS ─────────────────────────────────────────────────
-  children.push(
-    new Paragraph({pageBreakBefore:true,children:[]}),
-    mP('Enhancement Plans | خطة التحسين',{bold:true,size:30,color:DARK,before:0,after:80}),
-    mP('بناءً على نتائج التقييم — العناصر التي تحتاج اهتماماً مرتبة حسب الأولوية',{size:17,color:'555555',italic:true,before:0,after:120}),
-  );
-
-  // Build EP items per Q overall
-  const epItems=[];
-  Array.from({length:nQ},(_,qi)=>{
-    const oM=overallQM[qi]; if(oM===undefined||oM===0) return;
-    const cl=clfR(oM);
-    const posP=Math.round(allSecs.reduce((a,s)=>{const q=s.questions[qi];return a+(q?(q.pct_sa||0)+(q.pct_a||0):0);},0)/(allSecs.length||1));
-    epItems.push({qi,text:qTexts[qi]||('Q'+(qi+1)),mean:oM,cl,posP,
-      priority:oM<2.5?'🔴 High':oM<3.5?'🟡 Medium':'🟢 Good',
-      action:oM<2.5?`Immediate improvement required for Q${qi+1}. Develop action plan and assign responsible parties.`
-            :oM<3.5?`Review and enhance Q${qi+1} through training and peer feedback sessions.`
-            :`Maintain performance on Q${qi+1}. Document as best practice.`,
-      kpi:oM<3.5?`Raise mean to ≥${Math.min(5,+(oM+0.5).toFixed(1))}; Positive% ≥${Math.min(95,posP+15)}%`
-               :`Maintain mean ≥${oM}; Positive% ≥${posP}%`,
-    });
-  });
-  epItems.sort((a,b)=>a.mean-b.mean); // worst (lowest) first for 5=best scale
-
-  const epC=[900,1200,3500,800,1400,1400,Math.max(400,CW-900-1200-3500-800-1400-1400)];
-  children.push(new Table({width:{size:CW,type:WidthType.DXA},columnWidths:epC,rows:[
-    new TableRow({children:[
-      mH(['Priority'],epC[0]),mH(['Q#'],epC[1]),
-      mH(['Survey Item / Question'],epC[2]),
-      mH(['Mean'],epC[3]),mH(['Classification'],epC[4]),
-      mH(['Positive%\nSA+A'],epC[5]),
-      mH(['Recommended Action | KPI'],epC[6]),
-    ]}),
-    ...epItems.map((item,i)=>{
-      const bg=i%2===0?PALE:WHITE;
-      return new TableRow({children:[
-        mC(item.priority,epC[0],item.cl.bg,{bold:true,color:item.cl.c,size:13}),
-        mC('Q'+(item.qi+1),epC[1],bg,{bold:true,color:DARK}),
-        mC(item.text.slice(0,60),epC[2],bg,{align:AlignmentType.RIGHT,size:12}),
-        mC(item.mean.toFixed(2),epC[3],item.cl.bg,{bold:true,color:item.cl.c}),
-        mC(item.cl.l,epC[4],item.cl.bg,{bold:true,color:item.cl.c,size:13}),
-        mC(item.posP+'%',epC[5],item.posP>=80?GREEN2:item.posP>=60?AMBER2:RED2,
-          {bold:true,color:item.posP>=80?GREEN:item.posP>=60?AMBER:RED,size:14}),
-        mC(item.action+'\n'+item.kpi,epC[6],bg,{align:AlignmentType.LEFT,size:12}),
-      ]});
-    }),
-  ]}),sp(200,80));
 
   return buildDoc(children);
 }
