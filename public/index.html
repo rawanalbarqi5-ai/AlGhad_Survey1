@@ -1092,13 +1092,16 @@ function _finalizeParsed(allParsed,nQ,qTexts){
     var totalNB=boys.reduce(function(a,s){return a+s.n;},0)||1;
     var totalNG=girls.reduce(function(a,s){return a+s.n;},0)||1;
     var qMeans=Array.from({length:nQ},function(_,qi){
-      return+(all.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean*s.n:0);},0)/totalNAll).toFixed(3);
+      var valid=all.filter(function(s){return s.questions[qi]&&s.questions[qi].mean>0;});
+      return valid.length?+(valid.reduce(function(a,s){return a+s.questions[qi].mean;},0)/valid.length).toFixed(3):0;
     });
     var qMeansF=girls.length>0?Array.from({length:nQ},function(_,qi){
-      return+(girls.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean*s.n:0);},0)/totalNG).toFixed(3);
+      var valid=girls.filter(function(s){return s.questions[qi]&&s.questions[qi].mean>0;});
+      return valid.length?+(valid.reduce(function(a,s){return a+s.questions[qi].mean;},0)/valid.length).toFixed(3):0;
     }):null;
     var qMeansM=boys.length>0?Array.from({length:nQ},function(_,qi){
-      return+(boys.reduce(function(a,s){return a+(s.questions[qi]?s.questions[qi].mean*s.n:0);},0)/totalNB).toFixed(3);
+      var valid=boys.filter(function(s){return s.questions[qi]&&s.questions[qi].mean>0;});
+      return valid.length?+(valid.reduce(function(a,s){return a+s.questions[qi].mean;},0)/valid.length).toFixed(3):0;
     }):null;
     var meanF=qMeansF?+(qMeansF.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3):null;
     var meanM=qMeansM?+(qMeansM.reduce(function(a,b){return a+b;},0)/nQ).toFixed(3):null;
