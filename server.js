@@ -246,8 +246,18 @@ const mP=(text,opts={})=>new Paragraph({
 });
 const sp=(b=100,a=100)=>new Paragraph({spacing:{before:b,after:a},children:[]});
 
-const wMean=secs=>{const tn=secs.reduce((a,s)=>a+s.n,0);if(!tn)return null;return +(secs.reduce((a,s)=>a+s.sec_mean*s.n,0)/tn).toFixed(3);};
-const wQMean=(secs,qi)=>{const tn=secs.reduce((a,s)=>a+s.n,0);if(!tn)return null;return +(secs.reduce((a,s)=>a+(s.questions[qi]?.mean||0)*s.n,0)/tn).toFixed(2);};
+const wMean=secs=>{
+  // Simple arithmetic mean: sum of section means ÷ number of sections
+  const valid=secs.filter(s=>s.sec_mean>0);
+  if(!valid.length) return null;
+  return +(valid.reduce((a,s)=>a+s.sec_mean,0)/valid.length).toFixed(3);
+};
+const wQMean=(secs,qi)=>{
+  // Simple arithmetic mean: sum of Q means across sections ÷ number of sections
+  const valid=secs.filter(s=>s.questions[qi]?.mean>0);
+  if(!valid.length) return null;
+  return +(valid.reduce((a,s)=>a+(s.questions[qi]?.mean||0),0)/valid.length).toFixed(2);
+};
 
 // ── Parse XLS ─────────────────────────────────────────────────────────────────
 function parseXLS(buffer) {
