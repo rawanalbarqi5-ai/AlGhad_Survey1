@@ -535,7 +535,12 @@ async function buildCourseWord(groups, meta) {
     const oM=overallQM[qi];const oCl=clf(oM);const bg=qi%2===0?PALE:'FFFFFF';
     return new TableRow({children:[
       mC(`Q${qi+1}`,700,bg,{bold:true,color:DARK,size:14}),
-      mC((qTexts[qi]||'').slice(0,55),qTW,bg,{align:AlignmentType.RIGHT,size:13}),
+      new TableCell({width:{size:Math.max(1,qTW),type:WidthType.DXA},borders:allB(),
+          shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+          children:[
+            new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:4},
+              children:[new TextRun({text:'Q'+(qi+1)+': '+(qTexts[qi]||''),bold:true,size:12,color:'1F4E79',font:'Arial',rtl:true})]}),
+          ]}),
       ...courses.flatMap(c=>{
         if(hasGender){
           const fM=c.qMeansF[qi],mM=c.qMeansM[qi];
@@ -1458,9 +1463,9 @@ async function buildWordFromResult(result, cfg){
           const negP=Math.round((cD[3]||0)+(cD[4]||0));
           const cl=clfR(q.cM||0); const bg=i%2===0?PALE:WHITE;
           const cMv=parseFloat(q.cM)||0;
-          const pr=cMv>=4.5?'🟢 Excellent':cMv>=3.5?'🟢 Good':cMv>=2.5?'🟡 Medium':cMv>=1.5?'🔴 Needs Improvement':'🔴 Critical';
-          const prBg=cMv>=4.5?GREEN2:cMv>=3.5?GREEN2:cMv>=2.5?AMBER2:RED2;
-          const prC=cMv>=4.5?GREEN:cMv>=3.5?GREEN:cMv>=2.5?AMBER:RED;
+          const pr=cMv>=4.5?'🟢 Excellent / ممتاز':cMv>=3.5?'🟢 Good / جيد':cMv>=2.5?'🟡 Acceptable / مقبول':cMv>=1.5?'🔴 Needs Action / يحتاج تدخل':'🔴 Critical / حرج';
+          const prBg=cMv>=4.5?GREEN2:cMv>=3.5?GREEN2:cMv>=2.5?AMBER2:cMv>=1.5?RED2:'FF6B6B';
+          const prC=cMv>=4.5?GREEN:cMv>=3.5?GREEN:cMv>=2.5?AMBER:cMv>=1.5?RED:'9C0006';
           const action=cMv<2.5?'Immediate review & improvement plan required.':cMv<3.5?'Monitor and provide additional support.':'Maintain current practices.';
           const kpi=cMv>=3.5?`Raise to ≥${(cMv+0.5).toFixed(1)}; Pos% ≥${Math.min(95,posP+15)}%`:`Maintain ≥${cMv}; Pos% ≥${posP}%`;
           return new TableRow({children:[
