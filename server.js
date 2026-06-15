@@ -364,7 +364,7 @@ function buildParticipationTable(allSecs, CW, meta) {
   const pC=[600,3200,2400,1200,1200,1200,1400,CW-600-3200-2400-1200-1200-1200-1400];
 
   rows.push(new TableRow({children:[
-    mH(['#'],pC[0]),mH([catLabel,'/ المقرر'],pC[1]),mH(['المحاضر / القسم'],pC[2]),
+    mH(['#'],pC[0]),mH([catLabel,'/ المقرر والمحاضر'],pC[1]),mH(['المحاضر / القسم'],pC[2]),
     mH(['إجمالي','المسجلين'],pC[3]),mH(['عدد','المقيّمين'],pC[4]),
     mH(['لم','يستبينوا'],pC[5]),mH(['نسبة','المشاركة'],pC[6]),
     mH(['المتوسط','العام'],pC[7]),
@@ -376,7 +376,14 @@ function buildParticipationTable(allSecs, CW, meta) {
     const notPct=s.enrolled_num>0?Math.round(s.not_responded/s.enrolled_num*100):0;
     rows.push(new TableRow({children:[
       mC(i+1,pC[0],bg,{bold:true,color:DARK,size:14}),
-      mC(s.course||s.sec_num,pC[1],bg,{bold:true,color:DARK,align:AlignmentType.RIGHT,size:15}),
+      new TableCell({width:{size:Math.max(1,pC[1]),type:WidthType.DXA},borders:allB(),
+        shading:{fill:bg,type:ShadingType.CLEAR},margins:mg(),verticalAlign:VerticalAlign.CENTER,
+        children:[
+          new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:4},
+            children:[new TextRun({text:String(s.course||s.sec_num||''),bold:true,size:15,color:DARK,font:'Arial',rtl:true})]}),
+          new Paragraph({alignment:AlignmentType.RIGHT,spacing:{before:0,after:0},
+            children:[new TextRun({text:String(s.lecturer||s.dept||''),size:12,color:MID,font:'Arial',rtl:true})]}),
+        ]}),
       mC(s.lecturer||s.dept,pC[2],bg,{align:AlignmentType.RIGHT,size:14}),
       mC(s.enrolled_num||'—',pC[3],bg,{bold:true}),
       mC(s.n,pC[4],bg,{bold:true,color:GREEN}),
@@ -579,10 +586,10 @@ async function buildCourseWord(groups, meta) {
   );
 
   // ── رابعاً: جدول مقارنة الإناث والذكور ─────────────────────────────────
-  if(hasGender){
-    children.push(
+  // Show comparison table always (single gender = one column)
+  children.push(
       new Paragraph({pageBreakBefore:true,children:[]}),
-      mP('رابعاً: مقارنة نتائج الإناث والذكور | Female vs Male Comparison',
+      mP(hasGender?'رابعاً: مقارنة نتائج الإناث والذكور | Female vs Male Comparison':'رابعاً: تحليل الأسئلة | Question Analysis',
         {bold:true,size:26,color:DARK,before:0,after:80}),
     );
     const fmC=[500,4500,900,900,900,Math.max(400,CW-500-4500-900*3)];
@@ -618,11 +625,13 @@ async function buildCourseWord(groups, meta) {
             new Paragraph({alignment:AlignmentType.LEFT,spacing:{before:0,after:0},
               children:[new TextRun({text:qTexts[qi]||'',size:10,color:'555555',font:'Arial',italics:true})]}),
           ]}),
-        mC(fM!=null?fM.toFixed(2):'—',fmC[2],'FCE4D6',{bold:true,color:'843C0C',size:14}),
-        mC(mM!=null?mM.toFixed(2):'—',fmC[3],'DDEBF7',{bold:true,color:'1F4E79',size:14}),
-        mC(diff!=null?diff.toFixed(2):'—',fmC[4],
-          diff!=null&&diff>0.5?AMBER2:bg,
-          {bold:diff!=null&&diff>0.5,color:diff!=null&&diff>0.5?AMBER:DARK,size:12}),
+        mC(hasGender?(fM!=null?fM.toFixed(2):'—'):(cMb.toFixed?cMb.toFixed(2):cMb),
+          fmC[2],hasGender?'FCE4D6':PALE,{bold:true,color:hasGender?'843C0C':DARK,size:14}),
+        mC(hasGender?(mM!=null?mM.toFixed(2):'—'):'—',
+          fmC[3],hasGender?'DDEBF7':PALE,{bold:hasGender,color:hasGender?'1F4E79':'AAAAAA',size:14}),
+        mC(hasGender&&diff!=null?diff.toFixed(2):'—',fmC[4],
+          hasGender&&diff!=null&&diff>0.5?AMBER2:bg,
+          {bold:hasGender&&diff!=null&&diff>0.5,color:hasGender&&diff!=null&&diff>0.5?AMBER:DARK,size:12}),
         mC(cl.l,fmC[5],cl.bg,{bold:true,color:cl.c,size:12}),
       ]}));
     });
@@ -639,7 +648,6 @@ async function buildCourseWord(groups, meta) {
         ...fmRows,
       ]}),sp(200,80),
     );
-  }
 
   // ── خامساً: ملخص الشعب (المحاضر + المسجلون + المقيّمون) ────────────────────
   children.push(
@@ -1431,7 +1439,7 @@ async function buildWordFromResult(result, cfg){
     const epItemsMulti=allQsEP.filter(q=>{
       if(!q||q.cM===undefined||seenEP.has(q.qn))return false;
       seenEP.add(q.qn);return true;
-    }).sort((a,b)=>(b.cM||0)-(a.cM||0));
+    }).sort((a,b)=>(a.cM||0)-(b.cM||0)); // lowest mean first = worst (5=best scale)
     const epCM=[700,500,2800,700,1000,600,600,Math.max(300,CW-700-500-2800-700-1000-600-600)];
     children.push(
       new Paragraph({pageBreakBefore:true,children:[]}),
@@ -1450,9 +1458,9 @@ async function buildWordFromResult(result, cfg){
           const negP=Math.round((cD[3]||0)+(cD[4]||0));
           const cl=clfR(q.cM||0); const bg=i%2===0?PALE:WHITE;
           const cMv=parseFloat(q.cM)||0;
-          const pr=cMv>=4.5?'🔴 Critical':cMv>=3.5?'🔴 High':cMv>=2.5?'🟡 Medium':cMv>=1.5?'🟢 Good':'🟢 Excellent';
-          const prBg=cMv>=3.5?RED2:cMv>=2.5?AMBER2:GREEN2;
-          const prC=cMv>=3.5?RED:cMv>=2.5?AMBER:GREEN;
+          const pr=cMv>=4.5?'🟢 Excellent':cMv>=3.5?'🟢 Good':cMv>=2.5?'🟡 Medium':cMv>=1.5?'🔴 Needs Improvement':'🔴 Critical';
+          const prBg=cMv>=4.5?GREEN2:cMv>=3.5?GREEN2:cMv>=2.5?AMBER2:RED2;
+          const prC=cMv>=4.5?GREEN:cMv>=3.5?GREEN:cMv>=2.5?AMBER:RED;
           const action=cMv<2.5?'Immediate review & improvement plan required.':cMv<3.5?'Monitor and provide additional support.':'Maintain current practices.';
           const kpi=cMv>=3.5?`Raise to ≥${(cMv+0.5).toFixed(1)}; Pos% ≥${Math.min(95,posP+15)}%`:`Maintain ≥${cMv}; Pos% ≥${posP}%`;
           return new TableRow({children:[
